@@ -1,26 +1,53 @@
 # Muster — Database Schema
 
-Postgres via Supabase. No SQL written yet — this is the agreed design.
+Postgres via Supabase. SQL lives in `supabase/migrations/`; this file is
+the design it implements.
 
 ## Tables
 
 ### profiles
-Mirrors `auth.users`.
+Mirrors `auth.users`. Created by trigger on signup.
 
 | Column | Type | Notes |
 |---|---|---|
-| id | uuid PK | = `auth.users.id` |
-| name | text | |
-| email | text | |
+| id | uuid PK | → `auth.users.id`, cascade |
+| name | text | not null, non-blank, editable by owner |
+| email | text | not null, **unique**, stored lowercase and trimmed (CHECK) |
+| can_create_groups | bool | default false, set by hand in the dashboard |
+
+Email is the invite lookup key, so case and whitespace must not create
+two identities, and the unique constraint means the schema doesn't lean
+on `auth.users` to enforce it.
+
+Signup is open to anyone; **creating a group is allowlisted**. Without
+the flag an account can accept invitations and play, nothing more.
+Column privileges leave `name` as the only self-editable field, so
+`can_create_groups` cannot be granted by its owner. `email` is not
+editable here either, but that is not the whole story: Supabase Auth has
+its own email-change flow outside these tables, and a trigger syncs any
+such change back into `profiles`. See CONTEXT.md → Identity.
 
 ### groups
 
 | Column | Type | Notes |
 |---|---|---|
 | id | uuid PK | |
-| name | text | |
-| created_by | uuid | → profiles |
+| name | text | not null, non-blank |
+| created_by | uuid | → profiles, not null |
 | created_at | timestamptz | |
+| archived_at | timestamptz | null = live |
+
+**Groups are never deleted.** Archiving sets `archived_at`; the group,
+its members, events, invitations and RSVPs all survive. An archived
+group is invisible and frozen for everyone including its admins, and can
+only be restored from the Supabase dashboard — there is no in-app
+archive page. That is deliberate: an admin archiving by mistake should
+not also be able to make it permanent.
+
+One condition implements all of it. `is_group_member()` and
+`is_group_admin()` both require `archived_at is null`, and every policy
+on `groups`, `events`, `event_invitations` and `event_standby` routes through
+one of them.
 
 ### group_members
 Many-to-many, and the visibility rule.
@@ -43,12 +70,13 @@ Keyed by email, not by profile.
 |---|---|---|
 | id | uuid PK | |
 | group_id | uuid | → groups, cascade |
-| email | text | |
-| invited_by | uuid | → profiles |
+| email | text | lowercase |
+| invited_by | uuid | → profiles, not null |
 | status | text | `pending` \| `accepted` \| `declined` |
-| token | text | for the accept link |
 | created_at | timestamptz | |
-| responded_at | timestamptz | null until answered |
+
+No token column. The email is a notification only — nothing is redeemed,
+so there is nothing to authenticate. The invitee is matched by address.
 
 Partial unique index on `(group_id, email) WHERE status = 'pending'` —
 one open invite per person per group.
@@ -59,32 +87,59 @@ one open invite per person per group.
 |---|---|---|
 | id | uuid PK | |
 | group_id | uuid | → groups, cascade |
-| title | text | |
+| title | text | not null, non-blank |
 | starts_at | timestamptz | |
-| location | text | |
-| capacity | int | confirmed players before standby |
-| created_by | uuid | → profiles |
+| location | text | nullable |
+| capacity | int | > 0. Ceiling on invitations, not on confirmations. **Set at creation, never editable** |
+| created_by | uuid | → profiles, not null |
+| created_at | timestamptz | |
 
-### invitations
-Event-level RSVP.
+UNIQUE `(id, group_id)` — not for uniqueness, which `id` already gives.
+It exists so child tables can reference the pair and have Postgres
+guarantee their denormalised `group_id` matches the event's.
+
+### event_invitations
+Event-level RSVP. A row means the player has been invited.
 
 | Column | Type | Notes |
 |---|---|---|
 | id | uuid PK | |
-| event_id | uuid | → events, cascade |
-| group_id | uuid | denormalised from events — needed for the FK below |
+| event_id | uuid | |
+| group_id | uuid | denormalised from events |
 | profile_id | uuid | |
 | status | text | `pending` \| `in` \| `out` |
-| is_standby | bool | |
-| standby_order | int | queue position, null if not standby |
-| responded_at | timestamptz | |
 
 - UNIQUE `(event_id, profile_id)`
+- FK `(event_id, group_id)` → `events (id, group_id)` `ON DELETE CASCADE`
 - FK `(group_id, profile_id)` → `group_members (group_id, profile_id)`
   `ON DELETE CASCADE`
 
-That composite FK is deliberate: removing someone from a group wipes all
-their RSVPs in that group automatically.
+The second composite FK is deliberate: removing someone from a group
+wipes all their RSVPs in that group automatically.
+
+### event_standby
+The ordered queue. A standby player has **no** `event_invitations` row.
+
+| Column | Type | Notes |
+|---|---|---|
+| event_id | uuid | |
+| group_id | uuid | denormalised from events |
+| profile_id | uuid | |
+| position | int | > 0, queue order, never client-written |
+| added_at | timestamptz | |
+
+- PK `(event_id, profile_id)`
+- UNIQUE `(event_id, position)` — **deferrable**, so a reorder can
+  renumber rows inside one transaction without tripping mid-update
+- Same two composite FKs as `event_invitations`, so group removal drops
+  the player from queues too
+
+No write policies. Every change goes through `set_standby_order()`,
+which takes the whole queue as an ordered array and rewrites positions
+1..n. Adding, removing and reordering are the same operation, so the
+client never computes a position and the queue cannot half-apply.
+Gaps are impossible after a rewrite, but promotion leaves them; nothing
+depends on positions being contiguous.
 
 ### Deferred
 
@@ -96,32 +151,210 @@ their RSVPs in that group automatically.
 
 1. **Group visibility** — a user can select a group only if a
    `group_members` row exists for them and that group. The same predicate
-   cascades to `events` and `invitations`.
+   cascades to `events`, `event_invitations`, and `event_standby`.
 2. **At least one admin** — trigger on `group_members` delete and update
    rejecting any operation that would leave a group with zero admins.
    Covers: last admin leaving, last admin demoting themselves, an admin
    demoting the only other admin.
 3. **Admin-only actions** — RLS policies checking `role = 'admin'` for:
-   create event, invite member, promote/demote, remove member, delete group.
-4. **Group creation** — creator's `group_members` row with `role = 'admin'`
+   create event, invite member, promote/demote, remove member, archive
+   group, reorder standby, change another player's RSVP.
+4. **Group creation allowlist** — insert on `groups` additionally
+   requires `profiles.can_create_groups`. Off by default.
+5. **Column privileges** — RLS filters rows, not columns, so a member
+   passing a row policy could otherwise rewrite any field on it (moving
+   an RSVP to another event, say, skipping capacity and the queue; or
+   granting themselves `can_create_groups`, which sits on their own
+   profile row; or, as an admin, rewriting a `group_members.profile_id`
+   to add someone who never accepted an invitation). `authenticated` may
+   update only `event_invitations (status)`, `profiles (name)`,
+   `groups (name, archived_at)`, `group_members (role)` and
+   `events (title, starts_at, location)` — the last of which is what
+   makes `capacity` immutable and pins an event to its group.
+
+   Worth generalising: **any column on a row a user can update is a
+   column that user can set.** Permission flags and roles either need an
+   explicit column grant, or must live on a table the user cannot write.
+6. **Own RSVP** — a member may update `event_invitations` where
+   `profile_id = auth.uid()`. Everyone in the group may read all of them.
+7. **Seeing your own invitations** — select on `group_invitations` where
+   the row's email matches the caller's and the group is live. The only
+   policy in the schema not keyed off group membership, and necessarily
+   so: before accepting you have no membership row anywhere, so a
+   membership-based policy would hide the invitation and make accepting
+   impossible. `groups` has a matching branch so the invitee can read
+   the group row before deciding. RLS filters rows, not columns, so
+   that means the whole row — `id`, `name`, `created_by`, `created_at`,
+   `archived_at`. Accepted: the only non-obvious field is a creator
+   UUID whose `profiles` row they still cannot read. Nothing about the
+   group's members, events or RSVPs is reachable.
+8. **Accepting an invitation** — `accept_group_invitation(invitation_id)`,
+   a `security definer` function. Two writes that must be atomic: insert
+   `group_members`, then mark the invitation accepted. `security definer`
+   because the invitee has no membership yet and so no RLS route to
+   insert one. The function's guard — a pending invitation exists whose
+   email is the caller's — is therefore the entire security model and
+   must be exact. `decline_group_invitation(invitation_id)` mirrors it.
+9. **Group creation** — creator's `group_members` row with `role = 'admin'`
    is written in the same transaction as the group.
-5. **Cascades** — deleting a group clears its members, events, and
-   invitations via `ON DELETE CASCADE`.
+10. **Profile creation** — trigger on `auth.users` insert writes the
+    matching `profiles` row.
+11. **Capacity invariant** — `pending` + `in` event_invitations <=
+    `capacity`, per event. Spans rows, so a trigger, not a CHECK.
+    `capacity` is not updatable, so inviting a player (or setting one to
+    `in`) is the only way to reach the invariant — one entry point, one
+    guard.
+12. **Standby promotion** — while a slot is free and the queue is
+    non-empty, invite the first standby player (new row, status
+    `pending`) and remove them from the queue. Runs on: RSVP change to
+    `out`, `event_invitations` row deleted by cascade, and any insert or
+    reorder on `event_standby`. Must share a transaction with rule 11 so
+    two concurrent declines cannot promote the same player twice.
+13. **Mutual exclusion** — a player cannot hold an `event_invitations`
+    row and an `event_standby` row for the same event. Cross-table, so a
+    trigger.
+14. **Event freeze** — once `starts_at` passes the event takes no further
+    inserts or updates: no RSVP changes, no promotions, no new invites,
+    no queue edits. Deletes are exempt, deliberately — guarding them
+    would make an old group unarchivable-and-uncleanable, since any
+    cascade would trip on every historic row.
+15. **Cascades** — removing a member clears their RSVPs and queue places
+    in that group via `ON DELETE CASCADE`. Groups themselves are
+    archived rather than deleted, so a group's records are never
+    cascaded away in normal use.
+
+### Functions and triggers
+
+Everything callable or automatic, in one place.
+
+**Helpers** (migration 2 — the policies call them). All `security
+definer stable`. `security definer` is not optional: a policy on
+`group_members` that queried `group_members` would recurse infinitely.
+
+| Function | Returns |
+|---|---|
+| `is_group_member(gid)` | caller is in the group, and it is not archived |
+| `is_group_admin(gid)` | as above, and role is `admin` |
+| `my_email()` | caller's email from `profiles`, not the JWT |
+| `can_create_groups()` | caller's allowlist flag |
+| `group_is_live(gid)` | not archived — for paths with no membership to check |
+| `has_pending_invitation(gid)` | caller has a pending invitation to it |
+
+**RPCs** — called from the app, granted to `authenticated` only.
+
+| Function | Why it exists |
+|---|---|
+| `accept_group_invitation(id)` | two writes that must be atomic; invitee has no membership yet, so no RLS route to insert one |
+| `decline_group_invitation(id)` | mirrors accept; no update policy on `group_invitations` |
+| `set_standby_order(eid, uuid[])` | whole queue in one call; the only write path to `event_standby` |
+
+Things that need **no** RPC: changing your own or (as admin) another
+player's RSVP is a plain update on `event_invitations`; removing a
+player from an event is a plain delete. Demoting an invited player to
+the queue is those two calls in sequence — the delete commits first, so
+promotion pulls the next queued player into the freed slot and the
+demoted player joins behind them.
+
+`set_standby_order` runs `security definer`, so RLS checks nothing and
+its own guards are the entire security model: caller is a group admin,
+event not started, every listed player is a member, and none of them
+already holds an invitation.
+
+**Triggers**
+
+| Trigger | Function | Fires on | Does |
+|---|---|---|---|
+| `on_auth_user_created` | `handle_new_user` | insert on `auth.users` | creates the `profiles` row |
+| `on_auth_user_email_changed` | `sync_user_email` | update of email on `auth.users` | keeps `profiles.email` in step with Auth |
+| `on_group_created` | `handle_new_group` | insert on `groups` | creator's admin membership |
+| `group_keeps_an_admin` | `ensure_admin_remains` | update/delete on `group_members` | rejects leaving a group admin-less. **Deferred** — lets a transaction promote and demote in either order, and lets a group's cascade through |
+| `event_invitations_frozen` | `reject_if_event_started` | insert/update on `event_invitations` | rejects writes past `starts_at` |
+| `event_standby_frozen` | `reject_if_event_started` | insert/update on `event_standby` | as above |
+| `events_frozen` | `reject_if_event_started_self` | update on `events` | as above, checked against the old row |
+| `event_invitations_not_queued` | `reject_if_queued` | insert on `event_invitations` | mutual exclusion — invited or queued, never both |
+| `event_standby_not_invited` | `reject_if_invited` | insert on `event_standby` | the other half of the same rule |
+| `event_invitations_capacity` | `enforce_capacity` | insert/update on `event_invitations` | `pending + in <= capacity` |
+| `event_invitations_promote` | `trigger_promote_standby` | update/delete on `event_invitations` | promotes from the queue. **Deferred** |
+| `event_standby_promote` | `trigger_promote_standby` | insert/update on `event_standby` | as above. **Deferred** |
+
+**Internal** — not granted to `authenticated`, not callable from the app.
+
+| Function | Role |
+|---|---|
+| `promote_standby(eid)` | the promotion body itself |
+| `trigger_promote_standby()` | thin wrapper, passes the event id from the changed row |
+
+Every other function above is a trigger function and is likewise
+unreachable from the API.
+
+`promote_standby(eid)` is the shared body: while a slot is free and the
+queue is non-empty, delete the front of the queue and insert a `pending`
+invitation. Deletion comes first or mutual exclusion rejects the insert.
+
+The concurrency-sensitive parts rest on six details:
+
+- **`select ... for update` on the event row**, taken by `enforce_capacity`
+  on every insert before any early return, and by `promote_standby`.
+  It carries mutual exclusion too, which has no lock of its own. Without
+  it two simultaneous declines both see a free slot and promote the same
+  player; two simultaneous invites both fit into the last space; and an
+  `out` invite races a standby insert for the same player, each blind to
+  the other's uncommitted row.
+- **`select ... for update` on the group row** in `ensure_admin_remains`.
+  Deferring a check to commit makes multi-step changes possible; it does
+  not serialise transactions. Two concurrent demotions would each still
+  see the other's uncommitted admin row.
+- **`select ... for share` on the group row** in the two invitation
+  RPCs, in `set_standby_order`, and in `promote_standby`. Checking
+  `archived_at is null` reads a snapshot; without the lock an archive
+  committing in between would still let the operation write into an
+  archived group.
+- **Lock order is group before event**, everywhere both are taken.
+  `ensure_admin_remains` locks the group and its cascade reaches
+  `promote_standby`, which locks the event — so the queue paths must
+  follow the same order or deadlock. The invitation RPCs take
+  invitation then group, and never touch an event.
+- **`clock_timestamp()` rather than `now()`** for every `starts_at`
+  cutoff. `now()` is fixed at transaction start, so a request that
+  began before kickoff and waited on a lock would pass the cutoff after
+  it, and deferred promotion runs at commit — potentially well after the
+  transaction's `now()`.
+- **The promotion triggers are deferred**, so they run at commit rather
+  than mid-statement. A reorder passes through states where positions
+  duplicate, and promoting from one of those picks the wrong player.
+  They still fire once per affected row; `promote_standby` is idempotent,
+  so the repeats are harmless rather than collapsed.
+
+### Known limits
+
+- **Lost update on the standby queue.** `set_standby_order` replaces the
+  whole queue. Two admins on stale screens — one adds C, the other
+  submits the list without C — and C is silently dropped. The stale check
+  catches a player who was promoted meanwhile, not a concurrent edit. A
+  revision token would close it; not worth it for one team with one or
+  two admins.
+- **Email confirmation must stay enabled in Supabase Auth.** Invitations
+  are matched by address and nothing else, so an unconfirmed signup with
+  someone else's address would inherit their invitations.
 
 ### Application logic
 
-- **Invite flow** — admin enters email → row in `group_invitations` →
-  Edge Function sends the email via Resend. On accept, a function verifies
-  the token, creates the `group_members` row, and marks the invitation
-  accepted.
-- **Standby promotion** — automatic, no admin approval. When confirmed
-  players drop below `capacity`, promote the lowest `standby_order`,
-  clear their standby flag, and notify them. Triggers on: a player
-  declining, and **a member being removed from the group** (the FK
-  cascade silently frees a spot).
-- **Event freeze** — `starts_at` is the only cutoff. Once reached, the
-  event is immutable: no RSVP changes, no standby promotions, no new
-  invites. There is no separate RSVP deadline.
+- **Invite notification** — after the admin inserts a `group_invitations`
+  row, an Edge Function sends a plain email via Resend telling the person
+  to sign in with that address. Fire-and-forget; no part of the flow
+  depends on delivery.
+
+Everything else is in the database. Standby promotion in particular
+cannot be client-side: one of its entry points is an `ON DELETE CASCADE`,
+and no client code runs on a cascade.
+
+## Migrations
+
+| File | Contents |
+|---|---|
+| `20260909030000_create_schema.sql` | Tables, constraints, indexes, `enable row level security` |
+| `20260909031500_rls_policies.sql` | Helper functions, policies, column grants |
+| `20260909033000_functions_triggers.sql` | RPCs and triggers |
 
 ## Open questions
 

@@ -105,10 +105,18 @@ web target rather than the library.
 
 Two roles only: `admin` and `member`.
 
+- Signup is open to anyone, but **creating a group is allowlisted** —
+  `profiles.can_create_groups`, off by default, flipped by hand in the
+  Supabase dashboard. An account without it can accept invitations and
+  play, nothing more.
 - Group creator becomes the first admin.
 - Admins can promote members to admin.
-- Admins can create events, invite members, remove members, and delete
+- Admins can create events, invite members, remove members, and archive
   the group.
+- Admins can change any player's RSVP status and reorder the standby
+  queue.
+- A member can see every player's status on an event but can change only
+  their own.
 - A group can never be left without an admin.
 
 ## Membership model
@@ -118,15 +126,34 @@ Two roles only: `admin` and `member`.
 - Email is the key, not the user account — an unregistered invitee signs
   up first, then sees the pending invite matching their address.
 
+### The invite email carries no functionality
+
+It is a notification, nothing more: "you've been invited to <group>, sign
+in to the app with this email to accept." No link, no token, no accept
+button. Sending it is fire-and-forget — if it never arrives, the
+invitation still exists and the invitee still finds it on signing in.
+
+Accepting and declining both happen in the app, as RPC calls to
+`accept_group_invitation` / `decline_group_invitation`.
+
 ### Identity
 
 `auth.users.id` is a Supabase-generated UUID and is what `auth.uid()`
 returns in RLS policies, so `profiles.id` mirrors it. Email cannot be the
 primary key.
 
-**Email change means a new user.** We do not build email change at all. If
-someone needs a different address they sign up again and an admin
-re-invites them. Email is the invite lookup key; UUID is the identity.
+**We do not build email change.** There is no screen for it; the column
+grant on `profiles` allows only `name`. If someone needs a different
+address, an admin re-invites them at it.
+
+If an address is changed anyway — from the Supabase dashboard, or via the
+Auth API, both of which sit outside these tables — a trigger copies it
+into `profiles`. **Identity and memberships survive**; only the invite
+lookup key moves. That is a deliberate change from the earlier "email
+change means a new user" rule, which was unenforceable: nothing in the
+schema could stop Auth from changing the address, and leaving `profiles`
+stale would have pointed invitation matching at an address the user no
+longer owns.
 
 ## Working conventions
 
@@ -139,27 +166,58 @@ re-invites them. Email is the invite lookup key; UUID is the identity.
 
 ## Standby
 
-Events have a `capacity`. Players beyond it go on standby in an ordered
-queue.
+`capacity` is an event's ceiling on **invitations**, not on confirmed
+players. An admin invites up to `capacity` players; anyone beyond that
+goes into an ordered standby queue.
 
-- Promotion is **automatic** — whenever a spot opens, the first standby
-  player in the queue takes it. No admin approval step.
-- A spot opens whenever confirmed players drop below capacity. Triggers:
-  a confirmed player declining, and a member being removed from the group
-  (the FK cascade silently frees their spot).
+- A standby player has **no RSVP row**. They are a name and a queue
+  position, nothing more, and have no status.
+- Invariant: `pending` + `in` invitations <= `capacity`.
+- Promotion is **automatic**, with no admin approval step: while a slot
+  is free and the queue is non-empty, the first standby player is
+  invited — a new invitation with status `pending`. They can still
+  decline, which frees the slot again and pulls in the next.
+- It fires on every path that opens a slot or changes the queue: a player
+  declining, an admin setting a player to `out`, a member being removed
+  from the group (the FK cascade), and a player being added to or moved
+  up the queue.
+- The queue is **reorderable** by admins. Moving someone to the front
+  while a slot is open promotes them immediately. Reordering is the
+  admin's only promotion lever — there is no direct "promote this player"
+  action.
+- An admin setting a player from `out` back to `in` on a full event is
+  **rejected**. The admin must free a slot first.
 - Promotion stops at `starts_at`, like everything else.
+
+This lives in a **database trigger**, not the client. One of its entry
+points is an `ON DELETE CASCADE` (member removal), and no client code
+runs on a cascade.
 
 ## Event freeze
 
-`starts_at` is the only cutoff. Once an event starts it is immutable — no
-RSVP changes, no standby promotions, no new invites. There is no separate
+`starts_at` is the only cutoff. Once an event starts it takes no further
+edits — no RSVP changes, no standby promotions, no new invites. Deleting
+is still allowed: an admin can remove an old event, and blocking that
+would also block the cascade that clears its rows. There is no separate
 RSVP deadline.
+
+## Groups are archived, never deleted
+
+An admin "removing" a group sets `archived_at`. Everything survives —
+members, events, invitations, RSVPs — and the group becomes invisible
+and frozen for everyone, admins included.
+
+Restoring is **dashboard-only**. There is no in-app archive page, and an
+archived group cannot be unarchived from the app. That's the point: an
+admin who archives by mistake shouldn't also be able to make it
+permanent. An archive page is a maybe, later.
 
 ## No attendance history
 
 RSVPs are operational data, not records. Removing a member from a group
-deletes their RSVPs across all its events, past included. There are no
-season stats, so nothing depends on those rows surviving.
+deletes their `event_invitations` rows across all its events, past
+included. There are no season stats, so nothing depends on those rows
+surviving.
 
 ## Open items
 
