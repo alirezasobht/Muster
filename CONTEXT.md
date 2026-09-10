@@ -55,6 +55,19 @@ Cost: Supabase free tier, Resend free tier. Apple Developer account
   enforces visibility in RLS at the database; with Ktor every check is code
   that must not be forgotten in any endpoint. Revisit only if the standby
   logic outgrows an Edge Function.
+- **Config is injected via a generated Kotlin file, not a plugin.** A Gradle
+  task in `shared/build.gradle.kts` reads `SUPABASE_URL` and
+  `SUPABASE_PUBLISHABLE_KEY` from the environment, falling back to
+  `local.properties` (gitignored), and generates `app.muster.SupabaseConfig`
+  into `commonMain`. `BuildConfig` is Android-only and `expect`/`actual` would
+  mean four copies of two strings; BuildKonfig would work but is a third-party
+  plugin whose Wasm support is one more thing to verify, which is exactly what
+  the rule below exists to avoid. Any future build-time config value follows
+  the same path rather than adding a plugin.
+
+  The publishable key is not a secret — it ships in every APK and in the web
+  bundle. Keeping it out of git is rotation convenience, not security; RLS is
+  the trust boundary. The secret key never reaches the client.
 
 ## Project setup
 
