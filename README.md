@@ -1,42 +1,82 @@
-This is a Kotlin Multiplatform project targeting Android, iOS, Web.
+# Muster
 
-* [/iosApp](./iosApp/iosApp) contains an iOS application. Even if you’re sharing your UI with Compose Multiplatform,
-  you need this entry point for your iOS app. This is also where you should add SwiftUI code for your project.
+A personal football-team organizing app, built to replace Teamer. Create
+events, invite players, keep an ordered standby queue, and see who is
+actually turning up.
 
-* [/shared](./shared/src) is for code that will be shared across your Compose Multiplatform applications.
-  It contains several subfolders:
-  - [commonMain](./shared/src/commonMain/kotlin) is for code that’s common for all targets.
-  - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-    For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-    the [iosMain](./shared/src/iosMain/kotlin) folder would be the right place for such calls.
-    Similarly, if you want to edit the Desktop (JVM) specific part, the [jvmMain](./shared/src/jvmMain/kotlin)
-    folder is the appropriate location.
+Private project, not a product.
 
-### Running the apps
+## Docs
 
-Use the run configurations provided by the run widget in your IDE's toolbar. You can also use these commands and options:
+Read these before changing anything. They are the source of truth, and
+they move often.
 
-- Android app: `./gradlew :androidApp:assembleDebug`
-- Web app:
-  - Wasm target (faster, modern browsers): `./gradlew :webApp:wasmJsBrowserDevelopmentRun`
-  - JS target (slower, supports older browsers): `./gradlew :webApp:jsBrowserDevelopmentRun`
-- iOS app: open the [/iosApp](./iosApp) directory in Xcode and run it from there.
+| File | What it covers |
+|---|---|
+| [docs/CONTEXT.md](docs/CONTEXT.md) | Scope, stack, closed decisions and why, roles, working conventions |
+| [docs/SCHEMA.md](docs/SCHEMA.md) | Tables, constraints, RLS, triggers, what the database enforces versus the app |
+| [docs/SCREENS.md](docs/SCREENS.md) | Screen map, navigation, per-screen behaviour |
+| [docs/design/DESIGN.md](docs/design/DESIGN.md) | Visual design of record, frames 1a–1p |
+| [docs/design/muster-screens-v1.html](docs/design/muster-screens-v1.html) | The frames themselves — open in a browser |
 
-### Running tests
+## Stack
 
-Use the run button in your IDE's editor gutter, or run tests using Gradle tasks:
+Compose Multiplatform (Android, iOS, Web/wasm) over Supabase — Postgres,
+Auth, RLS, Edge Functions. Resend for email. Sign-in is email codes, no
+passwords. Push notifications are deferred past the MVP.
 
-- Android tests: `./gradlew :shared:testAndroidHostTest`
-- Web tests:
-  - Wasm target: `./gradlew :shared:wasmJsTest`
-  - JS target: `./gradlew :shared:jsTest`
-- iOS tests: `./gradlew :shared:iosSimulatorArm64Test`
+Package `app.muster`.
 
----
+## Layout
 
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html),
-[Compose Multiplatform](https://kotlinlang.org/compose-multiplatform/),
-[Kotlin/Wasm](https://kotl.in/wasm/)…
+```
+shared/       shared module — Compose UI, models, data access
+androidApp/   Android host
+iosApp/       Xcode project, thin SwiftUI wrapper
+webApp/       Web host
+supabase/     migrations
+buildSrc/     build-time Supabase config generation
+docs/         see above
+```
 
-We would appreciate your feedback on Compose/Web and Kotlin/Wasm in the public Slack channel [#compose-web](https://slack-chats.kotlinlang.org/c/compose-web).
-If you face any issues, please report them on [YouTrack](https://youtrack.jetbrains.com/newIssue?project=CMP).
+## Setup
+
+Supabase credentials are injected at build time, never committed. Add to
+`local.properties`:
+
+```
+supabase.url=https://<project>.supabase.co
+supabase.publishableKey=<publishable key>
+```
+
+Or set `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` as environment
+variables, which take precedence. Without either, the build fails with a
+message telling you which is missing.
+
+The publishable key is safe to ship — RLS is what protects the data. The
+service role key belongs nowhere near this repo.
+
+## Running
+
+- Android — `./gradlew :androidApp:assembleDebug`
+- Web (wasm) — `./gradlew :webApp:wasmJsBrowserDevelopmentRun`
+- Web (js) — `./gradlew :webApp:jsBrowserDevelopmentRun`
+- iOS — open `iosApp/` in Xcode and run
+
+## Tests
+
+- Android — `./gradlew :shared:testAndroidHostTest`
+- iOS — `./gradlew :shared:iosSimulatorArm64Test`
+- Web — `./gradlew :shared:wasmJsTest` or `:shared:jsTest`
+
+## Database
+
+Migrations live in `supabase/migrations/` and are applied with the
+Supabase CLI. Rules are enforced in the database — RLS policies,
+constraints and triggers — never in the client. The app talks to Supabase
+directly, so the client is not a trust boundary.
+
+## Status
+
+Backend built and tested, four migrations pushed. Supabase SDK wired into
+`shared`. Screen design done. No app code yet — auth is next.
