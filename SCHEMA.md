@@ -11,9 +11,15 @@ Mirrors `auth.users`. Created by trigger on signup.
 | Column | Type | Notes |
 |---|---|---|
 | id | uuid PK | → `auth.users.id`, cascade |
-| name | text | not null, non-blank, editable by owner |
+| name | text | **nullable**, non-blank when present, editable by owner |
 | email | text | not null, **unique**, stored lowercase and trimmed (CHECK) |
 | can_create_groups | bool | default false, set by hand in the dashboard |
+
+A null `name` means the person has not set one yet. The account exists
+from the moment the first sign-in code is requested, which is before
+there is anywhere to have asked. The app requires a name before the home
+screen; nothing in the schema depends on one being set. See CONTEXT.md →
+Identity.
 
 Email is the invite lookup key, so case and whitespace must not create
 two identities, and the unique constraint means the schema doesn't lean
@@ -333,9 +339,12 @@ The concurrency-sensitive parts rest on six details:
   catches a player who was promoted meanwhile, not a concurrent edit. A
   revision token would close it; not worth it for one team with one or
   two admins.
-- **Email confirmation must stay enabled in Supabase Auth.** Invitations
-  are matched by address and nothing else, so an unconfirmed signup with
-  someone else's address would inherit their invitations.
+- **Sign-in must prove the email is yours.** An invitation is matched by
+  email address and nothing else, so whoever signs in as an address gets
+  that address's invitations. Email codes guarantee it — you cannot sign
+  in without reading the mailbox. If passwords are ever added, email
+  confirmation must be on, or anyone could register as a teammate's
+  address and collect their invitations.
 
 ### Application logic
 
@@ -355,6 +364,7 @@ and no client code runs on a cascade.
 | `20260909030000_create_schema.sql` | Tables, constraints, indexes, `enable row level security` |
 | `20260909031500_rls_policies.sql` | Helper functions, policies, column grants |
 | `20260909033000_functions_triggers.sql` | RPCs and triggers |
+| `20260910120000_profile_name_nullable.sql` | `profiles.name` nullable; `handle_new_user` no longer invents one from the email |
 
 ## Open questions
 

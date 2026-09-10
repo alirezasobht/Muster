@@ -68,6 +68,25 @@ Cost: Supabase free tier, Resend free tier. Apple Developer account
   The publishable key is not a secret — it ships in every APK and in the web
   bundle. Keeping it out of git is rotation convenience, not security; RLS is
   the trust boundary. The secret key never reaches the client.
+- **Email codes, no passwords.** Signup and sign-in are one flow: a six-digit
+  code sent to the address. `signInWith(OTP)` creates the account if the
+  address is new; `verifyEmailOtp` with `OtpType.Email.EMAIL` covers both the
+  new and existing cases. No password means no reset flow to build, and every
+  auth email carries `{{ .Token }}` rather than `{{ .ConfirmationURL }}`, so
+  there are no deep links or redirect URLs on any of the four targets.
+
+  It also hardens the invite model. SCHEMA lists "email confirmation must stay
+  enabled" as a known limit, because invitations match on address alone. With
+  code-only sign-in a session is unreachable without receiving mail at that
+  address, so confirmation stops being a toggle that could be turned off.
+
+  Cost: email delivery is the only way in, with no fallback if Resend is down.
+  Sessions never expire, so this only bites on a new device or a reinstall.
+- **Sessions never expire.** Time-boxing and inactivity timeout stay off in
+  Auth → Sessions. Only signing out or losing local storage returns someone to
+  the login screen. supabase-kt keeps the session in `SharedPreferences` on
+  Android and `NSUserDefaults` on iOS — not Keychain, not encrypted. Accepted
+  for a private app; a Keychain-backed `SessionManager` is a maybe, later.
 
 ## Project setup
 
@@ -113,6 +132,14 @@ web target rather than the library.
   expect/actual bindings. Only relevant once push is picked back up.
 - Supabase free-tier projects pause after 7 days of inactivity. Fine
   during a season; an off-season break will need a manual unpause.
+- **No sending domain yet.** Resend is configured with its shared test
+  sender (`onboarding@resend.dev`), which only delivers to the address on
+  the Resend account. Sign-in codes to that address work; anything sent to
+  anyone else is dropped. Invitations fail the most quietly, since the
+  invite email is fire-and-forget by design and the app never learns it
+  never arrived. Buying a domain and verifying it in Resend changes one
+  field in Supabase's SMTP settings and nothing in the app. Must be done
+  before inviting a real teammate.
 
 ## Roles
 
@@ -158,6 +185,15 @@ primary key.
 **We do not build email change.** There is no screen for it; the column
 grant on `profiles` allows only `name`. If someone needs a different
 address, an admin re-invites them at it.
+
+**Setting a name is required, in the app.** `profiles.name` is nullable and
+null means never set. The account exists from the moment the first sign-in
+code is requested, before there is anywhere to have asked, so
+`handle_new_user` leaves the column null rather than inventing a name from
+the email's local part. After sign-in the app shows a name screen if it is
+null — no name, no home screen. This is a UX gate rather than a security
+rule, so unlike everything else it lives in the client; nothing in the
+schema depends on a name being set.
 
 If an address is changed anyway — from the Supabase dashboard, or via the
 Auth API, both of which sit outside these tables — a trigger copies it
