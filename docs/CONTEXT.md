@@ -215,17 +215,21 @@ data/
   dto/          @Serializable table shapes
   mapper/       dto -> model, and error mapping
   repository/   *RepositoryImpl
-  fake/         Fake*Repository — in-memory, for previews and tests
+  fake/         Fake*Repository — in-memory, for ViewModel tests
 domain/
   di/           domainModule — use cases
   model/        Profile, Group, Member, Event, Rsvp, StandbyEntry
   error/        DomainError — LastAdmin, EventFull, EventStarted, ...
   repository/   interfaces
-  usecase/      one class per operation
+  usecase/      one class per operation, named *UseCase
 ui/
+  MusterApp.kt  entry point — theme + NavGraph
   di/           uiModule — ViewModels
-  navigation/
-  theme/ component/ auth/ home/ group/ event/ settings/
+  navigation/   NavGraph.kt, Screen.kt
+  screens/      one folder per screen: XScreen.kt, XUiState.kt, XViewModel.kt
+                launch/ signin/ setname/ home/ group/ event/ settings/
+  common/       ErrorMessages.kt, components/
+  theme/
 ```
 
 `data`, `domain` and `ui` are treated as separate modules, each owning its
@@ -233,6 +237,12 @@ own DI. There is no shared DI package and nothing at the root besides the
 entry points. They are packages inside `:shared`, not Gradle modules, so the
 compiler does not enforce the boundaries — keep imports pointing inward:
 `ui` -> `domain` <- `data`.
+
+`ui` follows the same file naming throughout: a screen's composable, its
+UI state and its ViewModel share one name (`SetNameScreen`,
+`SetNameUiState`, `SetNameViewModel`) and sit together in `screens/<name>/`.
+One ViewModel per screen, not per flow. Anything two screens share moves to
+`common/`, never into one screen's folder.
 
 The layering is kept even where it looks like overhead — interfaces in
 `domain`, implementations in `data`, a use case per operation, fakes
@@ -262,10 +272,9 @@ One module per layer, each in that layer's `di/` package: `dataModule`
 (ViewModels). A layer's module appears once it has something to declare.
 Plus a platform module per target for anything platform-specific.
 `initKoin()` loads them all. It lives at the root (`app/muster/Koin.kt`),
-beside `App.kt`, as an entry point rather than a DI package — the one
-place that sees every layer. Each host calls it before any UI:
-`MusterApplication` on Android, `MainViewController` on iOS, `main.kt` on
-web.
+as an entry point rather than a DI package — the one place that sees every
+layer. Each host calls it before any UI: `MusterApplication` on Android,
+`MainViewController` on iOS, `main.kt` on web.
 
 Android calls it from an `Application` subclass, not `MainActivity`:
 `onCreate` of an activity re-runs on every rotation and configuration
@@ -276,6 +285,29 @@ than once.
 The `SupabaseClient` is a Koin `single` built by a `createClient()`
 factory, not a top-level `val`, so the fakes can replace it. Repositories
 are `single`; use cases are `factory`, being stateless and cheap.
+ViewModels use `viewModelOf`. One exception: `EnterCodeViewModel` takes
+the address as a route argument, so it is declared as
+`viewModel { (email: String) -> ... }` and resolved with `parametersOf`.
+
+### Navigation
+
+JetBrains' `navigation-compose`, with type-safe routes: `@Serializable`
+classes in `ui/navigation/Screen.kt`, one `NavHost` in `NavGraph.kt`.
+It gives a real back stack, so the Android system back button and the
+browser's back button both work without per-screen handling.
+
+Routing is driven by the session, not by the screens. `LaunchViewModel`
+is resolved above the `NavHost` — one instance, surviving every
+navigation — and observes `SessionState`. A change navigates and clears
+the stack with `popUpTo(0)`: there is no going back to a screen that
+belonged to a different sign-in state. `Loading` and `Failed` navigate
+nowhere, leaving whatever is on screen in place, which is what
+`SessionState.Unreachable` requires mid-session.
+
+Screens never navigate on their own. They expose a result on their UI
+state — `RequestCodeUiState.sentTo`, `SetNameUiState.saved` — and the
+graph acts on it, then calls back to clear it so returning to the screen
+does not navigate again.
 
 ## Working conventions
 
@@ -285,6 +317,17 @@ are `single`; use cases are `factory`, being stateless and cheap.
 - Report differences rather than silently replacing files.
 - Enforce rules in the database (RLS, constraints, triggers), not in the
   client. The client is not a trust boundary.
+
+### Kotlin style
+
+- **No trailing comma** after the last argument in a call, a parameter
+  list, or a collection literal. Android Studio's Kotlin formatter adds
+  them by default — turn off Settings -> Editor -> Code Style -> Kotlin ->
+  Other -> "Use trailing comma", or it will put them back on reformat.
+- **Comments are the exception, not the default.** Write one only for a
+  detail that is not visible in the code: an edge case, a constraint from
+  outside the file, or something that silently breaks if changed. No
+  restating what the line does, and no KDoc on every declaration.
 
 ## Standby
 

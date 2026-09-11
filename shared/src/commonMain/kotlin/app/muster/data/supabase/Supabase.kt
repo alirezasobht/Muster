@@ -10,7 +10,7 @@ import io.github.jan.supabase.postgrest.Postgrest
 // The secret key must never reach the client.
 fun createClient(): SupabaseClient = createSupabaseClient(
     supabaseUrl = SupabaseConfig.URL,
-    supabaseKey = SupabaseConfig.PUBLISHABLE_KEY,
+    supabaseKey = SupabaseConfig.PUBLISHABLE_KEY
 ) {
     install(Auth)
     install(Postgrest)

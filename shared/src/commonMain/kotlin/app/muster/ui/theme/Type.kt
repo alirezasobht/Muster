@@ -18,7 +18,7 @@ private fun dmSans() = FontFamily(
     Font(Res.font.dm_sans_regular, FontWeight.Normal),
     Font(Res.font.dm_sans_medium, FontWeight.Medium),
     Font(Res.font.dm_sans_semibold, FontWeight.SemiBold),
-    Font(Res.font.dm_sans_bold, FontWeight.Bold),
+    Font(Res.font.dm_sans_bold, FontWeight.Bold)
 )
 
 @Composable
@@ -30,7 +30,7 @@ internal fun musterTypography(): Typography {
             fontSize = size.sp,
             fontWeight = weight,
             lineHeight = lineHeight.sp,
-            letterSpacing = tracking.sp,
+            letterSpacing = tracking.sp
         )
 
     return Typography(
@@ -51,6 +51,6 @@ internal fun musterTypography(): Typography {
         // Field labels
         labelMedium = style(13, FontWeight.Medium, 18.0),
         // Status badges
-        labelSmall = style(12, FontWeight.SemiBold, 16.0),
+        labelSmall = style(12, FontWeight.SemiBold, 16.0)
     )
 }

@@ -24,6 +24,12 @@ object MusterColors {
 
     val WarningFill = Color(0xFFFBF2DE)
     val WarningText = Color(0xFF7A5A16)
+
+    // Green ground (1q, 1r, 1a) only. The Out red is unreadable on accent,
+    // so errors there use OnAccentError instead.
+    val OnAccent = Color(0xFFF0F7F2)
+    val OnAccentMuted = Color(0xFFE2EFE6)
+    val OnAccentError = Color(0xFFFBE9E7)
 }
 
 // Surfaces and surfaceTint are pinned to white/quiet so M3's tonal tinting
@@ -56,5 +62,5 @@ internal val MusterColorScheme = lightColorScheme(
     error = MusterColors.OutText,
     onError = MusterColors.White,
     errorContainer = MusterColors.OutFill,
-    onErrorContainer = MusterColors.OutText,
+    onErrorContainer = MusterColors.OutText
 )

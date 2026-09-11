@@ -1,0 +1,48 @@
+package app.muster.ui.screens.signin
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import app.muster.domain.error.DomainError
+import app.muster.domain.usecase.RequestSignInCodeUseCase
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+
+class RequestCodeViewModel(
+    private val requestSignInCode: RequestSignInCodeUseCase
+) : ViewModel() {
+
+    private val _state = MutableStateFlow(RequestCodeUiState())
+    val state: StateFlow<RequestCodeUiState> = _state.asStateFlow()
+
+    fun onEmailChange(email: String) {
+        _state.update { it.copy(email = email, emailError = null, error = null) }
+    }
+
+    fun onSendCode() {
+        val current = _state.value
+        if (current.email.isBlank() || current.sending) return
+        viewModelScope.launch {
+            _state.update { it.copy(sending = true, emailError = null, error = null) }
+            try {
+                requestSignInCode(current.email)
+                _state.update { it.copy(sending = false, sentTo = current.email.trim()) }
+            } catch (e: DomainError) {
+                _state.update {
+                    if (e is DomainError.InvalidEmail) {
+                        it.copy(sending = false, emailError = e)
+                    } else {
+                        it.copy(sending = false, error = e)
+                    }
+                }
+            }
+        }
+    }
+
+    // Called once the graph has navigated, so coming back doesn't navigate again.
+    fun onSentToHandled() {
+        _state.update { it.copy(sentTo = null) }
+    }
+}

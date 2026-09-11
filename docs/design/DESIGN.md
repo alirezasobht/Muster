@@ -1,8 +1,9 @@
-# Muster — Screen Design (v1)
+# Muster — Screen Design (v3)
 
-Design of record for the app's nine screens. Open `muster-screens-v1.html`
-in a browser: one canvas, sixteen frames, pan and zoom. Frame ids (1a–1p)
+Design of record for the app's screens. Open `muster-screens-v3.html`
+in a browser: one canvas, eighteen frames, pan and zoom. Frame ids (1a–1r)
 are the reference names — use them in issues and commits.
+(`muster-screens-v1.html` and `-v2.html` are earlier snapshots, kept for reference.)
 
 Companion to `SCREENS.md` (screen map, navigation) and `CONTEXT.md`
 (product decisions). Where this file and a screenshot disagree, this file wins.
@@ -20,6 +21,15 @@ Companion to `SCREENS.md` (screen map, navigation) and `CONTEXT.md`
 - Error text (wrong code, rate limit, failed save) uses the Out red
   `#9A3324`. Destructive *buttons* stay ink — see Archive group below.
 - Light only. No dark theme is designed.
+- **Frames are drawn at 390 px.** On anything wider — a desktop browser, a
+  tablet — the content column is capped at 480 dp and centred, while the
+  screen's background still fills the window, so 1a and 1q stay green edge
+  to edge. `PhoneWidth` in `ui/common/components`, applied per screen.
+- **Green ground** is used on exactly two screens: launch (1q/1r) and
+  request code (1a). Inverted tokens there: white field with no outline,
+  `#F0F7F2` labels and body, `#E2EFE6` footnotes, white primary button with
+  a `#1F5C39` label, `#FBE9E7` error text (the Out red is unreadable on
+  green). Everywhere else the surface is white or `#F5F7F5`.
 - Type: DM Sans (UI), DM Mono (overlines, timestamps, capacity strings).
 - Material-ish, not slavish: no bottom nav, no elevation theatre, no FAB
   shadow beyond the two extended FABs.
@@ -41,7 +51,7 @@ Members see the same badges, read-only.
 
 | id | Screen |
 |---|---|
-| 1a | Request code |
+| 1a | Request code (green ground) |
 | 1b | Enter code |
 | 1c | Set name |
 | 1d | Home |
@@ -57,6 +67,8 @@ Members see the same badges, read-only.
 | 1n | Event — started (frozen) |
 | 1o | Add players |
 | 1p | Archive group (admin) |
+| 1q | Launch |
+| 1r | Launch — couldn’t start |
 
 ## Decisions this design fixes
 
@@ -97,10 +109,20 @@ Members see the same badges, read-only.
   "No reply", the standby header reads "Standby · not called up". Identical
   for admins and members.
 - **Set name** reuses the Settings name field and has no back button.
+- **Launch** is the one screen where accent fills the surface — it reads as
+  the app icon, not UI. On Android it is the splashscreen theme
+  (`windowBackground` `#2F7D4F`, the M as the icon), so there is no second
+  splash after the system one. The spinner appears after ~400 ms so a warm
+  start never flashes it.
+- **Launch failure** is the same screen, not a second one: the mark and
+  wordmark hold position and the 260px zone below them swaps the spinner
+  for a message plus *Try again* and *Sign out*. Sign out clears the session
+  and goes to 1a — the escape hatch for a session the server rejects; it is
+  hidden when there is no session, leaving Try again alone.
 
 ## Still open
 
 - Past events tab.
 - Notification preferences in Settings, once push lands.
-- No destructive colour is defined. Out red doubles as error text;
-  destructive buttons are ink.
+- No destructive colour is defined; Out is the only red in the app.
+- Offline behaviour beyond the launch failure state.
