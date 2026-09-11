@@ -83,6 +83,9 @@ kotlin {
                 implementation(libs.androidx.lifecycle.runtimeCompose)
                 implementation(libs.supabase.postgrest)
                 implementation(libs.supabase.auth)
+                implementation(libs.koin.core)
+                implementation(libs.koin.compose)
+                implementation(libs.koin.compose.viewmodel)
             }
         }
         commonTest.dependencies {

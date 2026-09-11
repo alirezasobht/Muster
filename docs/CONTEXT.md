@@ -204,6 +204,79 @@ schema could stop Auth from changing the address, and leaving `profiles`
 stale would have pointed invitation matching at an address the user no
 longer owns.
 
+## App architecture
+
+Layered, in `shared/src/commonMain/kotlin/app/muster/`:
+
+```
+data/
+  di/           dataModule — client, repositories
+  supabase/     createClient(), session storage
+  dto/          @Serializable table shapes
+  mapper/       dto -> model, and error mapping
+  repository/   *RepositoryImpl
+  fake/         Fake*Repository — in-memory, for previews and tests
+domain/
+  di/           domainModule — use cases
+  model/        Profile, Group, Member, Event, Rsvp, StandbyEntry
+  error/        DomainError — LastAdmin, EventFull, EventStarted, ...
+  repository/   interfaces
+  usecase/      one class per operation
+ui/
+  di/           uiModule — ViewModels
+  navigation/
+  theme/ component/ auth/ home/ group/ event/ settings/
+```
+
+`data`, `domain` and `ui` are treated as separate modules, each owning its
+own DI. There is no shared DI package and nothing at the root besides the
+entry points. They are packages inside `:shared`, not Gradle modules, so the
+compiler does not enforce the boundaries — keep imports pointing inward:
+`ui` -> `domain` <- `data`.
+
+The layering is kept even where it looks like overhead — interfaces in
+`domain`, implementations in `data`, a use case per operation, fakes
+behind the same interfaces.
+
+`domain` is unusually thin, because capacity, standby promotion, the
+last-admin invariant and the freeze all live in Postgres. Use cases
+mostly delegate. Do not re-implement those rules in Kotlin: the client
+cannot enforce them, and a second copy would drift.
+
+`DomainError` is where the layering earns its keep. The database rejects
+things the client cannot predict — last admin, full event, started event
+— so `data/mapper` turns Postgres error codes into typed errors in one
+place. Without it the UI shows raw `PostgrestRestException` strings.
+
+There is no network module. supabase-kt *is* the client: Postgrest builds
+the REST calls, Auth handles sessions and refresh, Ktor is the engine
+underneath. Repositories call `supabase.from("groups")` directly — no API
+interface, no manual JSON, and no `where user_id = ...`, since RLS
+decides what comes back. Retrofit would not work here anyway; it is
+JVM-only and cannot live in `commonMain`.
+
+### DI: Koin
+
+One module per layer, each in that layer's `di/` package: `dataModule`
+(client, repositories), `domainModule` (use cases), `uiModule`
+(ViewModels). A layer's module appears once it has something to declare.
+Plus a platform module per target for anything platform-specific.
+`initKoin()` loads them all. It lives at the root (`app/muster/Koin.kt`),
+beside `App.kt`, as an entry point rather than a DI package — the one
+place that sees every layer. Each host calls it before any UI:
+`MusterApplication` on Android, `MainViewController` on iOS, `main.kt` on
+web.
+
+Android calls it from an `Application` subclass, not `MainActivity`:
+`onCreate` of an activity re-runs on every rotation and configuration
+change, and Koin throws if started twice. `initKoin()` also guards against
+an already-started Koin, because iOS may call `MainViewController()` more
+than once.
+
+The `SupabaseClient` is a Koin `single` built by a `createClient()`
+factory, not a top-level `val`, so the fakes can replace it. Repositories
+are `single`; use cases are `factory`, being stateless and cheap.
+
 ## Working conventions
 
 - Understand the architectural implications before writing code.
