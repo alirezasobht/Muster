@@ -15,6 +15,11 @@ Companion to `SCREENS.md` (screen map, navigation) and `CONTEXT.md`
 - Warning tint `#FBF2DE` / `#7A5A16` only for "event is full" notices.
 - Ink `#14171A`, secondary `#4A524D`, muted `#6E7671`, hairline `#E4E7E4`,
   quiet surface `#F5F7F5`.
+- Outline `#D7DCD8` for field and outlined-button borders; hint `#8A918C`
+  for footnotes and hints under fields (1a footer, 1b resend line).
+- Error text (wrong code, rate limit, failed save) uses the Out red
+  `#9A3324`. Destructive *buttons* stay ink — see Archive group below.
+- Light only. No dark theme is designed.
 - Type: DM Sans (UI), DM Mono (overlines, timestamps, capacity strings).
 - Material-ish, not slavish: no bottom nav, no elevation theatre, no FAB
   shadow beyond the two extended FABs.
@@ -97,4 +102,5 @@ Members see the same badges, read-only.
 
 - Past events tab.
 - Notification preferences in Settings, once push lands.
-- No destructive colour is defined; Out is the only red in the app.
+- No destructive colour is defined. Out red doubles as error text;
+  destructive buttons are ink.
