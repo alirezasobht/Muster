@@ -93,6 +93,23 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
+        val androidHostTest by getting {
+            dependencies {
+                implementation(libs.kotlin.testJunit)
+                implementation(libs.junit)
+                implementation(libs.kotlinx.coroutines.test)
+            }
+        }
+        val androidDeviceTest by getting {
+            dependencies {
+                implementation(libs.kotlin.testJunit)
+                implementation(libs.junit)
+                implementation(libs.androidx.testExt.junit)
+                implementation(libs.compose.uiTest)
+                implementation(libs.compose.uiTestJUnit4)
+                implementation(libs.compose.uiTestManifest)
+            }
+        }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
         }

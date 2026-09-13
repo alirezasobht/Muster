@@ -102,7 +102,8 @@ shared/              shared module — UI + logic
   src/iosMain/
   src/jsMain/
   src/wasmJsMain/
-  src/commonTest/    + androidHostTest, iosTest, webTest
+  src/commonTest/    + androidHostTest (JVM unit tests),
+                     androidDeviceTest (Compose UI tests), iosTest, webTest
 androidApp/          Android host — MainActivity only
 iosApp/              Xcode project, thin SwiftUI wrapper
 webApp/              Web host — main.kt, index.html, styles.css
@@ -328,6 +329,41 @@ does not navigate again.
   detail that is not visible in the code: an edge case, a constraint from
   outside the file, or something that silently breaks if changed. No
   restating what the line does, and no KDoc on every declaration.
+
+## Testing
+
+ViewModel tests live in **`androidHostTest`**, not `commonTest`. They
+need `Dispatchers.setMain`, which is solid on JVM and Native but flaky on
+JS and Wasm, and `commonTest` runs on every target. The ViewModels are
+common code, so testing them once on the JVM still covers all four.
+
+Every ViewModel test needs `MainDispatcherRule` (in `androidHostTest`,
+`app/muster/testing/`): `viewModelScope` runs on `Dispatchers.Main`, which
+has no implementation off Android, so without it the first `launch {}`
+fails.
+
+ViewModels are tested against the **fakes** in `data/fake`, never against
+mocks. Each fake takes an error per method (`requestError`, `getError`,
+...) so failure paths can be driven, and counts calls so "sent exactly
+one code" is checkable. They are `commonMain`, not `commonTest`, so they
+ship in the release binary — accepted for a private app.
+
+**Set a ViewModel's in-flight flag before `launch`, never inside it.**
+`sending`, `verifying` and `saving` guard against a second tap, and the
+guard reads the flag synchronously. Setting it inside the coroutine works
+on device only because `viewModelScope` uses `Main.immediate`; under a
+standard test dispatcher two taps in one frame both got through, and sent
+two codes. The guard must not depend on which dispatcher is in play.
+
+`androidDeviceTest` holds a handful of Compose UI tests over the
+stateless screens — enabled and disabled states, callbacks, error
+rendering. Not full flows: the routing they would exercise is already
+covered by `LaunchViewModelTest`. Screens are driven directly with
+literal state, so no Koin and no `NavHost` is involved.
+
+Find a text field with `hasSetTextAction()`, not `onNodeWithText(label)`:
+the label is a separate node above the field and has no focus action, so
+text input against it fails.
 
 ## Standby
 

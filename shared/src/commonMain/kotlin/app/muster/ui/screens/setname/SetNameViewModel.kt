@@ -25,8 +25,10 @@ class SetNameViewModel(
     fun onContinue() {
         val current = _state.value
         if (current.name.isBlank() || current.saving) return
+        // Set before launching, not inside: the guard above must see it on a
+        // second tap in the same frame, whatever dispatcher is in play.
+        _state.update { it.copy(saving = true, error = null) }
         viewModelScope.launch {
-            _state.update { it.copy(saving = true, error = null) }
             try {
                 val profile = updateName(current.name)
                 _state.update { it.copy(saving = false, saved = profile) }

@@ -9,27 +9,53 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlin.time.Duration.Companion.milliseconds
 
-class FakeAuthRepository(initial: SessionState = SessionState.SignedOut) : AuthRepository {
+class FakeAuthRepository(
+    initial: SessionState = SessionState.SignedOut,
+    // Set to make the next call of that kind throw instead of succeeding.
+    // Stays set until cleared, so a test can drive repeated failures.
+    var requestError: DomainError? = null,
+    var verifyError: DomainError? = null,
+    var signOutError: DomainError? = null,
+    var retryError: DomainError? = null,
+    private val latency: Long = FAKE_LATENCY_MS
+) : AuthRepository {
 
     private val state = MutableStateFlow(initial)
     override val session: StateFlow<SessionState> = state.asStateFlow()
 
+    var requestedCodes: Int = 0
+        private set
+
+    var lastRequestedEmail: String? = null
+        private set
+
     override suspend fun requestSignInCode(email: String) {
-        delay(FAKE_LATENCY_MS.milliseconds)
+        delay(latency.milliseconds)
+        requestError?.let { throw it }
+        lastRequestedEmail = email
+        requestedCodes++
     }
 
     override suspend fun verifySignInCode(email: String, code: String) {
-        delay(FAKE_LATENCY_MS.milliseconds)
+        delay(latency.milliseconds)
+        verifyError?.let { throw it }
         if (code == REJECTED_CODE) throw DomainError.InvalidCode()
         state.value = SessionState.SignedIn(userId = FAKE_USER_ID, email = email)
     }
 
     override suspend fun signOut() {
+        signOutError?.let { throw it }
         state.value = SessionState.SignedOut
     }
 
     override suspend fun retrySession() {
-        delay(FAKE_LATENCY_MS.milliseconds)
+        delay(latency.milliseconds)
+        retryError?.let { throw it }
+    }
+
+    // Stands in for the SDK reaching the server again, or losing it.
+    fun emit(session: SessionState) {
+        state.value = session
     }
 
     companion object {
@@ -38,6 +64,6 @@ class FakeAuthRepository(initial: SessionState = SessionState.SignedOut) : AuthR
     }
 }
 
-internal const val FAKE_EMAIL = "alex.doyle@gmail.com"
-internal const val FAKE_USER_ID = "00000000-0000-0000-0000-000000000001"
-internal const val FAKE_LATENCY_MS = 600L
+const val FAKE_EMAIL = "alex.doyle@gmail.com"
+const val FAKE_USER_ID = "00000000-0000-0000-0000-000000000001"
+const val FAKE_LATENCY_MS = 600L

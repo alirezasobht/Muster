@@ -24,8 +24,10 @@ class RequestCodeViewModel(
     fun onSendCode() {
         val current = _state.value
         if (current.email.isBlank() || current.sending) return
+        // Set before launching, not inside: the guard above must see it on a
+        // second tap in the same frame, whatever dispatcher is in play.
+        _state.update { it.copy(sending = true, emailError = null, error = null) }
         viewModelScope.launch {
-            _state.update { it.copy(sending = true, emailError = null, error = null) }
             try {
                 requestSignInCode(current.email)
                 _state.update { it.copy(sending = false, sentTo = current.email.trim()) }

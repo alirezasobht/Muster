@@ -37,8 +37,10 @@ class EnterCodeViewModel(
     fun onVerify() {
         val current = _state.value
         if (current.code.length != CODE_LENGTH || current.verifying) return
+        // Set before launching, not inside: the guard above must see it on a
+        // second tap in the same frame, whatever dispatcher is in play.
+        _state.update { it.copy(verifying = true, error = null) }
         viewModelScope.launch {
-            _state.update { it.copy(verifying = true, error = null) }
             try {
                 verifySignInCode(current.email, current.code)
                 // Leave `verifying` set: the session flow drives the next
