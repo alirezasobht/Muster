@@ -1,7 +1,5 @@
 # Muster — Screens
 
-Design only. Nothing here is built yet.
-
 CONTEXT.md holds the product decisions, SCHEMA.md the database, and
 `design/DESIGN.md` the visual design. This file covers what the app
 looks like and how you move through it.
@@ -42,6 +40,24 @@ flowchart TD
 ```
 
 Nine screens. A plain stack — no bottom navigation.
+
+## Staying current
+
+There is no live sync. Data is fetched when a screen needs it, and there
+are two ways to get fresh data after that:
+
+- **Refresh on resume** — refetch when the screen returns to the
+  foreground, or is returned to from further up the stack.
+- **Pull to refresh** — manual, for when someone is watching and waiting.
+
+Both apply to Home, the Group events tab, the Group members tab, and
+Event. Not to Launch, Request code, Enter code, Set name or Settings:
+nothing changes underneath those.
+
+Event is the one that matters most. Standby promotion happens in a
+database trigger, so no client code runs when a player is promoted —
+without a refresh they learn about it the next time they open the screen.
+Until push lands, that is the only notification there is.
 
 ## Screens
 
@@ -142,3 +158,11 @@ Still open:
 
 - A past events tab. Out of scope for now.
 - Notification preferences in Settings, once push lands.
+- **Supabase Realtime.** `realtime-kt` would push Postgres changes over
+  a websocket, so a promoted standby player, or an RSVP someone else
+  changed, would appear without a refresh. The natural fit is Event, the
+  one screen several people look at simultaneously in the hour before a
+  match. Deferred: refresh-on-resume covers almost everything, and
+  Realtime adds a module to verify on wasm, connection lifecycle across
+  four platforms, and subscriptions that RLS can silently filter to
+  nothing. Revisit once Event exists.

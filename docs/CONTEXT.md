@@ -1,5 +1,9 @@
 # Muster — Project Context
 
+What the app is and the rules it runs on. Code organisation is in
+ARCHITECTURE.md, the database in SCHEMA.md, screens in SCREENS.md, and
+the reasoning behind closed choices in DECISIONS.md.
+
 ## What this is
 
 A personal football-team organizing app, built to replace Teamer
@@ -20,7 +24,7 @@ In scope:
 Explicitly out of scope:
 - Payments
 - Chat / messaging
-- Push notifications (deferred past MVP — see below)
+- Push notifications (deferred past MVP)
 - Public web page
 
 ## Stack
@@ -32,115 +36,31 @@ Explicitly out of scope:
 | Targets | Android, iOS, Web | Desktop and Server off. Web is exploratory |
 | Backend | Supabase | Postgres, Auth, RLS, Edge Functions |
 | Region | Sydney (`ap-southeast-2`) | Users are AU-based |
-| Email | Resend via custom SMTP | Supabase's built-in sender is test-only |
+| Auth | Email codes | No passwords anywhere |
+| Email | Gmail SMTP | `muster.team.app@gmail.com`, app password |
 | Push (post-MVP) | FCM | Delivers to both Android and iOS (via APNs) |
 
-Cost: Supabase free tier, Resend free tier. Apple Developer account
-($99/yr) needed only when shipping to iPhones.
+Every row here was a choice with an argument behind it — see
+DECISIONS.md.
 
-### Decisions already closed
+Cost: Supabase free tier, Gmail free. Apple Developer account
+($99/yr) needed only when shipping to iPhones. No domain needed.
 
-- **Native over PWA.** PWA was seriously considered to avoid the $99/yr
-  and cover all platforms at once. Rejected because iOS web push is
-  unreliable — silent unsubscriptions, listeners failing after restart —
-  and notifications are the core feature.
-- **Supabase over Firebase.** The data is relational; standby queues need
-  ordered SQL queries. Also has an official KMP SDK, where Firebase relies
-  on a community wrapper.
-- **Compose Multiplatform over Flutter.** Existing Kotlin/Compose skills
-  transfer directly; Flutter's larger ecosystem doesn't pay off at this size.
-- **Supabase over a self-hosted Ktor backend.** Ktor would give shared
-  models across client and server, but means writing auth, running Postgres,
-  migrations, deployment, and hosting (~$5/mo). More importantly, Supabase
-  enforces visibility in RLS at the database; with Ktor every check is code
-  that must not be forgotten in any endpoint. Revisit only if the standby
-  logic outgrows an Edge Function.
-- **Config is injected via a generated Kotlin file, not a plugin.** A Gradle
-  task in `shared/build.gradle.kts` reads `SUPABASE_URL` and
-  `SUPABASE_PUBLISHABLE_KEY` from the environment, falling back to
-  `local.properties` (gitignored), and generates `app.muster.SupabaseConfig`
-  into `commonMain`. `BuildConfig` is Android-only and `expect`/`actual` would
-  mean four copies of two strings; BuildKonfig would work but is a third-party
-  plugin whose Wasm support is one more thing to verify, which is exactly what
-  the rule below exists to avoid. Any future build-time config value follows
-  the same path rather than adding a plugin.
-
-  The publishable key is not a secret — it ships in every APK and in the web
-  bundle. Keeping it out of git is rotation convenience, not security; RLS is
-  the trust boundary. The secret key never reaches the client.
-- **Email codes, no passwords.** Signup and sign-in are one flow: a six-digit
-  code sent to the address. `signInWith(OTP)` creates the account if the
-  address is new; `verifyEmailOtp` with `OtpType.Email.EMAIL` covers both the
-  new and existing cases. No password means no reset flow to build, and every
-  auth email carries `{{ .Token }}` rather than `{{ .ConfirmationURL }}`, so
-  there are no deep links or redirect URLs on any of the four targets.
-
-  It also hardens the invite model. SCHEMA lists "email confirmation must stay
-  enabled" as a known limit, because invitations match on address alone. With
-  code-only sign-in a session is unreachable without receiving mail at that
-  address, so confirmation stops being a toggle that could be turned off.
-
-  Cost: email delivery is the only way in, with no fallback if Resend is down.
-  Sessions never expire, so this only bites on a new device or a reinstall.
-- **Sessions never expire.** Time-boxing and inactivity timeout stay off in
-  Auth → Sessions. Only signing out or losing local storage returns someone to
-  the login screen. supabase-kt keeps the session in `SharedPreferences` on
-  Android and `NSUserDefaults` on iOS — not Keychain, not encrypted. Accepted
-  for a private app; a Keychain-backed `SessionManager` is a maybe, later.
-
-## Project setup
-
-Created via the Kotlin Multiplatform wizard (JetBrains KMP plugin in
-Android Studio, or kmp.jetbrains.com) — **not** a standard Android project.
-
-Targets: Android, iOS with **Share UI**, and Web. Desktop and Server unchecked.
-
-```
-shared/              shared module — UI + logic
-  src/commonMain/    shared Compose UI, models, logic
-  src/androidMain/
-  src/iosMain/
-  src/jsMain/
-  src/wasmJsMain/
-  src/commonTest/    + androidHostTest (JVM unit tests),
-                     androidDeviceTest (Compose UI tests), iosTest, webTest
-androidApp/          Android host — MainActivity only
-iosApp/              Xcode project, thin SwiftUI wrapper
-webApp/              Web host — main.kt, index.html, styles.css
-```
-
-Package: `app.muster`.
-
-Xcode must be installed; the plugin's preflight checks will flag it otherwise.
-
-### On the Web target
-
-Included to experiment with, not committed to. It's the Wasm canvas
-target — heavy initial load, weak on Safari — so it is not the path to a
-lightweight public invite page.
-
-The cost of keeping it: `wasmJs` constrains `commonMain`. Every shared
-dependency must support Wasm or it has to move into platform-specific
-source sets. Supabase's Kotlin SDK does support wasmJs; smaller libraries
-often won't.
-
-Rule: if a library needed for Android/iOS lacks Wasm support, drop the
-web target rather than the library.
-
-### Known risks
+## Known risks
 
 - Firebase/FCM on KMP needs GitLive's wrapper or hand-written
   expect/actual bindings. Only relevant once push is picked back up.
 - Supabase free-tier projects pause after 7 days of inactivity. Fine
   during a season; an off-season break will need a manual unpause.
-- **No sending domain yet.** Resend is configured with its shared test
-  sender (`onboarding@resend.dev`), which only delivers to the address on
-  the Resend account. Sign-in codes to that address work; anything sent to
-  anyone else is dropped. Invitations fail the most quietly, since the
-  invite email is fire-and-forget by design and the app never learns it
-  never arrived. Buying a domain and verifying it in Resend changes one
-  field in Supabase's SMTP settings and nothing in the app. Must be done
-  before inviting a real teammate.
+- **Gmail deliverability.** Mail from a `@gmail.com` sender has no SPF or
+  DKIM of its own and is more likely to be filtered than mail from a
+  verified domain. Sign-in codes landing in spam look identical to a
+  broken app, since they are the only way in. Verified working to real
+  addresses; worth re-checking spam folders after any change.
+- **Gmail's daily cap is about 500 messages**, which is the real ceiling —
+  not Supabase's. Raising Supabase's auth rate limit past it just moves
+  the failure from a 429 to a Gmail rejection. Fine for a few teams,
+  wrong for anything larger.
 
 ## Roles
 
@@ -185,7 +105,9 @@ primary key.
 
 **We do not build email change.** There is no screen for it; the column
 grant on `profiles` allows only `name`. If someone needs a different
-address, an admin re-invites them at it.
+address, an admin re-invites them at it. A change made outside the app —
+dashboard or Auth API — is copied into `profiles` by a trigger, and
+memberships survive it. See DECISIONS.md.
 
 **Setting a name is required, in the app.** `profiles.name` is nullable and
 null means never set. The account exists from the moment the first sign-in
@@ -195,175 +117,6 @@ the email's local part. After sign-in the app shows a name screen if it is
 null — no name, no home screen. This is a UX gate rather than a security
 rule, so unlike everything else it lives in the client; nothing in the
 schema depends on a name being set.
-
-If an address is changed anyway — from the Supabase dashboard, or via the
-Auth API, both of which sit outside these tables — a trigger copies it
-into `profiles`. **Identity and memberships survive**; only the invite
-lookup key moves. That is a deliberate change from the earlier "email
-change means a new user" rule, which was unenforceable: nothing in the
-schema could stop Auth from changing the address, and leaving `profiles`
-stale would have pointed invitation matching at an address the user no
-longer owns.
-
-## App architecture
-
-Layered, in `shared/src/commonMain/kotlin/app/muster/`:
-
-```
-data/
-  di/           dataModule — client, repositories
-  supabase/     createClient(), session storage
-  dto/          @Serializable table shapes
-  mapper/       dto -> model, and error mapping
-  repository/   *RepositoryImpl
-  fake/         Fake*Repository — in-memory, for ViewModel tests
-domain/
-  di/           domainModule — use cases
-  model/        Profile, Group, Member, Event, Rsvp, StandbyEntry
-  error/        DomainError — LastAdmin, EventFull, EventStarted, ...
-  repository/   interfaces
-  usecase/      one class per operation, named *UseCase
-ui/
-  MusterApp.kt  entry point — theme + NavGraph
-  di/           uiModule — ViewModels
-  navigation/   NavGraph.kt, Screen.kt
-  screens/      one folder per screen: XScreen.kt, XUiState.kt, XViewModel.kt
-                launch/ signin/ setname/ home/ group/ event/ settings/
-  common/       ErrorMessages.kt, components/
-  theme/
-```
-
-`data`, `domain` and `ui` are treated as separate modules, each owning its
-own DI. There is no shared DI package and nothing at the root besides the
-entry points. They are packages inside `:shared`, not Gradle modules, so the
-compiler does not enforce the boundaries — keep imports pointing inward:
-`ui` -> `domain` <- `data`.
-
-`ui` follows the same file naming throughout: a screen's composable, its
-UI state and its ViewModel share one name (`SetNameScreen`,
-`SetNameUiState`, `SetNameViewModel`) and sit together in `screens/<name>/`.
-One ViewModel per screen, not per flow. Anything two screens share moves to
-`common/`, never into one screen's folder.
-
-The layering is kept even where it looks like overhead — interfaces in
-`domain`, implementations in `data`, a use case per operation, fakes
-behind the same interfaces.
-
-`domain` is unusually thin, because capacity, standby promotion, the
-last-admin invariant and the freeze all live in Postgres. Use cases
-mostly delegate. Do not re-implement those rules in Kotlin: the client
-cannot enforce them, and a second copy would drift.
-
-`DomainError` is where the layering earns its keep. The database rejects
-things the client cannot predict — last admin, full event, started event
-— so `data/mapper` turns Postgres error codes into typed errors in one
-place. Without it the UI shows raw `PostgrestRestException` strings.
-
-There is no network module. supabase-kt *is* the client: Postgrest builds
-the REST calls, Auth handles sessions and refresh, Ktor is the engine
-underneath. Repositories call `supabase.from("groups")` directly — no API
-interface, no manual JSON, and no `where user_id = ...`, since RLS
-decides what comes back. Retrofit would not work here anyway; it is
-JVM-only and cannot live in `commonMain`.
-
-### DI: Koin
-
-One module per layer, each in that layer's `di/` package: `dataModule`
-(client, repositories), `domainModule` (use cases), `uiModule`
-(ViewModels). A layer's module appears once it has something to declare.
-Plus a platform module per target for anything platform-specific.
-`initKoin()` loads them all. It lives at the root (`app/muster/Koin.kt`),
-as an entry point rather than a DI package — the one place that sees every
-layer. Each host calls it before any UI: `MusterApplication` on Android,
-`MainViewController` on iOS, `main.kt` on web.
-
-Android calls it from an `Application` subclass, not `MainActivity`:
-`onCreate` of an activity re-runs on every rotation and configuration
-change, and Koin throws if started twice. `initKoin()` also guards against
-an already-started Koin, because iOS may call `MainViewController()` more
-than once.
-
-The `SupabaseClient` is a Koin `single` built by a `createClient()`
-factory, not a top-level `val`, so the fakes can replace it. Repositories
-are `single`; use cases are `factory`, being stateless and cheap.
-ViewModels use `viewModelOf`. One exception: `EnterCodeViewModel` takes
-the address as a route argument, so it is declared as
-`viewModel { (email: String) -> ... }` and resolved with `parametersOf`.
-
-### Navigation
-
-JetBrains' `navigation-compose`, with type-safe routes: `@Serializable`
-classes in `ui/navigation/Screen.kt`, one `NavHost` in `NavGraph.kt`.
-It gives a real back stack, so the Android system back button and the
-browser's back button both work without per-screen handling.
-
-Routing is driven by the session, not by the screens. `LaunchViewModel`
-is resolved above the `NavHost` — one instance, surviving every
-navigation — and observes `SessionState`. A change navigates and clears
-the stack with `popUpTo(0)`: there is no going back to a screen that
-belonged to a different sign-in state. `Loading` and `Failed` navigate
-nowhere, leaving whatever is on screen in place, which is what
-`SessionState.Unreachable` requires mid-session.
-
-Screens never navigate on their own. They expose a result on their UI
-state — `RequestCodeUiState.sentTo`, `SetNameUiState.saved` — and the
-graph acts on it, then calls back to clear it so returning to the screen
-does not navigate again.
-
-## Working conventions
-
-- Understand the architectural implications before writing code.
-- Print files for review before pushing. Never push without explicit
-  permission.
-- Report differences rather than silently replacing files.
-- Enforce rules in the database (RLS, constraints, triggers), not in the
-  client. The client is not a trust boundary.
-
-### Kotlin style
-
-- **No trailing comma** after the last argument in a call, a parameter
-  list, or a collection literal. Android Studio's Kotlin formatter adds
-  them by default — turn off Settings -> Editor -> Code Style -> Kotlin ->
-  Other -> "Use trailing comma", or it will put them back on reformat.
-- **Comments are the exception, not the default.** Write one only for a
-  detail that is not visible in the code: an edge case, a constraint from
-  outside the file, or something that silently breaks if changed. No
-  restating what the line does, and no KDoc on every declaration.
-
-## Testing
-
-ViewModel tests live in **`androidHostTest`**, not `commonTest`. They
-need `Dispatchers.setMain`, which is solid on JVM and Native but flaky on
-JS and Wasm, and `commonTest` runs on every target. The ViewModels are
-common code, so testing them once on the JVM still covers all four.
-
-Every ViewModel test needs `MainDispatcherRule` (in `androidHostTest`,
-`app/muster/testing/`): `viewModelScope` runs on `Dispatchers.Main`, which
-has no implementation off Android, so without it the first `launch {}`
-fails.
-
-ViewModels are tested against the **fakes** in `data/fake`, never against
-mocks. Each fake takes an error per method (`requestError`, `getError`,
-...) so failure paths can be driven, and counts calls so "sent exactly
-one code" is checkable. They are `commonMain`, not `commonTest`, so they
-ship in the release binary — accepted for a private app.
-
-**Set a ViewModel's in-flight flag before `launch`, never inside it.**
-`sending`, `verifying` and `saving` guard against a second tap, and the
-guard reads the flag synchronously. Setting it inside the coroutine works
-on device only because `viewModelScope` uses `Main.immediate`; under a
-standard test dispatcher two taps in one frame both got through, and sent
-two codes. The guard must not depend on which dispatcher is in play.
-
-`androidDeviceTest` holds a handful of Compose UI tests over the
-stateless screens — enabled and disabled states, callbacks, error
-rendering. Not full flows: the routing they would exercise is already
-covered by `LaunchViewModelTest`. Screens are driven directly with
-literal state, so no Koin and no `NavHost` is involved.
-
-Find a text field with `hasSetTextAction()`, not `onNodeWithText(label)`:
-the label is a separate node above the field and has no focus action, so
-text input against it fails.
 
 ## Standby
 
@@ -419,6 +172,16 @@ RSVPs are operational data, not records. Removing a member from a group
 deletes their `event_invitations` rows across all its events, past
 included. There are no season stats, so nothing depends on those rows
 surviving.
+
+## Working conventions
+
+- Understand the architectural implications before writing code.
+- Print files for review before pushing. Never push without explicit
+  permission.
+- Report differences rather than silently replacing files.
+- Enforce rules in the database (RLS, constraints, triggers), not in the
+  client. The client is not a trust boundary.
+- Work step by step. One step at a time, wait for a go before the next.
 
 ## Open items
 

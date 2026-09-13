@@ -13,17 +13,22 @@ they move often.
 
 | File | What it covers |
 |---|---|
-| [docs/CONTEXT.md](docs/CONTEXT.md) | Scope, stack, closed decisions and why, roles, working conventions |
+| [docs/CONTEXT.md](docs/CONTEXT.md) | What it is, scope, roles, product rules |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Layers, DI, navigation, Kotlin style, testing |
 | [docs/SCHEMA.md](docs/SCHEMA.md) | Tables, constraints, RLS, triggers, what the database enforces versus the app |
 | [docs/SCREENS.md](docs/SCREENS.md) | Screen map, navigation, per-screen behaviour |
+| [docs/DECISIONS.md](docs/DECISIONS.md) | Why closed choices were closed |
 | [docs/design/DESIGN.md](docs/design/DESIGN.md) | Visual design of record, frames 1a–1p |
 | [docs/design/muster-screens-v1.html](docs/design/muster-screens-v1.html) | The frames themselves — open in a browser |
+
+[CLAUDE.md](CLAUDE.md) at the root is the same map plus commands and
+conventions, read automatically by Claude Code.
 
 ## Stack
 
 Compose Multiplatform (Android, iOS, Web/wasm) over Supabase — Postgres,
-Auth, RLS, Edge Functions. Resend for email. Sign-in is email codes, no
-passwords. Push notifications are deferred past the MVP.
+Auth, RLS, Edge Functions. Koin for DI. Gmail SMTP for email. Sign-in is
+email codes, no passwords. Push notifications are deferred past the MVP.
 
 Package `app.muster`.
 
@@ -78,5 +83,6 @@ directly, so the client is not a trust boundary.
 
 ## Status
 
-Backend built and tested, four migrations pushed. Supabase SDK wired into
-`shared`. Screen design done. No app code yet — auth is next.
+Backend built and tested, four migrations pushed. Auth done — Koin wired,
+sign-in by email code, set-name gate, placeholder home. Next is Home:
+group cards and pending invitations.

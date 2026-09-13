@@ -1,0 +1,141 @@
+# Muster — Decisions
+
+Closed decisions and why. Nothing routine needs this file — the
+conclusions live where they apply, in CONTEXT.md, ARCHITECTURE.md and
+SCHEMA.md. This is the argument behind them, kept so they aren't
+relitigated every few chats.
+
+Reopening one is fine. Reopening it without reading the reason it was
+closed is not.
+
+## Native over PWA
+
+A PWA was seriously considered: it would have avoided the $99/yr Apple
+Developer fee and covered Android, iOS and web from one build with no app
+stores at all.
+
+Rejected because iOS web push is unreliable — silent unsubscriptions,
+listeners failing to fire after a restart, and push only working at all
+once the user has added the site to their home screen through Safari's
+share menu. Notifications are the core feature of the app; a missed one
+means a missing player. Android PWA push is solid, but the weakest
+platform sets the bar.
+
+## Compose Multiplatform over Flutter
+
+Flutter is the more mature cross-platform option — bigger plugin
+ecosystem, longer-settled iOS story. It doesn't pay off at this size, and
+the cost is learning Dart, a new widget system and new state management.
+
+Existing Kotlin and Compose skills transfer directly, so time to a working
+app is shorter despite the thinner ecosystem.
+
+## Supabase over Firebase
+
+The data is relational. Standby queues need ordered SQL; Firestore would
+mean maintaining position numbers by hand on every document and rewriting
+them whenever someone drops out.
+
+Supabase also has an official Kotlin Multiplatform SDK. Firebase on KMP
+relies on GitLive's community wrapper — one more dependency outside our
+control.
+
+FCM is still the push path when push lands, so Firebase's bundling
+advantage was never really on the table.
+
+## Supabase over a self-hosted Ktor backend
+
+Ktor would give shared models across client and server, but means writing
+auth, running Postgres, migrations, deployment, and hosting (~$5/mo).
+
+More importantly, Supabase enforces visibility in RLS at the database;
+with Ktor every check is code that must not be forgotten in any endpoint.
+
+Revisit only if the standby logic outgrows an Edge Function.
+
+## Config injected via a generated Kotlin file, not a plugin
+
+A Gradle task in `shared/build.gradle.kts` reads `SUPABASE_URL` and
+`SUPABASE_PUBLISHABLE_KEY` from the environment, falling back to
+`local.properties` (gitignored), and generates `app.muster.SupabaseConfig`
+into `commonMain`.
+
+`BuildConfig` is Android-only and `expect`/`actual` would mean four copies
+of two strings. BuildKonfig would work but is a third-party plugin whose
+Wasm support is one more thing to verify — exactly what the web-target
+rule in ARCHITECTURE.md exists to avoid.
+
+Any future build-time config value follows the same path rather than
+adding a plugin.
+
+The publishable key is not a secret — it ships in every APK and in the web
+bundle. Keeping it out of git is rotation convenience, not security; RLS
+is the trust boundary. The secret key never reaches the client.
+
+## Email codes, no passwords
+
+Signup and sign-in are one flow: a six-digit code sent to the address.
+`signInWith(OTP)` creates the account if the address is new;
+`verifyEmailOtp` with `OtpType.Email.EMAIL` covers both the new and
+existing cases.
+
+No password means no reset flow to build, and every auth email carries
+`{{ .Token }}` rather than `{{ .ConfirmationURL }}`, so there are no deep
+links or redirect URLs on any of the four targets.
+
+It also hardens the invite model. SCHEMA.md lists "sign-in must prove the
+email is yours" as a known limit, because invitations match on address
+alone. With code-only sign-in a session is unreachable without receiving
+mail at that address, so confirmation stops being a toggle that could be
+turned off.
+
+Cost: email delivery is the only way in, with no fallback if Gmail is
+down. Sessions never expire, so this only bites on a new device or a
+reinstall.
+
+## Gmail SMTP over Resend
+
+Auth emails go through `muster.team.app@gmail.com` with a Google app
+password, set in Supabase under Authentication → Emails → SMTP Settings.
+Event invitations will go the same way, from an Edge Function.
+
+Resend came first and worked, but its free tier only delivers from a
+verified domain — without one it falls back to a shared test sender that
+reaches nobody but the account holder. Gmail needs no domain, no DNS and
+no money, and delivers to real addresses today.
+
+Supabase flags `smtp.gmail.com` as a personal rather than transactional
+provider, and it is right to: there is no SPF or DKIM under our control,
+and Gmail caps sending at roughly 500/day. Verified working to real
+inboxes. The limits are in CONTEXT.md → Known risks.
+
+Note the Supabase auth rate limit (30/hour by default) covers **sign-in
+codes only**. Invitations sent from an Edge Function never touch it —
+their only ceiling is Gmail's daily cap.
+
+This holds while Muster is a few private teams. Anything wider needs a
+domain and a real transactional provider; the change is one field in
+Supabase and nothing in the app.
+
+## Sessions never expire
+
+Time-boxing and inactivity timeout stay off in Auth → Sessions. Only
+signing out or losing local storage returns someone to the login screen.
+
+supabase-kt keeps the session in `SharedPreferences` on Android and
+`NSUserDefaults` on iOS — not Keychain, not encrypted. Accepted for a
+private app; a Keychain-backed `SessionManager` is a maybe, later.
+
+## Email change: identity and memberships survive
+
+An earlier rule said an email change meant a new user. It was
+unenforceable: nothing in the schema could stop Auth from changing the
+address, and leaving `profiles` stale would have pointed invitation
+matching at an address the user no longer owns.
+
+So a trigger copies any Auth-side change into `profiles`. Identity and
+memberships survive; only the invite lookup key moves.
+
+The app still builds no email-change screen, and the column grant on
+`profiles` allows only `name`. The trigger exists for changes made from
+the Supabase dashboard or the Auth API — both outside these tables.

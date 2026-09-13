@@ -1,9 +1,10 @@
-# Muster — Screen Design (v3)
+# Muster — Screen Design (v4)
 
-Design of record for the app's screens. Open `muster-screens-v3.html`
-in a browser: one canvas, eighteen frames, pan and zoom. Frame ids (1a–1r)
+Design of record for the app's screens. Open `muster-screens-v4.html`
+in a browser: one canvas, twenty frames, pan and zoom. Frame ids (1a–1t)
 are the reference names — use them in issues and commits.
-(`muster-screens-v1.html` and `-v2.html` are earlier snapshots, kept for reference.)
+(`muster-screens-v1.html` through `-v3.html` are earlier snapshots, kept
+for reference.)
 
 Companion to `SCREENS.md` (screen map, navigation) and `CONTEXT.md`
 (product decisions). Where this file and a screenshot disagree, this file wins.
@@ -69,6 +70,8 @@ Members see the same badges, read-only.
 | 1p | Archive group (admin) |
 | 1q | Launch |
 | 1r | Launch — couldn’t start |
+| 1s | Home — loading |
+| 1t | Home — couldn’t load |
 
 ## Decisions this design fixes
 
@@ -103,6 +106,22 @@ Members see the same badges, read-only.
 - **Home empty state**: "No groups yet", a line saying invitations show up
   here, and the address they'll be sent to. New group button only if
   `can_create_groups`.
+- **Home loading** (1s) is first load only, and only after ~400 ms — a cached
+  list renders straight into 1d. The app bar, wordmark and Settings hold
+  position so nothing shifts when the list arrives; the New group button is
+  absent until `can_create_groups` is known, rather than appearing and
+  possibly vanishing.
+- **Home failure** (1t) reuses the empty state's frame — dashed mark, title,
+  one line, one action — so the two read as one family. Title:
+  "Couldn't load your groups"; line: "Check your connection. Your groups are
+  safe — nothing has changed." No email address here: the session is fine,
+  the fetch is not, and showing an address invites the wrong fix. *Try again*
+  is outlined, not filled — retry is a repair, not the screen's intent — and
+  returns to 1s.
+- **Busy states update in place.** Beyond first load, a refresh or a pending
+  write never swaps the screen for a loader: the list or roster stays on
+  screen and the affected card carries its own spinner. 1s and 1r are the
+  only full-screen waits in the app.
 - **Frozen event** (past `starts_at`): a "Started at 7:00 pm · no more
   changes" strip under the app bar. RSVP collapses to a static badge, every
   control disappears (no handles, no add, no menus, no ⋮), Pending reads
@@ -125,4 +144,6 @@ Members see the same badges, read-only.
 - Past events tab.
 - Notification preferences in Settings, once push lands.
 - No destructive colour is defined; Out is the only red in the app.
-- Offline behaviour beyond the launch failure state.
+- Offline behaviour beyond the launch and home failure states.
+- Group and event screens have no designed loading or failure frames yet;
+  they should follow 1s/1t (in-place spinner, empty-state-shaped failure).
