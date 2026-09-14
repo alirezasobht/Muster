@@ -46,5 +46,11 @@ private fun AuthRestException.toDomainError(): DomainError = when (errorCode) {
 private fun PostgrestRestException.toDomainError(): DomainError = when (code) {
     // Auto-named from profiles.name's CHECK; renaming the constraint breaks this.
     "23514" -> if ("profiles_name_check" in error) DomainError.InvalidName() else DomainError.Unknown(this)
+    // plpgsql raise exception with no SQLSTATE, from accept/decline_group_invitation.
+    "P0001" -> if ("no pending invitation for you" in error) {
+        DomainError.InvitationNotPending()
+    } else {
+        DomainError.Unknown(this)
+    }
     else -> if (statusCode == 401) DomainError.NotSignedIn() else DomainError.Unknown(this)
 }

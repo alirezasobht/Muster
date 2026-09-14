@@ -1,6 +1,10 @@
 package app.muster.domain.di
 
+import app.muster.domain.usecase.AcceptGroupInvitationUseCase
+import app.muster.domain.usecase.DeclineGroupInvitationUseCase
 import app.muster.domain.usecase.GetMyProfileUseCase
+import app.muster.domain.usecase.ListMyGroupsUseCase
+import app.muster.domain.usecase.ListPendingInvitationsUseCase
 import app.muster.domain.usecase.ObserveSessionUseCase
 import app.muster.domain.usecase.RequestSignInCodeUseCase
 import app.muster.domain.usecase.RetrySessionUseCase
@@ -18,4 +22,8 @@ val domainModule = module {
     factoryOf(::RetrySessionUseCase)
     factoryOf(::GetMyProfileUseCase)
     factoryOf(::UpdateNameUseCase)
+    factoryOf(::ListMyGroupsUseCase)
+    factoryOf(::ListPendingInvitationsUseCase)
+    factoryOf(::AcceptGroupInvitationUseCase)
+    factoryOf(::DeclineGroupInvitationUseCase)
 }

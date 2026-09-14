@@ -15,5 +15,9 @@ sealed class DomainError(message: String, cause: Throwable? = null) : Exception(
 
     class InvalidName : DomainError("name is blank")
 
+    // The accept/decline RPCs raise this when the invitation is gone, already
+    // answered, or not the caller's.
+    class InvitationNotPending : DomainError("invitation is no longer available")
+
     class Unknown(cause: Throwable) : DomainError(cause.message ?: "unknown error", cause)
 }

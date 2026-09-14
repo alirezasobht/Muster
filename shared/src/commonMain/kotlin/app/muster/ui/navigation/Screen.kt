@@ -16,3 +16,6 @@ data object SetName
 
 @Serializable
 data object Home
+
+@Serializable
+data object Settings

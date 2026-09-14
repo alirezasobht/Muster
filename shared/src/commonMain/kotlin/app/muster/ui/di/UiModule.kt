@@ -1,5 +1,6 @@
 package app.muster.ui.di
 
+import app.muster.ui.screens.home.HomeViewModel
 import app.muster.ui.screens.launch.LaunchViewModel
 import app.muster.ui.screens.setname.SetNameViewModel
 import app.muster.ui.screens.signin.EnterCodeViewModel
@@ -12,6 +13,7 @@ val uiModule = module {
     viewModelOf(::LaunchViewModel)
     viewModelOf(::RequestCodeViewModel)
     viewModelOf(::SetNameViewModel)
+    viewModelOf(::HomeViewModel)
     // Email comes from the EnterCode route, not the graph.
     viewModel { (email: String) -> EnterCodeViewModel(email, get(), get()) }
 }

@@ -78,9 +78,15 @@ fun NavGraph(
                     SetNameRoute(onNameSet = launchViewModel::onNameSet)
                 }
                 composable<Home> {
-                    val profile = (session as? LaunchUiState.Ready)?.profile
-                    HomeScreen(
-                        name = profile?.name.orEmpty(),
+                    HomeRoute(
+                        onSettingsClick = { navController.navigate(Settings) },
+                        onGroupClick = {},
+                        onNewGroupClick = {}
+                    )
+                }
+                composable<Settings> {
+                    SettingsRoute(
+                        onBack = { navController.popBackStack() },
                         onSignOut = launchViewModel::onSignOut
                     )
                 }

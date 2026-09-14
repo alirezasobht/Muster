@@ -10,19 +10,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -30,6 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.muster.ui.common.components.MusterSpinner
 import app.muster.ui.common.components.MusterMark
 import app.muster.ui.common.components.MusterWordmark
 import app.muster.ui.common.components.PhoneWidth
@@ -42,8 +36,6 @@ import muster.shared.generated.resources.launch_failed_body
 import muster.shared.generated.resources.launch_failed_title
 import muster.shared.generated.resources.launch_try_again
 import org.jetbrains.compose.resources.stringResource
-import kotlinx.coroutines.delay
-import kotlin.time.Duration.Companion.milliseconds
 
 // 1q while loading, 1r when `failed`. The mark and wordmark never move; only
 // the bottom zone swaps.
@@ -76,29 +68,15 @@ fun LaunchScreen(
                     if (failed) {
                         Failure(onRetry = onRetry, onSignOut = onSignOut)
                     } else {
-                        DelayedSpinner(spinnerDelayMillis)
+                        MusterSpinner(
+                            delayMillis = spinnerDelayMillis,
+                            color = MusterColors.White,
+                            trackColor = MusterColors.White.copy(alpha = 0.35f)
+                        )
                     }
                 }
             }
         }
-    }
-}
-
-// Delayed so a warm start, which finishes sooner, never flashes it.
-@Composable
-private fun DelayedSpinner(delayMillis: Long) {
-    var visible by remember { mutableStateOf(delayMillis == 0L) }
-    LaunchedEffect(Unit) {
-        delay(delayMillis.milliseconds)
-        visible = true
-    }
-    if (visible) {
-        CircularProgressIndicator(
-            modifier = Modifier.size(26.dp),
-            color = MusterColors.White,
-            trackColor = MusterColors.White.copy(alpha = 0.35f),
-            strokeWidth = 2.5.dp
-        )
     }
 }
 
