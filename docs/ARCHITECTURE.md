@@ -60,8 +60,11 @@ data/
   fake/         Fake*Repository — in-memory, for ViewModel tests
 domain/
   di/           domainModule — use cases
-  model/        Profile, Group, Member, Event, Rsvp, StandbyEntry
-  error/        DomainError — LastAdmin, EventFull, EventStarted, ...
+  model/        Profile, Group, GroupInvitation, ... (Member, Event, Rsvp,
+                StandbyEntry arrive with Group/Event screens)
+  error/        DomainError — one case per predictable DB rejection
+                (InvalidName, InvitationNotPending, ...); more arrive as
+                Group/Event screens do
   repository/   interfaces
   usecase/      one class per operation, named *UseCase
 ui/
@@ -85,6 +88,28 @@ UI state and its ViewModel share one name (`SetNameScreen`,
 `SetNameUiState`, `SetNameViewModel`) and sit together in
 `screens/<name>/`. One ViewModel per screen, not per flow. Anything two
 screens share moves to `common/`, never into one screen's folder.
+
+A screen's `XRoute` composable (resolves the ViewModel via
+`koinViewModel()`, collects state, forwards plain navigation callbacks
+like `onBack`/`onNameSet` up to `NavGraph`) lives in the same file as
+`XScreen`, not a separate file — every screen does this except Launch
+(`LaunchRoute.kt` is separate because `LaunchViewModel` is hoisted above
+the `NavHost` and shared, not resolved per-route).
+
+Two shapes for `XUiState`, pick by what the screen actually needs: a flat
+data class with nullable/boolean fields for a screen with one layout and
+inline affordances (a button disables, a label swaps for a spinner,
+error text appears below a field) — most screens. A sealed interface
+(`HomeUiState`: `Loading` / `Success` / `Error`) only when the screen has
+genuinely different full-screen layouts per state, per SCREENS.md
+"Staying current" and the loading/failure frames in DESIGN.md — the
+in-place cases (a refresh, an in-flight action) still live as fields on
+the `Success` case, not further sealed branches, since the list stays on
+screen either way.
+
+When a screen's callback list gets long, bundle them into one `XActions`
+data class (`HomeActions`) instead of listing five-plus lambda params —
+`XScreen` takes `actions: XActions` alongside its data/state params.
 
 The layering is kept even where it looks like overhead — interfaces in
 `domain`, implementations in `data`, a use case per operation, fakes
@@ -192,7 +217,10 @@ two codes. The guard must not depend on which dispatcher is in play.
 stateless screens — enabled and disabled states, callbacks, error
 rendering. Not full flows: the routing they would exercise is already
 covered by `LaunchViewModelTest`. Screens are driven directly with
-literal state, so no Koin and no `NavHost` is involved.
+literal state, so no Koin and no `NavHost` is involved. A screen with
+several sealed-state composables (`HomeScreen`, `HomeLoadingScreen`,
+`HomeFailedScreen`) gets one test file covering all of them, not one per
+composable.
 
 Find a text field with `hasSetTextAction()`, not `onNodeWithText(label)`:
 the label is a separate node above the field and has no focus action, so

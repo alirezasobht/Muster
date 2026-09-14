@@ -253,6 +253,7 @@ definer stable`. `security definer` is not optional: a policy on
 | `accept_group_invitation(id)` | two writes that must be atomic; invitee has no membership yet, so no RLS route to insert one |
 | `decline_group_invitation(id)` | mirrors accept; no update policy on `group_invitations` |
 | `set_standby_order(eid, uuid[])` | whole queue in one call; the only write path to `event_standby` |
+| `get_my_pending_invitations()` | Home shows who invited you (DESIGN.md 1d); `profiles_select` can't reach the inviter's row since the invitee has no membership yet. Read-only, so `security definer` instead of a new policy — see DECISIONS.md |
 
 Things that need **no** RPC: changing your own or (as admin) another
 player's RSVP is a plain update on `event_invitations`; removing a
@@ -365,6 +366,7 @@ and no client code runs on a cascade.
 | `20260909031500_rls_policies.sql` | Helper functions, policies, column grants |
 | `20260909033000_functions_triggers.sql` | RPCs and triggers |
 | `20260910120000_profile_name_nullable.sql` | `profiles.name` nullable; `handle_new_user` no longer invents one from the email |
+| `20260914090000_get_my_pending_invitations.sql` | `get_my_pending_invitations()` — pending invitations with the inviter's name |
 
 ## Open questions
 

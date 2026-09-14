@@ -126,6 +126,27 @@ supabase-kt keeps the session in `SharedPreferences` on Android and
 `NSUserDefaults` on iOS — not Keychain, not encrypted. Accepted for a
 private app; a Keychain-backed `SessionManager` is a maybe, later.
 
+## Inviter name on invitations: a security definer read, not a wider policy
+
+Home's invitation card names who invited you (DESIGN.md 1d). `profiles_select`
+only allows reading your own profile or a co-member's — an invitee has no
+`group_members` row yet, so a plain join from `group_invitations` to
+`profiles` returns nothing.
+
+Two other fixes were on the table: widen `profiles_select` to cover this
+case, or denormalize the inviter's name onto `group_invitations` at insert
+time. Widening the policy means a new, narrower exception on `profiles` —
+the one table where every read rule doubles as the trust boundary, so
+loosening it wants real caution. Denormalizing avoids touching RLS but
+leaves a stored copy that goes stale if the inviter renames themselves
+later.
+
+`get_my_pending_invitations()` reads live and touches no policy: `security
+definer` means it runs as its owner, so it can join to `profiles`
+regardless of the caller's own row visibility, and its own guard
+(`gi.email = my_email()`) is the entire access control — same discipline
+as `accept_group_invitation`, so no new pattern in the schema.
+
 ## Email change: identity and memberships survive
 
 An earlier rule said an email change meant a new user. It was

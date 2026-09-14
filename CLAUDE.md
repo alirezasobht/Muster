@@ -16,8 +16,8 @@ editing** — they change often, and other sessions edit them too.
 | `docs/SCHEMA.md` | Tables, constraints, what the DB enforces vs the app |
 | `docs/SCREENS.md` | Screen map, navigation, per-screen behaviour |
 | `docs/DECISIONS.md` | Why closed choices were closed |
-| `docs/design/DESIGN.md` | Visual design of record, frames 1a–1p |
-| `docs/design/muster-screens-v1.html` | The frames — open in a browser |
+| `docs/design/DESIGN.md` | Visual design of record, frames 1a–1t |
+| `docs/design/muster-screens-v4.html` | The frames — open in a browser. v1–v3 superseded, kept as history |
 
 Keep them updated when decisions change.
 
@@ -74,6 +74,13 @@ Migrations in `supabase/migrations/`, applied with the Supabase CLI.
 
 ## State
 
-Backend built and tested, four migrations pushed. Auth done — Koin wired,
-sign-in by email code, set-name gate, placeholder home. Next is Home:
-group cards and pending invitations.
+Backend built and tested. Auth done — Koin wired, sign-in by email code,
+set-name gate. Home done (1d/1e/1s/1t): group cards, pending invitations
+with accept/decline, first-load spinner, empty and failed states, pull to
+refresh. Settings is a stub — sign out only, no name/email fields yet.
+
+A fifth migration, `get_my_pending_invitations()`, is on disk
+(`supabase/migrations/20260914090000_*.sql`) — confirm it's been pushed
+before relying on invitation data loading.
+
+Next: finish Settings, or New group / Group.

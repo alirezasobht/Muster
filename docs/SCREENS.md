@@ -49,6 +49,10 @@ are two ways to get fresh data after that:
 - **Refresh on resume** — refetch when the screen returns to the
   foreground, or is returned to from further up the stack.
 - **Pull to refresh** — manual, for when someone is watching and waiting.
+  **Android and iOS only.** On desktop web there is no pull gesture, and
+  on mobile web it fights the browser's own pull-to-refresh, which
+  reloads the page. Web has refresh-on-resume and nothing else; if a
+  manual refresh is wanted there it needs an explicit button.
 
 Both apply to Home, the Group events tab, the Group members tab, and
 Event. Not to Launch, Request code, Enter code, Set name or Settings:
@@ -78,9 +82,14 @@ Settings — build once, use twice.
 Cards, one per group.
 
 - A group you belong to: name, tap to open.
-- A group you have been invited to: name, plus Accept and Decline on the
-  card. No separate invitations screen — before accepting you belong to
-  nothing, so there is nowhere else for them to live.
+- A group you have been invited to: name, who invited you, plus Accept
+  and Decline on the card. No separate invitations screen — before
+  accepting you belong to nothing, so there is nowhere else for them to
+  live.
+
+The inviter's name needs its own `security definer` RPC
+(`get_my_pending_invitations`): an invitee shares no group with the
+inviter yet, so `profiles_select` will not show them that profile.
 
 App bar has Settings. New group only if `can_create_groups` is true.
 

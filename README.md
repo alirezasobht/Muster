@@ -18,8 +18,8 @@ they move often.
 | [docs/SCHEMA.md](docs/SCHEMA.md) | Tables, constraints, RLS, triggers, what the database enforces versus the app |
 | [docs/SCREENS.md](docs/SCREENS.md) | Screen map, navigation, per-screen behaviour |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Why closed choices were closed |
-| [docs/design/DESIGN.md](docs/design/DESIGN.md) | Visual design of record, frames 1a–1p |
-| [docs/design/muster-screens-v1.html](docs/design/muster-screens-v1.html) | The frames themselves — open in a browser |
+| [docs/design/DESIGN.md](docs/design/DESIGN.md) | Visual design of record, frames 1a–1t |
+| [docs/design/muster-screens-v4.html](docs/design/muster-screens-v4.html) | The frames themselves — open in a browser. v1–v3 are superseded, kept as history |
 
 [CLAUDE.md](CLAUDE.md) at the root is the same map plus commands and
 conventions, read automatically by Claude Code.
@@ -83,6 +83,9 @@ directly, so the client is not a trust boundary.
 
 ## Status
 
-Backend built and tested, four migrations pushed. Auth done — Koin wired,
-sign-in by email code, set-name gate, placeholder home. Next is Home:
-group cards and pending invitations.
+Backend built and tested, five migrations. Auth done — Koin wired,
+sign-in by email code, set-name gate. Home done — group cards, pending
+invitations with accept/decline, empty and failed states, pull to
+refresh. Settings is a stub: sign out only.
+
+Next: finish Settings, or New group / Group.
