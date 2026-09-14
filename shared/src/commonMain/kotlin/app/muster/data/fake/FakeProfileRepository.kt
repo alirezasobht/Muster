@@ -8,6 +8,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 class FakeProfileRepository(
     name: String? = null,
+    canCreateGroups: Boolean = false,
     var getError: DomainError? = null,
     var updateError: DomainError? = null,
     private val latency: Long = FAKE_LATENCY_MS
@@ -17,7 +18,7 @@ class FakeProfileRepository(
         id = FAKE_USER_ID,
         name = name,
         email = FAKE_EMAIL,
-        canCreateGroups = false
+        canCreateGroups = canCreateGroups
     )
         private set
 
