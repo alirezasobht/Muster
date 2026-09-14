@@ -96,16 +96,25 @@ like `onBack`/`onNameSet` up to `NavGraph`) lives in the same file as
 (`LaunchRoute.kt` is separate because `LaunchViewModel` is hoisted above
 the `NavHost` and shared, not resolved per-route).
 
+`XRoute` calls `XScreen` exactly once, passing the raw `XUiState` plus an
+`XActions` bundle. `XScreen` does its own `when` over the state to pick
+which branch to render, delegating to private composables per branch —
+`XRoute` never dispatches to separately-exported per-state screen
+composables itself. `SettingsScreen` does this. `HomeScreen` does not:
+`HomeRoute` dispatches straight to `HomeLoadingScreen` /
+`HomeFailedScreen` / `HomeScreen`, predating this convention — treat that
+as the one exception to fix opportunistically, not a second valid shape.
+
 Two shapes for `XUiState`, pick by what the screen actually needs: a flat
 data class with nullable/boolean fields for a screen with one layout and
 inline affordances (a button disables, a label swaps for a spinner,
 error text appears below a field) — most screens. A sealed interface
-(`HomeUiState`: `Loading` / `Success` / `Error`) only when the screen has
-genuinely different full-screen layouts per state, per SCREENS.md
-"Staying current" and the loading/failure frames in DESIGN.md — the
-in-place cases (a refresh, an in-flight action) still live as fields on
-the `Success` case, not further sealed branches, since the list stays on
-screen either way.
+(`HomeUiState`, `SettingsUiState`: `Loading` / `Success` / `Error`) only
+when the screen has genuinely different full-screen layouts per state,
+per SCREENS.md "Staying current" and the loading/failure frames in
+DESIGN.md — the in-place cases (a refresh, an in-flight action) still
+live as fields on the `Success` case, not further sealed branches, since
+the list stays on screen either way.
 
 When a screen's callback list gets long, bundle them into one `XActions`
 data class (`HomeActions`) instead of listing five-plus lambda params —
@@ -177,6 +186,24 @@ state — `RequestCodeUiState.sentTo`, `SetNameUiState.saved` — and the
 graph acts on it, then calls back to clear it so returning to the screen
 does not navigate again.
 
+## One-shot events
+
+A thing that should happen **once** — a "Saved" confirmation, a toast —
+is an event, not state. It goes on the ViewModel as a private `Channel`
+exposed as a `Flow` (`SettingsViewModel.saved`), collected in `XRoute`.
+
+A boolean on the UI state does not work: state survives backgrounding,
+so the confirmation reappears when the screen comes back, long after the
+save. `Channel` rather than `MutableSharedFlow` because a SharedFlow with
+no replay drops an emission when nothing is collecting; a buffered channel
+holds it and delivers it exactly once.
+
+The transient display state — how long "Saved" stays up — belongs in the
+route, not the ViewModel: collect, set a local flag, `delay`, clear.
+
+This is only for events. Anything the screen should still be showing
+after a rotation or a return from background is state.
+
 ## Kotlin style
 
 - **No trailing comma** after the last argument in a call, a parameter
@@ -202,9 +229,18 @@ fails.
 
 ViewModels are tested against the **fakes** in `data/fake`, never against
 mocks. Each fake takes an error per method (`requestError`, `getError`,
-...) so failure paths can be driven, and counts calls so "sent exactly
-one code" is checkable. They are `commonMain`, not `commonTest`, so they
-ship in the release binary — accepted for a private app.
+...) so failure paths can be driven. `FakeAuthRepository` also counts
+calls, so "sent exactly one code" is checkable; the others do not yet —
+where there is no counter, prove a call did not happen by arming its
+error and asserting nothing surfaced. They are `commonMain`, not
+`commonTest`, so they ship in the release binary — accepted for a private
+app.
+
+Test a one-shot event by reading the channel after the action rather than
+collecting in the background: `withTimeoutOrNull(1_000) { vm.saved.first() }`.
+The emission is buffered, so it is there when you ask, and a second read
+returning null is what proves "once". `withTimeoutOrNull` runs on virtual
+time under `runTest`, so it costs nothing.
 
 **Set a ViewModel's in-flight flag before `launch`, never inside it.**
 `sending`, `verifying` and `saving` guard against a second tap, and the

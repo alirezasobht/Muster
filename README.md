@@ -86,6 +86,7 @@ directly, so the client is not a trust boundary.
 Backend built and tested, five migrations. Auth done — Koin wired,
 sign-in by email code, set-name gate. Home done — group cards, pending
 invitations with accept/decline, empty and failed states, pull to
-refresh. Settings is a stub: sign out only.
+refresh. Settings done — editable name with save confirmation and a
+discard prompt, read-only email, sign out.
 
-Next: finish Settings, or New group / Group.
+Next: New group, then Group.

@@ -96,7 +96,12 @@ App bar has Settings. New group only if `can_create_groups` is true.
 ### Settings
 Leaf screen off Home.
 
-- Name — editable. The only profile column the grants allow.
+- Name — editable. The only profile column the grants allow. Save is
+  disabled until the name actually differs from the stored one, so there
+  is no pointless round trip, and a brief "Saved" confirms it afterwards
+  — without it a successful save and a no-op look identical, since the
+  field already shows what you typed.
+- Leaving with unsaved edits prompts before discarding them.
 - Email — read-only. There is no change-email path by design.
 - Sign out. Sessions never expire, so this is the only way back to
   sign-in.
