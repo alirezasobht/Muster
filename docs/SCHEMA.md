@@ -157,7 +157,15 @@ depends on positions being contiguous.
 
 1. **Group visibility** — a user can select a group only if a
    `group_members` row exists for them and that group. The same predicate
-   cascades to `events`, `event_invitations`, and `event_standby`.
+   cascades to `events`, `event_invitations`, and `event_standby`. A
+   creator also sees their own group directly (`created_by = auth.uid()
+   and archived_at is null`), needed so `insert ... returning` can hand
+   the new row back before `on_group_created` (an `after insert` trigger)
+   has written their membership row — see migration 7. The check is a
+   plain column reference rather than `group_is_live(id)`: that helper is
+   `stable` and looks the row up by id, which runs against the
+   statement's own snapshot and never sees the row that same statement is
+   still inserting.
 2. **At least one admin** — trigger on `group_members` delete and update
    rejecting any operation that would leave a group with zero admins.
    Covers: last admin leaving, last admin demoting themselves, an admin
@@ -367,6 +375,8 @@ and no client code runs on a cascade.
 | `20260909033000_functions_triggers.sql` | RPCs and triggers |
 | `20260910120000_profile_name_nullable.sql` | `profiles.name` nullable; `handle_new_user` no longer invents one from the email |
 | `20260914090000_get_my_pending_invitations.sql` | `get_my_pending_invitations()` — pending invitations with the inviter's name |
+| `20260915100000_groups_select_creator.sql` | `groups_select` gains a `group_is_live(id) and created_by = auth.uid()` branch, so a creator can see their own group before `on_group_created` has run. Superseded by migration 7 — the function-call form doesn't work |
+| `20260915110000_groups_select_creator_direct.sql` | Corrects migration 6: the creator branch tests `archived_at is null` directly instead of calling `group_is_live(id)`, which is `stable` and can't see the row its own statement is inserting |
 
 ## Open questions
 

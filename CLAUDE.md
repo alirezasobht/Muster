@@ -85,4 +85,17 @@ A fifth migration, `get_my_pending_invitations()`, is on disk
 (`supabase/migrations/20260914090000_*.sql`) — confirm it's been pushed
 before relying on invitation data loading.
 
-Next: New group, or Group.
+New group (1g) done: screen, `CreateGroupUseCase`, insert wired through
+`GroupRepository`, navigates to a `Group` placeholder on success. Needed
+two more migrations to actually work — `groups_select` must let a creator
+see their own row before `on_group_created` (an `after insert` trigger)
+has written their membership, or every create rolls back with the same
+error `can_create_groups() = false` produces. Migration 6
+(`20260915100000_*.sql`) tried a `group_is_live(id)` call, which doesn't
+work: that helper is `stable` and can't see the row its own statement is
+still inserting. Migration 7 (`20260915110000_*.sql`) corrects it with a
+plain `archived_at is null` column check, and is what's actually on the
+remote database now (applied by hand, then written up as a migration —
+see `docs/SCHEMA.md` rule 1). Both are pushed.
+
+Next: Group.
