@@ -77,10 +77,11 @@ Migrations in `supabase/migrations/`, applied with the Supabase CLI.
 Backend built and tested. Auth done — Koin wired, sign-in by email code,
 set-name gate. Home done (1d/1e/1s/1t): group cards, pending invitations
 with accept/decline, first-load spinner, empty and failed states, pull to
-refresh. Settings is a stub — sign out only, no name/email fields yet.
+refresh. Settings done (1f): editable name with save, read-only email,
+sign out, loading/failed states.
 
 A fifth migration, `get_my_pending_invitations()`, is on disk
 (`supabase/migrations/20260914090000_*.sql`) — confirm it's been pushed
 before relying on invitation data loading.
 
-Next: finish Settings, or New group / Group.
+Next: New group, or Group.

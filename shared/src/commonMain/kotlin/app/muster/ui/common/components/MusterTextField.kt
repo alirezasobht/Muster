@@ -36,6 +36,7 @@ fun MusterTextField(
     label: String,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    readOnly: Boolean = false,
     error: String? = null,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
@@ -55,7 +56,7 @@ fun MusterTextField(
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
-            enabled = enabled,
+            enabled = enabled && !readOnly,
             singleLine = true,
             textStyle = MaterialTheme.typography.bodyLarge.copy(color = MusterColors.Ink),
             cursorBrush = SolidColor(MusterColors.Accent),
@@ -68,10 +69,12 @@ fun MusterTextField(
                     modifier = Modifier
                         .fillMaxSize()
                         .then(
-                            if (onAccent) {
-                                Modifier.background(MusterColors.White, MaterialTheme.shapes.medium)
-                            } else {
-                                Modifier.border(
+                            when {
+                                readOnly ->
+                                    Modifier.background(MusterColors.QuietSurface, MaterialTheme.shapes.medium)
+                                onAccent ->
+                                    Modifier.background(MusterColors.White, MaterialTheme.shapes.medium)
+                                else -> Modifier.border(
                                     width = if (focused) 2.dp else 1.dp,
                                     color = if (focused) MusterColors.Accent else MusterColors.Outline,
                                     shape = MaterialTheme.shapes.medium
@@ -112,6 +115,12 @@ private fun MusterTextFieldPreview() {
                     onValueChange = {},
                     label = "Email",
                     error = "That doesn't look like an email address."
+                )
+                MusterTextField(
+                    value = "alex.doyle@gmail.com",
+                    onValueChange = {},
+                    label = "Email",
+                    readOnly = true
                 )
             }
         }

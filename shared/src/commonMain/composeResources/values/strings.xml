@@ -37,9 +37,17 @@
 
     <!-- Settings (1f) -->
     <string name="settings_title">Settings</string>
+    <string name="settings_load_failed_title">Couldn’t load your profile</string>
+    <string name="settings_try_again">Try again</string>
+    <string name="settings_saved">Saved</string>
+    <string name="settings_discard_title">Discard changes?</string>
+    <string name="settings_discard_body">Your name hasn’t been saved yet.</string>
+    <string name="settings_discard_confirm">Discard</string>
+    <string name="settings_discard_cancel">Keep editing</string>
 
     <!-- Shared -->
     <string name="action_continue">Continue</string>
+    <string name="action_save">Save</string>
     <string name="action_sign_out">Sign out</string>
     <string name="action_accept">Accept</string>
     <string name="action_decline">Decline</string>
