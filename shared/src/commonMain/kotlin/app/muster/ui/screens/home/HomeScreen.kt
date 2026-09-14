@@ -214,8 +214,19 @@ fun HomeScreen(
                         modifier = Modifier.weight(1f).fillMaxWidth()
                     ) {
                         if (myGroups.isEmpty() && invitations.isEmpty()) {
-                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                HomeEmptyState(signedInEmail = signedInEmail)
+                            // A plain Box emits no scroll events, so
+                            // PullToRefreshBox never sees the gesture. A
+                            // single full-height item keeps it centred and
+                            // scrollable.
+                            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                                item {
+                                    Box(
+                                        modifier = Modifier.fillParentMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        HomeEmptyState(signedInEmail = signedInEmail)
+                                    }
+                                }
                             }
                         } else {
                             LazyColumn(
