@@ -2,6 +2,7 @@ package app.muster.ui.screens
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import app.muster.domain.error.DomainError
@@ -103,13 +104,13 @@ class HomeScreenTest {
     @Test
     fun newGroupIsShownOnlyWhenAllowed() {
         show(canCreateGroups = true)
-        composeRule.onNodeWithText("New group").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("New group").assertIsDisplayed()
     }
 
     @Test
     fun newGroupIsHiddenWithoutTheAllowlistFlag() {
         show(canCreateGroups = false)
-        composeRule.onNodeWithText("New group").assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("New group").assertDoesNotExist()
     }
 
     @Test

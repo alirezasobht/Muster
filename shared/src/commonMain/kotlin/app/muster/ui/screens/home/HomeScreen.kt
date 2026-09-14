@@ -35,6 +35,8 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -253,13 +255,17 @@ fun HomeScreen(
                 }
 
                 if (canCreateGroups) {
+                    val newGroupLabel = stringResource(Res.string.home_new_group)
                     ExtendedFloatingActionButton(
                         onClick = actions.onNewGroupClick,
                         icon = { Text(text = "+", style = MaterialTheme.typography.titleMedium) },
-                        text = { Text(stringResource(Res.string.home_new_group)) },
+                        text = { Text(newGroupLabel) },
                         containerColor = MusterColors.Accent,
                         contentColor = MusterColors.White,
-                        modifier = Modifier.align(Alignment.BottomEnd).padding(24.dp)
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(24.dp)
+                            .semantics { contentDescription = newGroupLabel }
                     )
                 }
             }
