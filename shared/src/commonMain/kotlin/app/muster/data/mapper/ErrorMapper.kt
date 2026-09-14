@@ -52,5 +52,8 @@ private fun PostgrestRestException.toDomainError(): DomainError = when (code) {
     } else {
         DomainError.Unknown(this)
     }
+    // groups_insert's WITH CHECK: no can_create_groups, or the trigger race
+    // where the flag was revoked after the entry point let them through.
+    "42501" -> if ("\"groups\"" in error) DomainError.NotAllowedToCreateGroups() else DomainError.Unknown(this)
     else -> if (statusCode == 401) DomainError.NotSignedIn() else DomainError.Unknown(this)
 }

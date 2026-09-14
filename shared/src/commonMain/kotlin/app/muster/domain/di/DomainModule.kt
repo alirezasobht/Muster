@@ -1,6 +1,7 @@
 package app.muster.domain.di
 
 import app.muster.domain.usecase.AcceptGroupInvitationUseCase
+import app.muster.domain.usecase.CreateGroupUseCase
 import app.muster.domain.usecase.DeclineGroupInvitationUseCase
 import app.muster.domain.usecase.GetMyProfileUseCase
 import app.muster.domain.usecase.ListMyGroupsUseCase
@@ -23,6 +24,7 @@ val domainModule = module {
     factoryOf(::GetMyProfileUseCase)
     factoryOf(::UpdateNameUseCase)
     factoryOf(::ListMyGroupsUseCase)
+    factoryOf(::CreateGroupUseCase)
     factoryOf(::ListPendingInvitationsUseCase)
     factoryOf(::AcceptGroupInvitationUseCase)
     factoryOf(::DeclineGroupInvitationUseCase)

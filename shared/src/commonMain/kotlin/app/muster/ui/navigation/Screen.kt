@@ -19,3 +19,9 @@ data object Home
 
 @Serializable
 data object Settings
+
+@Serializable
+data object NewGroup
+
+@Serializable
+data class Group(val id: String)

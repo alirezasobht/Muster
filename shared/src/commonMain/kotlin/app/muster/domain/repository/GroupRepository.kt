@@ -8,6 +8,8 @@ interface GroupRepository {
 
     suspend fun getMyGroups(): List<Group>
 
+    suspend fun createGroup(name: String): Group
+
     suspend fun getPendingInvitations(): List<GroupInvitation>
 
     suspend fun acceptInvitation(invitationId: String)

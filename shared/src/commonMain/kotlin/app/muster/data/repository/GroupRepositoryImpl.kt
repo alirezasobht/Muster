@@ -1,5 +1,7 @@
 package app.muster.data.repository
 
+import app.muster.data.dto.GroupDto
+import app.muster.data.dto.GroupInsertDto
 import app.muster.data.dto.GroupMembershipDto
 import app.muster.data.dto.PendingInvitationDto
 import app.muster.data.mapper.mapErrors
@@ -26,6 +28,13 @@ internal class GroupRepositoryImpl(private val client: SupabaseClient) : GroupRe
             .map { it.toGroup() }
     }
 
+    override suspend fun createGroup(name: String): Group = mapErrors {
+        client.from(GROUPS_TABLE)
+            .insert(GroupInsertDto(name = name, createdBy = myId())) { select() }
+            .decodeSingle<GroupDto>()
+            .toGroup()
+    }
+
     override suspend fun getPendingInvitations(): List<GroupInvitation> = mapErrors {
         client.postgrest.rpc(GET_MY_PENDING_INVITATIONS_FUNCTION)
             .decodeList<PendingInvitationDto>()
@@ -48,6 +57,7 @@ internal class GroupRepositoryImpl(private val client: SupabaseClient) : GroupRe
         client.auth.currentUserOrNull()?.id ?: throw DomainError.NotSignedIn()
 
     private companion object {
+        const val GROUPS_TABLE = "groups"
         const val GROUP_MEMBERS_TABLE = "group_members"
         const val GET_MY_PENDING_INVITATIONS_FUNCTION = "get_my_pending_invitations"
         const val ACCEPT_INVITATION_FUNCTION = "accept_group_invitation"

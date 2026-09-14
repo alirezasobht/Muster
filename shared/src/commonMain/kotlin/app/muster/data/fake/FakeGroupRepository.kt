@@ -11,6 +11,7 @@ class FakeGroupRepository(
     groups: List<Group> = emptyList(),
     invitations: List<GroupInvitation> = emptyList(),
     var getMyGroupsError: DomainError? = null,
+    var createGroupError: DomainError? = null,
     var getPendingInvitationsError: DomainError? = null,
     var acceptError: DomainError? = null,
     var declineError: DomainError? = null,
@@ -23,6 +24,9 @@ class FakeGroupRepository(
     var invitations = invitations
         private set
 
+    var createdGroupNames = listOf<String>()
+        private set
+
     var acceptedInvitationIds = listOf<String>()
         private set
 
@@ -33,6 +37,15 @@ class FakeGroupRepository(
         delay(latency.milliseconds)
         getMyGroupsError?.let { throw it }
         return groups
+    }
+
+    override suspend fun createGroup(name: String): Group {
+        delay(latency.milliseconds)
+        createGroupError?.let { throw it }
+        val group = Group(id = "fake-group-${groups.size + 1}", name = name)
+        groups = groups + group
+        createdGroupNames = createdGroupNames + name
+        return group
     }
 
     override suspend fun getPendingInvitations(): List<GroupInvitation> {

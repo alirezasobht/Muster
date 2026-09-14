@@ -9,6 +9,14 @@ internal data class GroupDto(
     val name: String
 )
 
+// The admin membership row is written by a trigger in the same transaction —
+// this is the only write the client makes.
+@Serializable
+internal data class GroupInsertDto(
+    val name: String,
+    @SerialName("created_by") val createdBy: String
+)
+
 // group_members joined to groups, for "my groups".
 @Serializable
 internal data class GroupMembershipDto(
