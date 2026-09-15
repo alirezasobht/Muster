@@ -1,11 +1,11 @@
-# Muster — Screen Design (v5)
+# Muster — Screen Design (v6)
 
-Design of record for the app's screens. Open `muster-screens-v5.html`
+Design of record for the app's screens. Open `muster-screens-v6.html`
 in a browser: one canvas, pan and zoom. Turn 1 holds the twenty screens
-(1a–1t); turn 2, at the top, holds the form-level error treatment
-(2a–2d). Frame ids are the reference names — use them in issues and
-commits. (`muster-screens-v1.html` through `-v4.html` are earlier
-snapshots, kept for reference.)
+(1a–1t); turn 2 the form-level error treatment (2a–2d); turn 3, at the
+top, the wide-viewport treatment (3a–3c). Frame ids are the reference
+names — use them in issues and commits. (`muster-screens-v1.html`
+through `-v5.html` are earlier snapshots, kept for reference.)
 
 Companion to `SCREENS.md` (screen map, navigation) and `CONTEXT.md`
 (product decisions). Where this file and a screenshot disagree, this file wins.
@@ -77,6 +77,51 @@ Members see the same badges, read-only.
 | 2b | New group — form error, terminal |
 | 2c | New group — form error, retryable |
 | 2d | Field error and form error together |
+| 3a | Home, wide viewport |
+| 3b | Home empty, wide viewport |
+| 3c | Request code, wide viewport (green, no tint) |
+
+## Wide viewports
+
+The phone layout is unchanged — this is presentation around it, not a
+responsive relayout. No two-column, no master-detail, no wider column.
+
+**A flat tint and nothing else.** Above the column width the surround
+becomes `#E4E7E4` and the content column stays white. That is the whole
+treatment.
+
+- **Tint**: `#E4E7E4` — the hairline colour, promoted to a surface. No
+  new token. One value step from white: enough to give the column an
+  edge, not enough to read as a frame or a backdrop.
+- **Delineation**: none. No border, no shadow, no rounded corners. The
+  tint *is* the hairline colour, so a hairline border would be invisible
+  against it — the choice of tint retires the question rather than
+  answering it. A shadow or radius would make the app a card floating on
+  a page, which is the failure being fixed, not a fix for it.
+- **The column is full height, edge to edge.** No margin above or below.
+  Scrollable content reaches a real bottom edge, and the FAB has
+  something to anchor to.
+- **App bar stays inside the column.** Spanning the window would put
+  Settings a mouse-length from the list it belongs to, and would make the
+  bar the only element aware the window is wide while everything below it
+  is still a phone.
+- **FAB stays at the column's bottom-right**, not the window's. It acts
+  on the list; out in the tint it belongs to nothing.
+- **Screens that own a background colour keep it edge to edge.** 1a, 1q
+  and 1r stay green across the whole window with no tint and no column
+  edge; the column then governs only where the content sits. The surround
+  exists to give a *white* screen an edge, and green already has one.
+  Consequence: signing in is the one moment the fill narrows to a column.
+  That is accepted — the app is a phone app and should look like one.
+- **Applies above ~560 dp** in any direction-agnostic sense: desktop web,
+  Android tablets, and phones in landscape all get it. Below that the
+  column fills the window and there is no surround.
+- Sizes are unchanged: 390 dp design width, column capped at 480 dp,
+  centred.
+
+Note for CONTEXT.md's "web is exploratory": nothing here is web-specific
+and nothing here is load-bearing. If the web target is dropped, the same
+rule still earns its place on tablets and landscape phones.
 
 ## Two kinds of error
 
@@ -196,6 +241,8 @@ The rules:
 - Notification preferences in Settings, once push lands.
 - No destructive colour is defined; Out is the only red in the app.
 - Offline behaviour beyond the launch and home failure states.
+- Whether the tint should darken slightly on very wide windows (>1400 dp),
+  where the surround is most of the screen. Assumed no — one value.
 - Form-error copy is not yet written for 1b, 1c and 1f; the treatment is
   fixed, the strings are not.
 - Whether the form block should be announced to screen readers as an

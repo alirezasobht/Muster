@@ -19,6 +19,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -80,7 +81,7 @@ fun RequestCodeScreen(
     canSend: Boolean = email.isNotBlank()
 ) {
     Surface(modifier = modifier.fillMaxSize(), color = MusterColors.Accent) {
-        PhoneWidth {
+        PhoneWidth(surround = Color.Transparent) {
             Column(
                 modifier = Modifier
                     .safeDrawingPadding()

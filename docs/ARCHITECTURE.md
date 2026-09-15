@@ -46,6 +46,25 @@ often won't.
 Rule: if a library needed for Android/iOS lacks Wasm support, drop the
 web target rather than the library.
 
+## PhoneWidth
+
+Every screen's content goes through `PhoneWidth`, and it owns three
+things so no screen has to remember them:
+
+- **The width cap.** 480 dp, centred. Screens are drawn at 390.
+- **The safe-drawing inset.** Applied here rather than per screen, so it
+  also covers content anchored to an edge — a FAB aligned to the bottom
+  of a `Box` would otherwise sit under the three-button nav bar. Compose
+  consumes insets it applies, so a screen that still calls
+  `safeDrawingPadding()` is a harmless no-op; don't add new ones.
+- **The wide-viewport surround.** Above 560 dp the surround is painted
+  `Hairline` and the column white — DESIGN.md → "Wide viewports". It is
+  not web-specific: Android tablets and landscape phones get it too.
+  Screens that own a background colour pass
+  `surround = Color.Transparent`, since their own `Surface` sits outside
+  `PhoneWidth` and already fills the window. Only the green screens do
+  — 1a, 1q, 1r.
+
 ## Layers
 
 In `shared/src/commonMain/kotlin/app/muster/`:
