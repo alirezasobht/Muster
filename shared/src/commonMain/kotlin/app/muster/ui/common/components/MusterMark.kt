@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.times
 import app.muster.ui.common.util.SharedTransitionKeys
+import app.muster.ui.common.util.sharedBoundsOrNone
 import app.muster.ui.common.util.sharedElementOrNone
 import app.muster.ui.theme.MusterColors
 import app.muster.ui.theme.MusterTheme
@@ -57,7 +58,7 @@ fun MusterWordmark(fontSize: Int, modifier: Modifier = Modifier) {
             letterSpacing = 0.17f * fontSize.sp
         ),
         color = MusterColors.White,
-        modifier = modifier.sharedElementOrNone(SharedTransitionKeys.WORDMARK)
+        modifier = modifier.sharedBoundsOrNone(SharedTransitionKeys.WORDMARK)
     )
 }
 

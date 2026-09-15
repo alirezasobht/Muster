@@ -100,11 +100,13 @@ fun NavGraph(
                     SetNameRoute(onNameSet = launchViewModel::onNameSet)
                 }
                 composable<Home> {
-                    HomeRoute(
-                        onSettingsClick = { navController.navigate(Settings) },
-                        onGroupClick = { groupId -> navController.navigate(Group(groupId)) },
-                        onNewGroupClick = { navController.navigate(NewGroup) }
-                    )
+                    CompositionLocalProvider(LocalAnimatedVisibilityScope provides this@composable) {
+                        HomeRoute(
+                            onSettingsClick = { navController.navigate(Settings) },
+                            onGroupClick = { groupId -> navController.navigate(Group(groupId)) },
+                            onNewGroupClick = { navController.navigate(NewGroup) }
+                        )
+                    }
                 }
                 composable<Settings> {
                     SettingsRoute(

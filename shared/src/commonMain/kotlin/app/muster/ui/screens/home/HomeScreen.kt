@@ -50,6 +50,8 @@ import app.muster.ui.common.components.MusterSpinner
 import app.muster.ui.common.components.PhoneWidth
 import app.muster.ui.common.components.PrimaryButton
 import app.muster.ui.common.toMessage
+import app.muster.ui.common.util.SharedTransitionKeys
+import app.muster.ui.common.util.sharedBoundsOrNone
 import app.muster.ui.theme.MusterColors
 import app.muster.ui.theme.MusterTheme
 import muster.shared.generated.resources.Res
@@ -126,8 +128,9 @@ private fun HomeAppBar(onSettingsClick: () -> Unit, modifier: Modifier = Modifie
             Text(
                 text = "Muster",
                 style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.sharedBoundsOrNone(SharedTransitionKeys.WORDMARK)
             )
+            Spacer(Modifier.weight(1f))
             TextButton(onClick = onSettingsClick) {
                 Text(stringResource(Res.string.home_settings))
             }
