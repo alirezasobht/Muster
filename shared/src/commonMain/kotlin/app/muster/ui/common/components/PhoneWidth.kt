@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -15,6 +16,12 @@ import androidx.compose.ui.unit.dp
 // in landscape and a small tablet gain some room without the layout losing
 // its shape; past that it stays centred and the caller's background fills
 // the rest of the window.
+//
+// The safe-drawing inset lives here so no screen has to remember it, and
+// so it covers content anchored to the edges — a FAB aligned to the bottom
+// of a Box would otherwise sit under the three-button nav bar. Compose
+// consumes insets it applies, so a screen that also calls
+// safeDrawingPadding() is a no-op rather than double padding.
 @Composable
 fun PhoneWidth(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
@@ -22,7 +29,8 @@ fun PhoneWidth(modifier: Modifier = Modifier, content: @Composable BoxScope.() -
             modifier = modifier
                 .widthIn(max = MAX_CONTENT_WIDTH)
                 .fillMaxWidth()
-                .fillMaxHeight(),
+                .fillMaxHeight()
+                .safeDrawingPadding(),
             content = content
         )
     }
