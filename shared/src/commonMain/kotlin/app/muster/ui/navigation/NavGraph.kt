@@ -106,11 +106,13 @@ fun NavGraph(
                 }
                 composable<Group> { entry ->
                     val group = entry.toRoute<Group>()
-                    GroupRoute(
-                        groupId = group.id,
-                        groupName = group.name,
-                        onBack = { navController.popBackStack() }
-                    )
+                    CompositionLocalProvider(LocalAnimatedVisibilityScope provides this@composable) {
+                        GroupRoute(
+                            groupId = group.id,
+                            groupName = group.name,
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
                 }
             }
         }

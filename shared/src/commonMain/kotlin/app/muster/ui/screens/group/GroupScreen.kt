@@ -36,6 +36,8 @@ import app.muster.ui.common.components.MusterIcons
 import app.muster.ui.common.components.MusterSpinner
 import app.muster.ui.common.components.PhoneWidth
 import app.muster.ui.common.toMessage
+import app.muster.ui.common.util.SharedTransitionKeys
+import app.muster.ui.common.util.sharedBoundsOrNone
 import app.muster.ui.theme.MusterColors
 import app.muster.ui.theme.MusterTheme
 import muster.shared.generated.resources.Res
@@ -66,6 +68,7 @@ fun GroupRoute(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     GroupScreen(
+        groupId = groupId,
         state = state,
         actions = GroupActions(
             onBack = onBack,
@@ -80,12 +83,16 @@ fun GroupScreen(
     state: GroupUiState,
     actions: GroupActions,
     modifier: Modifier = Modifier,
+    // Only for the shared-element key, so it is a parameter rather than a
+    // field on the state.
+    groupId: String = "",
     spinnerDelayMillis: Long = 400
 ) {
     Surface(modifier = modifier.fillMaxSize()) {
         PhoneWidth {
             Column(modifier = Modifier.fillMaxSize()) {
                 GroupAppBar(
+                    groupId = groupId,
                     groupName = state.groupName,
                     isAdmin = (state as? GroupUiState.Success)?.isAdmin == true,
                     onBack = actions.onBack
@@ -137,6 +144,7 @@ fun GroupScreen(
 
 @Composable
 private fun GroupAppBar(
+    groupId: String,
     groupName: String,
     isAdmin: Boolean,
     onBack: () -> Unit,
@@ -159,7 +167,9 @@ private fun GroupAppBar(
             style = MaterialTheme.typography.titleLarge,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier
+                .weight(1f)
+                .sharedBoundsOrNone(SharedTransitionKeys.groupName(groupId))
         )
         // Archive and Leave group land here later (1p). Members-only: nothing yet.
         if (isAdmin) {

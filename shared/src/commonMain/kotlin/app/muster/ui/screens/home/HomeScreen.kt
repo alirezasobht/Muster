@@ -314,7 +314,9 @@ private fun GroupCard(group: HomeGroup, onClick: () -> Unit, modifier: Modifier 
             Text(
                 text = group.name,
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .sharedBoundsOrNone(SharedTransitionKeys.groupName(group.id))
             )
             Text(text = "›", style = MaterialTheme.typography.titleMedium, color = MusterColors.Muted)
         }
