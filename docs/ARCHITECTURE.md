@@ -108,6 +108,16 @@ UI state and its ViewModel share one name (`SetNameScreen`,
 `screens/<name>/`. One ViewModel per screen, not per flow. Anything two
 screens share moves to `common/`, never into one screen's folder.
 
+A tab inside a screen gets its own ViewModel once its own state outgrows
+the shell's — Group's Members tab (`MembersUiState`/`MembersTab`/
+`MembersViewModel`, in `screens/group/members/`) is the first case:
+`GroupViewModel` holds only role and tab selection, nothing about the
+member list. The shell's `XScreen` takes the tab body as a
+`@Composable () -> Unit` slot rather than resolving the tab's ViewModel
+itself (`GroupScreen`'s `membersContent`), so the shell stays Koin-free
+and its own previews keep working; `XRoute` fills the slot with the tab's
+own route (`GroupRoute` renders `MembersRoute` into it).
+
 A screen's `XRoute` composable (resolves the ViewModel via
 `koinViewModel()`, collects state, forwards plain navigation callbacks
 like `onBack`/`onNameSet` up to `NavGraph`) lives in the same file as
@@ -225,6 +235,13 @@ Don't put classification logic in the state class either. `canCreate`
 asks `error?.isTerminal != true`; the rule behind `isTerminal` lives in
 `ui/common/ErrorPresentation.kt`, once, not inlined as a cast in each
 state.
+
+The same split applies to permission flags. A Members-tab row's
+`canPromote`/`canDemote`/`canRemove`/`canRevokeInvitation` (`MemberRow`)
+are booleans `MembersViewModel` sets once, from the viewer's role and
+whether the row is their own. The composable only ever reads them — it
+never takes an `isAdmin` and re-derives who can do what, which would put
+the same role check in two places and let them disagree.
 
 ## Two kinds of error
 

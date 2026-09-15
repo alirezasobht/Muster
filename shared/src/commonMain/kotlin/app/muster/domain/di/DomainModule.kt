@@ -3,14 +3,20 @@ package app.muster.domain.di
 import app.muster.domain.usecase.AcceptGroupInvitationUseCase
 import app.muster.domain.usecase.CreateGroupUseCase
 import app.muster.domain.usecase.DeclineGroupInvitationUseCase
+import app.muster.domain.usecase.DemoteMemberUseCase
 import app.muster.domain.usecase.GetGroupUseCase
 import app.muster.domain.usecase.GetMyGroupRoleUseCase
 import app.muster.domain.usecase.GetMyProfileUseCase
+import app.muster.domain.usecase.LeaveGroupUseCase
+import app.muster.domain.usecase.ListGroupMembersUseCase
 import app.muster.domain.usecase.ListMyGroupsUseCase
 import app.muster.domain.usecase.ListPendingInvitationsUseCase
 import app.muster.domain.usecase.ObserveSessionUseCase
+import app.muster.domain.usecase.PromoteMemberUseCase
+import app.muster.domain.usecase.RemoveMemberUseCase
 import app.muster.domain.usecase.RequestSignInCodeUseCase
 import app.muster.domain.usecase.RetrySessionUseCase
+import app.muster.domain.usecase.RevokeInvitationUseCase
 import app.muster.domain.usecase.SignOutUseCase
 import app.muster.domain.usecase.UpdateNameUseCase
 import app.muster.domain.usecase.VerifySignInCodeUseCase
@@ -32,4 +38,10 @@ val domainModule = module {
     factoryOf(::ListPendingInvitationsUseCase)
     factoryOf(::AcceptGroupInvitationUseCase)
     factoryOf(::DeclineGroupInvitationUseCase)
+    factoryOf(::ListGroupMembersUseCase)
+    factoryOf(::PromoteMemberUseCase)
+    factoryOf(::DemoteMemberUseCase)
+    factoryOf(::RemoveMemberUseCase)
+    factoryOf(::RevokeInvitationUseCase)
+    factoryOf(::LeaveGroupUseCase)
 }

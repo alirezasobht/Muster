@@ -17,7 +17,7 @@ editing** — they change often, and other sessions edit them too.
 | `docs/SCREENS.md` | Screen map, navigation, per-screen behaviour |
 | `docs/DECISIONS.md` | Why closed choices were closed |
 | `docs/design/DESIGN.md` | Visual design of record, frames 1a–1t and 2a–2d |
-| `docs/design/muster-screens-v5.html` | The frames — open in a browser. v1–v4 superseded, kept as history |
+| `docs/design/muster-screens-v6.html` | The frames — open in a browser. v1–v5 superseded, kept as history |
 
 Keep them updated when decisions change.
 
@@ -113,9 +113,9 @@ still outstanding across 1a, 1b, 1c, 1f and 1g.
 
 Group shell done (1h/1i/1j's app bar and tabs, no designed 1s/1t of its
 own yet): `GroupScreen`/`GroupUiState`/`GroupViewModel`, back + group
-name + admin-only overflow (⋮, stubbed — Archive and Leave group come
-with Members), Events/Members tabs with naming placeholder bodies.
-Loading and failed states reuse Home's shapes; the app bar can only
+name + admin-only overflow (⋮, still stubbed — Archive and Leave group
+land there later, see below), Events/Members tabs. Loading and failed
+states reuse Home's shapes; the app bar can only
 show the back button there, since the group name and role — what the
 rest of the bar needs — are exactly what's loading. Added
 `GroupRepository.getGroup`/`getMyRole`, `GetGroupUseCase`,
@@ -124,6 +124,25 @@ state out into `ui/common/components/MessageState.kt` since Group now
 needs the same shape — Event's load failure will too. Replaces
 `GroupPlaceholderRoute` in `NavGraph`.
 
-Next: the members list (1i/1j), add by email, promote/demote/remove,
-leave group. Then events. The overflow's Archive/Leave and the 2a–2d
-error treatment above are both still open.
+Members tab done (1i/1j): `MembersUiState`/`MembersTab`/`MembersViewModel`,
+wired into `GroupScreen` through a `membersContent: @Composable () -> Unit`
+slot — the shell stays Koin-free and its own previews still work, and
+`GroupRoute` fills the slot with `MembersRoute`. One list, self first then
+admins/members/pending each A-Z, row moves animated with
+`Modifier.animateItem()`. Every admin affordance (promote/demote/remove,
+revoke an invitation, "Add by email") is a boolean `MembersViewModel`
+decides once per row/state — the composable only reads flags, never a raw
+role. Added `MemberRepository`, `Member`/`PendingInvitation`/
+`MemberListing`, six use cases, `DataChange.Members(groupId)` (notified on
+every write, nothing subscribes yet), and `DomainError.LastAdmin` for the
+`group_keeps_an_admin` trigger. Tests: `MembersViewModelTest`
+(androidHostTest) and `MembersTabTest` (androidDeviceTest, run against a
+real emulator, not just compiled).
+
+Add by email is a no-op callback — SCREENS.md gives it its own screen, not
+built yet. Leave group has no UI anywhere: frame 1j puts it in the Group
+app bar overflow, which is still Group shell's admin-only ⋮ stub — making
+it real means opening that overflow to every member, not just admins.
+
+Next: the app bar overflow (Archive, Leave group), then the Add by email
+screen, then Events. The 2a–2d error treatment above is still open.

@@ -12,7 +12,9 @@ internal fun GroupDto.toGroup() = Group(id = id, name = name)
 
 internal fun GroupMembershipDto.toGroup() = groups.toGroup()
 
-internal fun GroupMemberRoleDto.toGroupRole() = if (role == "admin") GroupRole.Admin else GroupRole.Member
+internal fun GroupMemberRoleDto.toGroupRole() = role.toGroupRole()
+
+internal fun String.toGroupRole() = if (this == "admin") GroupRole.Admin else GroupRole.Member
 
 internal fun PendingInvitationDto.toGroupInvitation() = GroupInvitation(
     id = invitationId,

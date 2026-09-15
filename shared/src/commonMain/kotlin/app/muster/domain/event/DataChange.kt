@@ -6,4 +6,5 @@ package app.muster.domain.event
  */
 sealed interface DataChange {
     data object MyGroups : DataChange
+    data class Members(val groupId: String) : DataChange
 }

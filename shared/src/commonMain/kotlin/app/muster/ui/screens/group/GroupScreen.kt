@@ -38,6 +38,7 @@ import app.muster.ui.common.components.PhoneWidth
 import app.muster.ui.common.toMessage
 import app.muster.ui.common.util.SharedTransitionKeys
 import app.muster.ui.common.util.sharedBoundsOrNone
+import app.muster.ui.screens.group.members.MembersRoute
 import app.muster.ui.theme.MusterColors
 import app.muster.ui.theme.MusterTheme
 import muster.shared.generated.resources.Res
@@ -46,7 +47,6 @@ import muster.shared.generated.resources.content_description_more
 import muster.shared.generated.resources.group_events_placeholder
 import muster.shared.generated.resources.group_failed_title
 import muster.shared.generated.resources.group_failed_try_again
-import muster.shared.generated.resources.group_members_placeholder
 import muster.shared.generated.resources.group_tab_events
 import muster.shared.generated.resources.group_tab_members
 import org.jetbrains.compose.resources.stringResource
@@ -74,7 +74,13 @@ fun GroupRoute(
             onBack = onBack,
             onTabSelected = viewModel::onTabSelected,
             onRetry = viewModel::onRetry
-        )
+        ),
+        membersContent = {
+            MembersRoute(
+                groupId = groupId,
+                onAddByEmail = {}
+            )
+        }
     )
 }
 
@@ -83,10 +89,9 @@ fun GroupScreen(
     state: GroupUiState,
     actions: GroupActions,
     modifier: Modifier = Modifier,
-    // Only for the shared-element key, so it is a parameter rather than a
-    // field on the state.
     groupId: String = "",
-    spinnerDelayMillis: Long = 400
+    spinnerDelayMillis: Long = 400,
+    membersContent: @Composable () -> Unit = {}
 ) {
     Surface(modifier = modifier.fillMaxSize()) {
         PhoneWidth {
@@ -128,12 +133,19 @@ fun GroupScreen(
                     }
                     is GroupUiState.Success -> {
                         GroupTabRow(selectedTab = state.selectedTab, onTabSelected = actions.onTabSelected)
-                        Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            val placeholder = when (state.selectedTab) {
-                                GroupTab.Events -> stringResource(Res.string.group_events_placeholder)
-                                GroupTab.Members -> stringResource(Res.string.group_members_placeholder)
+                        when (state.selectedTab) {
+                            GroupTab.Events -> Box(
+                                modifier = Modifier.weight(1f).fillMaxWidth(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = stringResource(Res.string.group_events_placeholder),
+                                    color = MusterColors.Muted
+                                )
                             }
-                            Text(text = placeholder, color = MusterColors.Muted)
+                            GroupTab.Members -> Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                                membersContent()
+                            }
                         }
                     }
                 }

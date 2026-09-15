@@ -16,6 +16,8 @@ object MusterColors {
     val Hint = Color(0xFF8A918C)
     // Dashed border on the Home empty-state icon (1e) only.
     val DashedOutline = Color(0xFFCBD2CD)
+    // Initials-avatar fill on member rows (1i/1j).
+    val AvatarFill = Color(0xFFF0F2F0)
 
     val InFill = Color(0xFFE8F2EB)
     val InText = Color(0xFF1F5C39)

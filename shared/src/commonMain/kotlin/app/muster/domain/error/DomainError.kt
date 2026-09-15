@@ -23,5 +23,10 @@ sealed class DomainError(message: String, cause: Throwable? = null) : Exception(
     // point is gated on it too, but the flag can change between screens.
     class NotAllowedToCreateGroups : DomainError("not allowed to create groups")
 
+    // group_keeps_an_admin trigger: rejects any change that would leave a
+    // group with zero admins — last admin leaving, demoting themselves, or
+    // demoting the only other admin.
+    class LastAdmin : DomainError("a group must keep at least one admin")
+
     class Unknown(cause: Throwable) : DomainError(cause.message ?: "unknown error", cause)
 }

@@ -53,9 +53,27 @@
     <string name="group_tab_events">Events</string>
     <string name="group_tab_members">Members</string>
     <string name="group_events_placeholder">Events tab isn’t built yet.</string>
-    <string name="group_members_placeholder">Members tab isn’t built yet.</string>
     <string name="group_failed_title">Couldn’t load this group</string>
     <string name="group_failed_try_again">Try again</string>
+
+    <!-- Group — Members tab (1i, 1j) -->
+    <string name="members_add_by_email">Add by email</string>
+    <string name="members_status_admin">Admin</string>
+    <string name="members_status_member">Member</string>
+    <string name="members_status_invited">Invited</string>
+    <string name="members_action_promote">Make admin</string>
+    <string name="members_action_demote">Make member</string>
+    <string name="members_action_remove">Remove from group</string>
+    <string name="members_action_revoke">Cancel invitation</string>
+    <string name="members_remove_title">Remove %1$s?</string>
+    <string name="members_remove_body">They’ll lose access to this group and any RSVPs they’ve made will be removed.</string>
+    <string name="members_remove_confirm">Remove</string>
+    <string name="members_remove_cancel">Cancel</string>
+    <string name="members_empty_title">It’s just you for now</string>
+    <string name="members_empty_body">Add teammates by email to fill out the group.</string>
+    <string name="members_failed_title">Couldn’t load members</string>
+    <string name="members_try_again">Try again</string>
+    <string name="members_you_suffix"> · you</string>
 
     <!-- Shared -->
     <string name="action_continue">Continue</string>
@@ -77,6 +95,7 @@
     <string name="error_invalid_name">Enter your name.</string>
     <string name="error_invitation_not_pending">That invitation is no longer available.</string>
     <string name="error_not_allowed_to_create_groups">You’re not allowed to create groups.</string>
+    <string name="error_last_admin">A group needs at least one admin. Promote someone else first.</string>
     <string name="error_network">Can’t connect. Check your connection and try again.</string>
     <string name="error_not_signed_in">You’ve been signed out. Sign in again.</string>
     <string name="error_unknown">Something went wrong. Try again.</string>

@@ -35,6 +35,7 @@ val DomainError.presentation: ErrorPresentation
         is DomainError.RateLimited,
         is DomainError.NotAllowedToCreateGroups,
         is DomainError.InvitationNotPending,
+        is DomainError.LastAdmin,
         is DomainError.NotSignedIn ->
             ErrorPresentation.Form(ErrorPresentation.Severity.Terminal)
     }
