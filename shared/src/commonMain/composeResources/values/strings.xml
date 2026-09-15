@@ -49,8 +49,13 @@
     <string name="new_group_title">New group</string>
     <string name="new_group_hint">You’ll be its first admin. You can add players once it exists.</string>
 
-    <!-- Group — placeholder until the Group screen is built -->
-    <string name="group_placeholder_body">Group screen isn’t built yet.</string>
+    <!-- Group (1h, 1i, 1j) -->
+    <string name="group_tab_events">Events</string>
+    <string name="group_tab_members">Members</string>
+    <string name="group_events_placeholder">Events tab isn’t built yet.</string>
+    <string name="group_members_placeholder">Members tab isn’t built yet.</string>
+    <string name="group_failed_title">Couldn’t load this group</string>
+    <string name="group_failed_try_again">Try again</string>
 
     <!-- Shared -->
     <string name="action_continue">Continue</string>
@@ -63,6 +68,7 @@
     <string name="field_name">Name</string>
     <string name="field_group_name">Group name</string>
     <string name="content_description_back">Back</string>
+    <string name="content_description_more">More options</string>
 
     <!-- Errors: one per DomainError case -->
     <string name="error_invalid_email">That doesn’t look like an email address.</string>

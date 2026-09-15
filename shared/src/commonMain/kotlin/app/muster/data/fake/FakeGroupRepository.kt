@@ -5,6 +5,7 @@ import app.muster.domain.event.DataChange
 import app.muster.domain.event.DataChanges
 import app.muster.domain.model.Group
 import app.muster.domain.model.GroupInvitation
+import app.muster.domain.model.GroupRole
 import app.muster.domain.repository.GroupRepository
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
@@ -12,8 +13,12 @@ import kotlin.time.Duration.Companion.milliseconds
 class FakeGroupRepository(
     groups: List<Group> = emptyList(),
     invitations: List<GroupInvitation> = emptyList(),
+    var group: Group = Group(id = "fake-group-1", name = "Westgate Wednesday 7s"),
+    var myRole: GroupRole = GroupRole.Member,
     var getMyGroupsError: DomainError? = null,
     var createGroupError: DomainError? = null,
+    var getGroupError: DomainError? = null,
+    var getMyRoleError: DomainError? = null,
     var getPendingInvitationsError: DomainError? = null,
     var acceptError: DomainError? = null,
     var declineError: DomainError? = null,
@@ -50,6 +55,18 @@ class FakeGroupRepository(
         createdGroupNames = createdGroupNames + name
         dataChanges?.notify(DataChange.MyGroups)
         return group
+    }
+
+    override suspend fun getGroup(groupId: String): Group {
+        delay(latency.milliseconds)
+        getGroupError?.let { throw it }
+        return group
+    }
+
+    override suspend fun getMyRole(groupId: String): GroupRole {
+        delay(latency.milliseconds)
+        getMyRoleError?.let { throw it }
+        return myRole
     }
 
     override suspend fun getPendingInvitations(): List<GroupInvitation> {

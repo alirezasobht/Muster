@@ -105,9 +105,25 @@ plain `archived_at is null` column check, and is what's actually on the
 remote database now (applied by hand, then written up as a migration —
 see `docs/SCHEMA.md` rule 1). Both are pushed.
 
-Next: the two-kinds-of-error treatment (DESIGN.md → "Two kinds of
-error", frames 2a–2d) across 1a, 1b, 1c, 1f and 1g. Then Group.
-
 Every screen currently renders every error in the field's error slot,
 including ones that aren't about the field — "Can't connect", "You're
-not allowed to create groups". That is what the 2a–2d treatment fixes.
+not allowed to create groups". The two-kinds-of-error treatment
+(DESIGN.md → "Two kinds of error", frames 2a–2d) fixes this and is
+still outstanding across 1a, 1b, 1c, 1f and 1g.
+
+Group shell done (1h/1i/1j's app bar and tabs, no designed 1s/1t of its
+own yet): `GroupScreen`/`GroupUiState`/`GroupViewModel`, back + group
+name + admin-only overflow (⋮, stubbed — Archive and Leave group come
+with Members), Events/Members tabs with naming placeholder bodies.
+Loading and failed states reuse Home's shapes; the app bar can only
+show the back button there, since the group name and role — what the
+rest of the bar needs — are exactly what's loading. Added
+`GroupRepository.getGroup`/`getMyRole`, `GetGroupUseCase`,
+`GetMyGroupRoleUseCase`, `GroupRole`. Pulled Home's dashed-icon message
+state out into `ui/common/components/MessageState.kt` since Group now
+needs the same shape — Event's load failure will too. Replaces
+`GroupPlaceholderRoute` in `NavGraph`.
+
+Next: the members list (1i/1j), add by email, promote/demote/remove,
+leave group. Then events. The overflow's Archive/Leave and the 2a–2d
+error treatment above are both still open.

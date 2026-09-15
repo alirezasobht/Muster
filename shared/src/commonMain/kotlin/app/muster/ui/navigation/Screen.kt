@@ -24,4 +24,4 @@ data object Settings
 data object NewGroup
 
 @Serializable
-data class Group(val id: String)
+data class Group(val id: String, val name: String)

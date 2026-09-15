@@ -19,6 +19,7 @@ flowchart TD
     Settings[Settings]
     NewGroup[New group<br/><i>if allowed</i>]
     Group[Group<br/><i>events / members tabs</i>]
+    AddByEmail[Add by email<br/><i>admins</i>]
     NewEvent[New event<br/><i>admins</i>]
     Event[Event<br/><i>roster, standby</i>]
     AddPlayers[Add players<br/><i>admins</i>]
@@ -33,13 +34,14 @@ flowchart TD
     Home --> NewGroup
     Home --> Group
     NewGroup --> Group
+    Group --> AddByEmail
     Group --> NewEvent
     Group --> Event
     NewEvent --> Event
     Event --> AddPlayers
 ```
 
-Nine screens. A plain stack — no bottom navigation.
+Ten screens. A plain stack — no bottom navigation.
 
 ## Staying current
 
@@ -131,6 +133,25 @@ name: admin, member, or pending.
 - Anyone: leave the group.
 - Archiving the group lives in the Group app bar overflow, admins only,
   above Leave group.
+
+### Add by email
+Its own destination, not a mode inside Group. It renders the same group
+name app bar, with a **close X in place of the back arrow**, and the tabs
+replaced by the form. Being a real destination means system back and
+browser back close it for free, and Group's state carries no "is the form
+open" flag.
+
+Same shape as New group: one field, one action. Only the copy, the
+ViewModel and the call differ.
+
+- On success, a **dialog**: confirmation, **Invite more**, **Close**.
+  Invite more clears the field and stays on the form; Close returns to
+  Members, where the new pending row is waiting.
+- On failure, no dialog — the form error rule applies as everywhere else,
+  a block above the action button.
+- **Closing never prompts**, even with a half-typed address. Unlike
+  Settings, an address costs a second to retype, and a confirmation on
+  every change of mind is worse than the occasional lost keystroke.
 
 ### New event
 Own screen. Title, start time, location, capacity. Capacity cannot be

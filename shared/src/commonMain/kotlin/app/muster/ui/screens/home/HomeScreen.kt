@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ButtonDefaults
@@ -27,16 +26,9 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -44,6 +36,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.muster.domain.error.DomainError
+import app.muster.ui.common.components.MessageState
 import app.muster.ui.common.components.MusterSpinner
 import app.muster.ui.common.components.PhoneWidth
 import app.muster.ui.common.components.PrimaryButton
@@ -70,7 +63,7 @@ data class HomeGroup(val id: String, val name: String)
 data class HomeInvitation(val id: String, val groupName: String, val invitedByName: String? = null)
 
 data class HomeActions(
-    val onGroupClick: (String) -> Unit,
+    val onGroupClick: (id: String, name: String) -> Unit,
     val onNewGroupClick: () -> Unit,
     val onSettingsClick: () -> Unit,
     val onAccept: (String) -> Unit,
@@ -81,7 +74,7 @@ data class HomeActions(
 @Composable
 fun HomeRoute(
     onSettingsClick: () -> Unit,
-    onGroupClick: (String) -> Unit,
+    onGroupClick: (id: String, name: String) -> Unit,
     onNewGroupClick: () -> Unit,
     viewModel: HomeViewModel = koinViewModel()
 ) {
@@ -169,7 +162,7 @@ fun HomeFailedScreen(
             Column(modifier = Modifier.safeDrawingPadding().fillMaxSize()) {
                 HomeAppBar(onSettingsClick = onSettingsClick)
                 Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    HomeMessageState(
+                    MessageState(
                         title = stringResource(Res.string.home_failed_title),
                         body = error.toMessage()
                     ) {
@@ -248,7 +241,10 @@ fun HomeScreen(
                                     )
                                 }
                                 items(myGroups, key = { it.id }) { group ->
-                                    GroupCard(group = group, onClick = { actions.onGroupClick(group.id) })
+                                    GroupCard(
+                                        group = group,
+                                        onClick = { actions.onGroupClick(group.id, group.name) }
+                                    )
                                 }
                             }
                         }
@@ -274,43 +270,9 @@ fun HomeScreen(
     }
 }
 
-// Shared by the empty state (1e) and the failed-load state (1t) — same
-// frame: dashed mark, title, one line, one trailing element.
-@Composable
-private fun HomeMessageState(
-    title: String,
-    body: String,
-    modifier: Modifier = Modifier,
-    trailing: (@Composable () -> Unit)? = null
-) {
-    Column(
-        modifier = modifier.fillMaxWidth().padding(horizontal = 40.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        DashedIconPlaceholder()
-        Spacer(Modifier.height(16.dp))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            textAlign = TextAlign.Center
-        )
-        Spacer(Modifier.height(10.dp))
-        Text(
-            text = body,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MusterColors.Muted,
-            textAlign = TextAlign.Center
-        )
-        if (trailing != null) {
-            Spacer(Modifier.height(10.dp))
-            trailing()
-        }
-    }
-}
-
 @Composable
 private fun HomeEmptyState(signedInEmail: String, modifier: Modifier = Modifier) {
-    HomeMessageState(
+    MessageState(
         title = stringResource(Res.string.home_empty_title),
         body = stringResource(Res.string.home_empty_body),
         modifier = modifier,
@@ -327,28 +289,6 @@ private fun HomeEmptyState(signedInEmail: String, modifier: Modifier = Modifier)
             }
         } else {
             null
-        }
-    )
-}
-
-// The dashed square above "No groups yet" / "Couldn't load your groups" —
-// Compose has no built-in dashed border, so it's drawn by hand.
-@Composable
-private fun DashedIconPlaceholder(modifier: Modifier = Modifier) {
-    val density = LocalDensity.current
-    val stroke = Stroke(
-        width = with(density) { 1.5.dp.toPx() },
-        pathEffect = PathEffect.dashPathEffect(floatArrayOf(4f, 4f))
-    )
-    val radius = with(density) { 16.dp.toPx() }
-    Box(
-        modifier = modifier.size(56.dp).drawBehind {
-            drawRoundRect(
-                color = MusterColors.DashedOutline,
-                cornerRadius = CornerRadius(radius, radius),
-                style = stroke,
-                size = Size(size.width, size.height)
-            )
         }
     )
 }
@@ -472,7 +412,7 @@ private fun HomeScreenPreview() {
             canCreateGroups = true,
             signedInEmail = "alex.doyle@gmail.com",
             actions = HomeActions(
-                onGroupClick = {},
+                onGroupClick = { _, _ -> },
                 onNewGroupClick = {},
                 onSettingsClick = {},
                 onAccept = {},
@@ -492,7 +432,7 @@ private fun HomeScreenEmptyPreview() {
             canCreateGroups = false,
             signedInEmail = "alex.doyle@gmail.com",
             actions = HomeActions(
-                onGroupClick = {},
+                onGroupClick = { _, _ -> },
                 onNewGroupClick = {},
                 onSettingsClick = {},
                 onAccept = {},

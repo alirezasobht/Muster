@@ -1,5 +1,6 @@
 package app.muster.ui.common.components
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -28,6 +29,23 @@ object MusterIcons {
             fill = SolidColor(Color.Black)
         ).build()
     }
+
+    val MoreVert: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "MoreVert",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f
+        ).addPath(
+            pathData = addPathNodes(
+                "M12,8c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2z" +
+                    "M12,10c-1.1,0 -2,0.9 -2,2s0.9,2 2,2 2,-0.9 2,-2 -0.9,-2 -2,-2z" +
+                    "M12,16c-1.1,0 -2,0.9 -2,2s0.9,2 2,2 2,-0.9 2,-2 -0.9,-2 -2,-2z"
+            ),
+            fill = SolidColor(Color.Black)
+        ).build()
+    }
 }
 
 @Preview
@@ -35,7 +53,10 @@ object MusterIcons {
 private fun IconsPreview() {
     MusterTheme {
         Surface {
-            IconPreview(imageVector = MusterIcons.ArrowBack)
+            Column {
+                IconPreview(imageVector = MusterIcons.ArrowBack)
+                IconPreview(imageVector = MusterIcons.MoreVert)
+            }
         }
     }
 }

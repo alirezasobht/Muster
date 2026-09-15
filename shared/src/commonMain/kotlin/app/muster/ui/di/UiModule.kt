@@ -1,5 +1,6 @@
 package app.muster.ui.di
 
+import app.muster.ui.screens.group.GroupViewModel
 import app.muster.ui.screens.home.HomeViewModel
 import app.muster.ui.screens.launch.LaunchViewModel
 import app.muster.ui.screens.newgroup.NewGroupViewModel
@@ -20,4 +21,6 @@ val uiModule = module {
     viewModelOf(::NewGroupViewModel)
     // Email comes from the EnterCode route, not the graph.
     viewModel { (email: String) -> EnterCodeViewModel(email, get(), get()) }
+    // Group id and name come from the Group route, not the graph.
+    viewModel { (groupId: String, groupName: String) -> GroupViewModel(groupId, groupName, get()) }
 }

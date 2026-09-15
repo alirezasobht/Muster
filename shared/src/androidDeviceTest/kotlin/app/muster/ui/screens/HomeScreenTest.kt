@@ -27,7 +27,7 @@ class HomeScreenTest {
         canCreateGroups: Boolean = false,
         signedInEmail: String = "alex.doyle@gmail.com",
         respondingTo: String? = null,
-        onGroupClick: (String) -> Unit = {},
+        onGroupClick: (id: String, name: String) -> Unit = { _, _ -> },
         onNewGroupClick: () -> Unit = {},
         onAccept: (String) -> Unit = {},
         onDecline: (String) -> Unit = {}
@@ -54,13 +54,13 @@ class HomeScreenTest {
 
     @Test
     fun tappingAGroupCardReachesTheCallback() {
-        var tapped: String? = null
+        var tapped: Pair<String, String>? = null
         show(
             myGroups = listOf(HomeGroup("g1", "Westgate Wednesday 7s")),
-            onGroupClick = { tapped = it }
+            onGroupClick = { id, name -> tapped = id to name }
         )
         composeRule.onNodeWithText("Westgate Wednesday 7s").performClick()
-        assert(tapped == "g1")
+        assert(tapped == "g1" to "Westgate Wednesday 7s")
     }
 
     @Test

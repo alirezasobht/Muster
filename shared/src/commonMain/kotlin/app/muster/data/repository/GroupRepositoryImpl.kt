@@ -2,16 +2,19 @@ package app.muster.data.repository
 
 import app.muster.data.dto.GroupDto
 import app.muster.data.dto.GroupInsertDto
+import app.muster.data.dto.GroupMemberRoleDto
 import app.muster.data.dto.GroupMembershipDto
 import app.muster.data.dto.PendingInvitationDto
 import app.muster.data.mapper.mapErrors
 import app.muster.data.mapper.toGroup
 import app.muster.data.mapper.toGroupInvitation
+import app.muster.data.mapper.toGroupRole
 import app.muster.domain.error.DomainError
 import app.muster.domain.event.DataChange
 import app.muster.domain.event.DataChanges
 import app.muster.domain.model.Group
 import app.muster.domain.model.GroupInvitation
+import app.muster.domain.model.GroupRole
 import app.muster.domain.repository.GroupRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
@@ -39,6 +42,25 @@ internal class GroupRepositoryImpl(
             .decodeSingle<GroupDto>()
             .toGroup()
             .also { dataChanges.notify(DataChange.MyGroups) }
+    }
+
+    override suspend fun getGroup(groupId: String): Group = mapErrors {
+        client.from(GROUPS_TABLE)
+            .select { filter { eq("id", groupId) } }
+            .decodeSingle<GroupDto>()
+            .toGroup()
+    }
+
+    override suspend fun getMyRole(groupId: String): GroupRole = mapErrors {
+        client.from(GROUP_MEMBERS_TABLE)
+            .select(Columns.raw("role")) {
+                filter {
+                    eq("group_id", groupId)
+                    eq("profile_id", myId())
+                }
+            }
+            .decodeSingle<GroupMemberRoleDto>()
+            .toGroupRole()
     }
 
     override suspend fun getPendingInvitations(): List<GroupInvitation> = mapErrors {

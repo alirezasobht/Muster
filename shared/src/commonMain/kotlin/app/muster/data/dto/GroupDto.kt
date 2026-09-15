@@ -23,6 +23,12 @@ internal data class GroupMembershipDto(
     val groups: GroupDto
 )
 
+// The caller's own group_members row, for their role in one group.
+@Serializable
+internal data class GroupMemberRoleDto(
+    val role: String
+)
+
 // get_my_pending_invitations() RPC result — flat, not a table select.
 @Serializable
 internal data class PendingInvitationDto(
