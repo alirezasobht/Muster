@@ -186,6 +186,50 @@ state — `RequestCodeUiState.sentTo`, `SetNameUiState.saved` — and the
 graph acts on it, then calls back to clear it so returning to the screen
 does not navigate again.
 
+## What goes on UI state, what goes in the ViewModel
+
+A **derived property** belongs on the UI state:
+`SettingsUiState.isSameName`, `NewGroupUiState.canCreate`. The test is
+narrow — `val x get() = <expression over this state's own fields>`, no
+dependencies, no side effects. Keeping it there means the state cannot
+contradict itself: a button cannot be enabled under conditions the state
+does not reflect. Recomputing it in the ViewModel would mean a field
+every `copy` has to remember to update, which is how a button ends up
+live when it should not be.
+
+Anything needing something **outside** the state is ViewModel work:
+calling a use case, deciding what to do with a failure, the in-flight
+guard. `SettingsViewModel.onSave` reads `isSameName` but decides there —
+that is the split working.
+
+Don't put classification logic in the state class either. `canCreate`
+asks `error?.isTerminal != true`; the rule behind `isTerminal` lives in
+`ui/common/ErrorPresentation.kt`, once, not inlined as a cast in each
+state.
+
+## Two kinds of error
+
+DESIGN.md → "Two kinds of error" has the visual treatment. In code, the
+classification lives in `ui/common/ErrorPresentation.kt` and nowhere
+else:
+
+- `DomainError.presentation` returns `Field` or `Form(severity)`.
+  `Field` renders under the input it is about; `Form` renders as a filled
+  block above the action button.
+- `Severity.Terminal` means retrying the same request fails the same way
+  — permission, rate limit — so the action stops being offered.
+  `Retryable` — offline, unknown — leaves it live.
+- `DomainError.isTerminal` is the question screens actually ask, and what
+  a state's `canX` should call.
+
+A screen keeps the two on separate fields (`nameError` and `error`,
+`emailError` and `error`) rather than one, because both can be present at
+once. Editing any field clears the form error; pressing the action clears
+both before the call.
+
+This is for failed **writes**. A failed load keeps the full-screen
+treatment instead — `HomeFailedScreen`, frame 1t.
+
 ## One-shot events
 
 A thing that should happen **once** — a "Saved" confirmation, a toast —

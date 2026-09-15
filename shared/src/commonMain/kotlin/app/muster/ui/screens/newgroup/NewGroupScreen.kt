@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.muster.domain.error.DomainError
 import app.muster.domain.model.Group
+import app.muster.ui.common.components.FormError
 import app.muster.ui.common.components.MusterIcons
 import app.muster.ui.common.components.MusterTextField
 import app.muster.ui.common.components.PhoneWidth
@@ -62,7 +63,9 @@ fun NewGroupRoute(
         onCreate = viewModel::onCreate,
         onBack = onBack,
         creating = state.creating,
-        error = state.error
+        nameError = state.nameError,
+        error = state.error,
+        canCreate = state.canCreate
     )
 }
 
@@ -74,10 +77,10 @@ fun NewGroupScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     creating: Boolean = false,
-    error: DomainError? = null
+    nameError: DomainError? = null,
+    error: DomainError? = null,
+    canCreate: Boolean = name.isNotBlank()
 ) {
-    val canCreate = name.isNotBlank()
-
     Surface(modifier = modifier.fillMaxSize()) {
         PhoneWidth {
             Column(modifier = Modifier.safeDrawingPadding().fillMaxSize()) {
@@ -102,7 +105,7 @@ fun NewGroupScreen(
                         onValueChange = onNameChange,
                         label = stringResource(Res.string.field_group_name),
                         enabled = !creating,
-                        error = error?.toMessage(),
+                        error = nameError?.toMessage(),
                         keyboardOptions = KeyboardOptions(
                             capitalization = KeyboardCapitalization.Words,
                             imeAction = ImeAction.Done
@@ -116,6 +119,10 @@ fun NewGroupScreen(
                         color = MusterColors.Muted
                     )
                     Spacer(Modifier.height(24.dp))
+                    if (error != null) {
+                        FormError(message = error.toMessage())
+                        Spacer(Modifier.height(12.dp))
+                    }
                     PrimaryButton(
                         text = stringResource(Res.string.action_create_group),
                         onClick = onCreate,
@@ -158,6 +165,7 @@ private fun NewGroupScreenCreatingPreview() {
     }
 }
 
+// 2c: retryable form error, button stays live.
 @Preview
 @Composable
 private fun NewGroupScreenFailedPreview() {
@@ -167,6 +175,52 @@ private fun NewGroupScreenFailedPreview() {
             onNameChange = {},
             onCreate = {},
             onBack = {},
+            error = DomainError.Network()
+        )
+    }
+}
+
+// 2b: terminal form error, button greys.
+@Preview
+@Composable
+private fun NewGroupScreenNotAllowedPreview() {
+    MusterTheme {
+        NewGroupScreen(
+            name = "Westgate Wednesday 7s",
+            onNameChange = {},
+            onCreate = {},
+            onBack = {},
+            error = DomainError.NotAllowedToCreateGroups(),
+            canCreate = false
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun NewGroupScreenNameErrorPreview() {
+    MusterTheme {
+        NewGroupScreen(
+            name = "W",
+            onNameChange = {},
+            onCreate = {},
+            onBack = {},
+            nameError = DomainError.InvalidName()
+        )
+    }
+}
+
+// 2d: a server-rejected field alongside a failed request, both shown at once.
+@Preview
+@Composable
+private fun NewGroupScreenNameErrorAndFailedPreview() {
+    MusterTheme {
+        NewGroupScreen(
+            name = "Westgate Wednesday 7s and the Thursday lot",
+            onNameChange = {},
+            onCreate = {},
+            onBack = {},
+            nameError = DomainError.InvalidName(),
             error = DomainError.Network()
         )
     }

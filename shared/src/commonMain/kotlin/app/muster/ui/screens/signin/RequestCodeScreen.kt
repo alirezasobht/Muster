@@ -27,6 +27,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.muster.domain.error.DomainError
+import app.muster.ui.common.components.FormError
 import app.muster.ui.common.components.MusterMark
 import app.muster.ui.common.components.MusterTextField
 import app.muster.ui.common.components.MusterWordmark
@@ -62,7 +63,8 @@ fun RequestCodeRoute(
         onSendCode = viewModel::onSendCode,
         sending = state.sending,
         emailError = state.emailError,
-        error = state.error
+        error = state.error,
+        canSend = state.canSend
     )
 }
 
@@ -74,10 +76,9 @@ fun RequestCodeScreen(
     modifier: Modifier = Modifier,
     sending: Boolean = false,
     emailError: DomainError? = null,
-    error: DomainError? = null
+    error: DomainError? = null,
+    canSend: Boolean = email.isNotBlank()
 ) {
-    val canSend = email.isNotBlank()
-
     Surface(modifier = modifier.fillMaxSize(), color = MusterColors.Accent) {
         PhoneWidth {
             Column(
@@ -121,6 +122,10 @@ fun RequestCodeScreen(
                     onAccent = true
                 )
                 Spacer(Modifier.height(24.dp))
+                if (error != null) {
+                    FormError(message = error.toMessage())
+                    Spacer(Modifier.height(12.dp))
+                }
                 PrimaryButton(
                     text = stringResource(Res.string.request_code_send),
                     onClick = onSendCode,
@@ -128,16 +133,6 @@ fun RequestCodeScreen(
                     loading = sending,
                     onAccent = true
                 )
-                if (error != null) {
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        text = error.toMessage(),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MusterColors.OnAccentError,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
                 Spacer(Modifier.weight(1f))
                 Text(
                     text = stringResource(Res.string.request_code_footer),
@@ -181,6 +176,21 @@ private fun RequestCodeScreenOfflinePreview() {
             onEmailChange = {},
             onSendCode = {},
             error = DomainError.Network()
+        )
+    }
+}
+
+// 2a: terminal form error, button greys.
+@Preview
+@Composable
+private fun RequestCodeScreenRateLimitedPreview() {
+    MusterTheme {
+        RequestCodeScreen(
+            email = "alex.doyle@gmail.com",
+            onEmailChange = {},
+            onSendCode = {},
+            error = DomainError.RateLimited(),
+            canSend = false
         )
     }
 }

@@ -85,12 +85,42 @@ class NewGroupViewModelTest {
 
         val state = viewModel.state.value
         assertIs<DomainError.NotAllowedToCreateGroups>(state.error)
+        assertNull(state.nameError)
         assertEquals(false, state.creating)
         assertNull(state.created)
+        // Terminal: retrying the same name won't help.
+        assertEquals(false, state.canCreate)
+    }
+
+    // Retryable: the button is the retry, so it stays live.
+    @Test
+    fun `a network error leaves canCreate true`() = runTest {
+        val groups = FakeGroupRepository(createGroupError = DomainError.Network())
+        val viewModel = viewModel(groups)
+        viewModel.onNameChange("Westgate Wednesday 7s")
+        viewModel.onCreate()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.state.value.canCreate)
+    }
+
+    // The DB's own length check can reject a name the client's blank check let
+    // through — that belongs under the field, not above the button.
+    @Test
+    fun `a server-rejected name is a field error`() = runTest {
+        val groups = FakeGroupRepository(createGroupError = DomainError.InvalidName())
+        val viewModel = viewModel(groups)
+        viewModel.onNameChange("W")
+        viewModel.onCreate()
+        advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertIs<DomainError.InvalidName>(state.nameError)
+        assertNull(state.error)
     }
 
     @Test
-    fun `typing clears the error`() = runTest {
+    fun `typing clears both errors`() = runTest {
         val groups = FakeGroupRepository(createGroupError = DomainError.Network())
         val viewModel = viewModel(groups)
         viewModel.onNameChange("Westgate")
@@ -100,6 +130,7 @@ class NewGroupViewModelTest {
 
         viewModel.onNameChange("Westgate Wednesday 7s")
         assertNull(viewModel.state.value.error)
+        assertNull(viewModel.state.value.nameError)
     }
 
     // Navigating away and back must not recreate the group.

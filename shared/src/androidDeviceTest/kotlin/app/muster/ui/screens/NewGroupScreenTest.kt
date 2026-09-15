@@ -26,7 +26,9 @@ class NewGroupScreenTest {
         onCreate: () -> Unit = {},
         onBack: () -> Unit = {},
         creating: Boolean = false,
-        error: DomainError? = null
+        nameError: DomainError? = null,
+        error: DomainError? = null,
+        canCreate: Boolean = name.isNotBlank()
     ) {
         composeRule.setContent {
             MusterTheme {
@@ -36,7 +38,9 @@ class NewGroupScreenTest {
                     onCreate = onCreate,
                     onBack = onBack,
                     creating = creating,
-                    error = error
+                    nameError = nameError,
+                    error = error,
+                    canCreate = canCreate
                 )
             }
         }
@@ -79,9 +83,29 @@ class NewGroupScreenTest {
     }
 
     @Test
-    fun aFailedCreateIsReported() {
-        show(name = "Westgate Wednesday 7s", error = DomainError.NotAllowedToCreateGroups())
+    fun aFieldErrorIsShownUnderTheField() {
+        show(name = "W", nameError = DomainError.InvalidName())
+        composeRule.onNodeWithText("Enter your name.").assertIsDisplayed()
+        composeRule.onNodeWithText("Create group").assertIsEnabled()
+    }
+
+    // Terminal: retrying the same name won't help, so the button greys.
+    @Test
+    fun aTerminalFormErrorIsReportedAndDisablesTheButton() {
+        show(
+            name = "Westgate Wednesday 7s",
+            error = DomainError.NotAllowedToCreateGroups(),
+            canCreate = false
+        )
         composeRule.onNodeWithText("You’re not allowed to create groups.").assertIsDisplayed()
+        composeRule.onNodeWithText("Create group").assertIsNotEnabled()
+    }
+
+    // Retryable: the button is the retry, so it stays live.
+    @Test
+    fun aRetryableFormErrorLeavesTheButtonLive() {
+        show(name = "Westgate Wednesday 7s", error = DomainError.Network())
+        composeRule.onNodeWithText("Create group").assertIsEnabled()
     }
 
     // While creating, the label is replaced by a spinner.

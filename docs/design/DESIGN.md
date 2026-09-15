@@ -1,10 +1,11 @@
-# Muster — Screen Design (v4)
+# Muster — Screen Design (v5)
 
-Design of record for the app's screens. Open `muster-screens-v4.html`
-in a browser: one canvas, twenty frames, pan and zoom. Frame ids (1a–1t)
-are the reference names — use them in issues and commits.
-(`muster-screens-v1.html` through `-v3.html` are earlier snapshots, kept
-for reference.)
+Design of record for the app's screens. Open `muster-screens-v5.html`
+in a browser: one canvas, pan and zoom. Turn 1 holds the twenty screens
+(1a–1t); turn 2, at the top, holds the form-level error treatment
+(2a–2d). Frame ids are the reference names — use them in issues and
+commits. (`muster-screens-v1.html` through `-v4.html` are earlier
+snapshots, kept for reference.)
 
 Companion to `SCREENS.md` (screen map, navigation) and `CONTEXT.md`
 (product decisions). Where this file and a screenshot disagree, this file wins.
@@ -72,6 +73,56 @@ Members see the same badges, read-only.
 | 1r | Launch — couldn’t start |
 | 1s | Home — loading |
 | 1t | Home — couldn’t load |
+| 2a | Request code — form error (green ground) |
+| 2b | New group — form error, terminal |
+| 2c | New group — form error, retryable |
+| 2d | Field error and form error together |
+
+## Two kinds of error
+
+Errors come in two shapes and get two treatments. The test is what the
+message is about, not how bad it is.
+
+**Field error — about the contents of a field.** Unchanged: bare text
+under the field, 13px, `#9A3324`, no fill and no icon; the field's outline
+turns `#9A3324`. On the green ground (1a) the text inverts to `#FBE9E7`.
+Focus moves to the field. "Enter a name", "That code is only 5 digits",
+"Keep it under 40 characters."
+
+**Form error — about the request.** A filled block sitting immediately
+above the screen's action button: `#FBE9E7` fill, 12px radius, 12/14
+padding, 14px `#9A3324` text, a round 18px `#9A3324` outlined "!" mark at
+the left, 12px clear between block and button. Fields are untouched — no
+red outline, no focus move. "Couldn't reach Muster", "Too many attempts",
+"You're not allowed to create groups."
+
+The rules:
+
+- **Placement is above the action button, always** — the last thing read
+  before the control that failed. Not under the field, not a snackbar: a
+  snackbar outlives the screen and can be missed, and these messages must
+  stay until resolved.
+- **Fill and mark are the distinguishing pair.** A field error is bare
+  text with no mark; a form error is a filled block with one. Colour alone
+  would not separate them, and the mark alone reads as decoration.
+- **The block never carries its own button.** The screen's action button
+  *is* the retry. A retryable error (network, timeout) leaves the button
+  live; a terminal one (permission, rate limit) greys it, and for a timed
+  error it re-enables and the block clears when the window passes.
+- **On green (1a) the block keeps the Out red.** The block is its own
+  surface, so the "no `#9A3324` on green" rule — which is about bare text
+  — does not apply. Field errors on 1a still invert to `#FBE9E7`.
+- **Both at once**: both show, neither suppressed — they answer different
+  questions. Maximum two blocks per screen, one per slot. Normally
+  impossible, since a client-side field error blocks the call; it happens
+  only when the server rejects a field and the request also fails.
+- **Clearing.** Both are transient. Editing any field clears the form
+  error (a keystroke makes the request stale) and its own field error;
+  pressing the action button clears both before the call goes out. Neither
+  survives navigation.
+- **Applies to** 1a, 1b, 1c, 1f and 1g — every screen whose primary action
+  is a write. Screens whose *load* fails use the 1t empty-state frame
+  instead; the form block is for a failed write, 1t for a failed read.
 
 ## Decisions this design fixes
 
@@ -145,5 +196,9 @@ Members see the same badges, read-only.
 - Notification preferences in Settings, once push lands.
 - No destructive colour is defined; Out is the only red in the app.
 - Offline behaviour beyond the launch and home failure states.
+- Form-error copy is not yet written for 1b, 1c and 1f; the treatment is
+  fixed, the strings are not.
+- Whether the form block should be announced to screen readers as an
+  assertive live region on appearance — assumed yes, unverified.
 - Group and event screens have no designed loading or failure frames yet;
   they should follow 1s/1t (in-place spinner, empty-state-shaped failure).

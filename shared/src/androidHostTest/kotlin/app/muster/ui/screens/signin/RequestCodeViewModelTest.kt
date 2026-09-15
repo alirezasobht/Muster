@@ -109,6 +109,20 @@ class RequestCodeViewModelTest {
         assertIs<DomainError.RateLimited>(state.error)
         assertNull(state.emailError)
         assertEquals(false, state.sending)
+        // Terminal: retrying the same address won't help.
+        assertEquals(false, state.canSend)
+    }
+
+    // Retryable: the button is the retry, so it stays live.
+    @Test
+    fun `a network error leaves canSend true`() = runTest {
+        val auth = FakeAuthRepository(requestError = DomainError.Network())
+        val viewModel = viewModel(auth)
+        viewModel.onEmailChange(FAKE_EMAIL)
+        viewModel.onSendCode()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.state.value.canSend)
     }
 
     // Without this the graph would navigate again every time the screen

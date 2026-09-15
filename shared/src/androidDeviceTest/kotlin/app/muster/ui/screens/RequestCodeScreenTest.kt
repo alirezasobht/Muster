@@ -25,7 +25,8 @@ class RequestCodeScreenTest {
         onSendCode: () -> Unit = {},
         sending: Boolean = false,
         emailError: DomainError? = null,
-        error: DomainError? = null
+        error: DomainError? = null,
+        canSend: Boolean = email.isNotBlank()
     ) {
         composeRule.setContent {
             MusterTheme {
@@ -35,7 +36,8 @@ class RequestCodeScreenTest {
                     onSendCode = onSendCode,
                     sending = sending,
                     emailError = emailError,
-                    error = error
+                    error = error,
+                    canSend = canSend
                 )
             }
         }
@@ -76,7 +78,7 @@ class RequestCodeScreenTest {
         composeRule.onNodeWithText("That doesn’t look like an email address.").assertIsDisplayed()
     }
 
-    // Network failures are not about the address, so they sit below the
+    // Network failures are not about the address, so they sit above the
     // button rather than under the field.
     @Test
     fun aScreenErrorIsShown() {
@@ -84,6 +86,20 @@ class RequestCodeScreenTest {
         composeRule
             .onNodeWithText("Can’t connect. Check your connection and try again.")
             .assertIsDisplayed()
+    }
+
+    // Retryable: the button is the retry, so it stays live.
+    @Test
+    fun aRetryableFormErrorLeavesTheButtonLive() {
+        show(email = "alex.doyle@gmail.com", error = DomainError.Network())
+        composeRule.onNodeWithText("Send code").assertIsEnabled()
+    }
+
+    // Terminal: retrying the same request won't help, so the button greys.
+    @Test
+    fun aTerminalFormErrorDisablesTheButton() {
+        show(email = "alex.doyle@gmail.com", error = DomainError.RateLimited(), canSend = false)
+        composeRule.onNodeWithText("Send code").assertIsNotEnabled()
     }
 
     // While sending, the label is replaced by a spinner.

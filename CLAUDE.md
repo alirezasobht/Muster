@@ -16,8 +16,8 @@ editing** — they change often, and other sessions edit them too.
 | `docs/SCHEMA.md` | Tables, constraints, what the DB enforces vs the app |
 | `docs/SCREENS.md` | Screen map, navigation, per-screen behaviour |
 | `docs/DECISIONS.md` | Why closed choices were closed |
-| `docs/design/DESIGN.md` | Visual design of record, frames 1a–1t |
-| `docs/design/muster-screens-v4.html` | The frames — open in a browser. v1–v3 superseded, kept as history |
+| `docs/design/DESIGN.md` | Visual design of record, frames 1a–1t and 2a–2d |
+| `docs/design/muster-screens-v5.html` | The frames — open in a browser. v1–v4 superseded, kept as history |
 
 Keep them updated when decisions change.
 
@@ -105,4 +105,9 @@ plain `archived_at is null` column check, and is what's actually on the
 remote database now (applied by hand, then written up as a migration —
 see `docs/SCHEMA.md` rule 1). Both are pushed.
 
-Next: Group.
+Next: the two-kinds-of-error treatment (DESIGN.md → "Two kinds of
+error", frames 2a–2d) across 1a, 1b, 1c, 1f and 1g. Then Group.
+
+Every screen currently renders every error in the field's error slot,
+including ones that aren't about the field — "Can't connect", "You're
+not allowed to create groups". That is what the 2a–2d treatment fixes.

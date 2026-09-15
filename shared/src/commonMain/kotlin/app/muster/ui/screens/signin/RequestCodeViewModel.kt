@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.muster.domain.error.DomainError
 import app.muster.domain.usecase.RequestSignInCodeUseCase
+import app.muster.ui.common.ErrorPresentation
+import app.muster.ui.common.presentation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,10 +35,9 @@ class RequestCodeViewModel(
                 _state.update { it.copy(sending = false, sentTo = current.email.trim()) }
             } catch (e: DomainError) {
                 _state.update {
-                    if (e is DomainError.InvalidEmail) {
-                        it.copy(sending = false, emailError = e)
-                    } else {
-                        it.copy(sending = false, error = e)
+                    when (e.presentation) {
+                        ErrorPresentation.Field -> it.copy(sending = false, emailError = e)
+                        is ErrorPresentation.Form -> it.copy(sending = false, error = e)
                     }
                 }
             }

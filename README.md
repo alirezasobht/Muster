@@ -18,8 +18,8 @@ they move often.
 | [docs/SCHEMA.md](docs/SCHEMA.md) | Tables, constraints, RLS, triggers, what the database enforces versus the app |
 | [docs/SCREENS.md](docs/SCREENS.md) | Screen map, navigation, per-screen behaviour |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Why closed choices were closed |
-| [docs/design/DESIGN.md](docs/design/DESIGN.md) | Visual design of record, frames 1a–1t |
-| [docs/design/muster-screens-v4.html](docs/design/muster-screens-v4.html) | The frames themselves — open in a browser. v1–v3 are superseded, kept as history |
+| [docs/design/DESIGN.md](docs/design/DESIGN.md) | Visual design of record, frames 1a–1t and 2a–2d |
+| [docs/design/muster-screens-v5.html](docs/design/muster-screens-v5.html) | The frames themselves — open in a browser. v1–v4 are superseded, kept as history |
 
 [CLAUDE.md](CLAUDE.md) at the root is the same map plus commands and
 conventions, read automatically by Claude Code.
