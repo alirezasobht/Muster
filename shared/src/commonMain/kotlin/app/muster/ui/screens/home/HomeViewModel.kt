@@ -3,6 +3,8 @@ package app.muster.ui.screens.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.muster.domain.error.DomainError
+import app.muster.domain.event.DataChange
+import app.muster.domain.event.DataChanges
 import app.muster.domain.usecase.AcceptGroupInvitationUseCase
 import app.muster.domain.usecase.DeclineGroupInvitationUseCase
 import app.muster.domain.usecase.GetMyProfileUseCase
@@ -11,6 +13,7 @@ import app.muster.domain.usecase.ListPendingInvitationsUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -19,7 +22,8 @@ class HomeViewModel(
     private val listMyGroups: ListMyGroupsUseCase,
     private val listPendingInvitations: ListPendingInvitationsUseCase,
     private val acceptGroupInvitation: AcceptGroupInvitationUseCase,
-    private val declineGroupInvitation: DeclineGroupInvitationUseCase
+    private val declineGroupInvitation: DeclineGroupInvitationUseCase,
+    dataChanges: DataChanges
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
@@ -30,6 +34,11 @@ class HomeViewModel(
 
     init {
         load()
+        viewModelScope.launch {
+            dataChanges.changes
+                .filterIsInstance<DataChange.MyGroups>()
+                .collect { refresh(showIndicator = true) }
+        }
     }
 
     // 1t's Try again. Only reachable from Error, so there is no list to lose.

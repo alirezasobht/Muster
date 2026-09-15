@@ -8,6 +8,8 @@ import app.muster.data.mapper.mapErrors
 import app.muster.data.mapper.toGroup
 import app.muster.data.mapper.toGroupInvitation
 import app.muster.domain.error.DomainError
+import app.muster.domain.event.DataChange
+import app.muster.domain.event.DataChanges
 import app.muster.domain.model.Group
 import app.muster.domain.model.GroupInvitation
 import app.muster.domain.repository.GroupRepository
@@ -19,7 +21,10 @@ import io.github.jan.supabase.postgrest.query.Columns
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
-internal class GroupRepositoryImpl(private val client: SupabaseClient) : GroupRepository {
+internal class GroupRepositoryImpl(
+    private val client: SupabaseClient,
+    private val dataChanges: DataChanges
+) : GroupRepository {
 
     override suspend fun getMyGroups(): List<Group> = mapErrors {
         client.from(GROUP_MEMBERS_TABLE)
@@ -33,6 +38,7 @@ internal class GroupRepositoryImpl(private val client: SupabaseClient) : GroupRe
             .insert(GroupInsertDto(name = name, createdBy = myId())) { select() }
             .decodeSingle<GroupDto>()
             .toGroup()
+            .also { dataChanges.notify(DataChange.MyGroups) }
     }
 
     override suspend fun getPendingInvitations(): List<GroupInvitation> = mapErrors {
@@ -43,6 +49,7 @@ internal class GroupRepositoryImpl(private val client: SupabaseClient) : GroupRe
 
     override suspend fun acceptInvitation(invitationId: String): Unit = mapErrors {
         client.postgrest.rpc(ACCEPT_INVITATION_FUNCTION, invitationIdParams(invitationId))
+        dataChanges.notify(DataChange.MyGroups)
     }
 
     override suspend fun declineInvitation(invitationId: String): Unit = mapErrors {

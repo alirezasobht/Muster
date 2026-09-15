@@ -83,10 +83,11 @@ directly, so the client is not a trust boundary.
 
 ## Status
 
-Backend built and tested, five migrations. Auth done — Koin wired,
+Backend built and tested, seven migrations. Auth done — Koin wired,
 sign-in by email code, set-name gate. Home done — group cards, pending
 invitations with accept/decline, empty and failed states, pull to
 refresh. Settings done — editable name with save confirmation and a
-discard prompt, read-only email, sign out.
+discard prompt, read-only email, sign out. New group done, landing on a
+Group placeholder.
 
-Next: New group, then Group.
+Next: the two-kinds-of-error treatment, then Group.

@@ -1,6 +1,8 @@
 package app.muster.data.fake
 
 import app.muster.domain.error.DomainError
+import app.muster.domain.event.DataChange
+import app.muster.domain.event.DataChanges
 import app.muster.domain.model.Group
 import app.muster.domain.model.GroupInvitation
 import app.muster.domain.repository.GroupRepository
@@ -15,6 +17,7 @@ class FakeGroupRepository(
     var getPendingInvitationsError: DomainError? = null,
     var acceptError: DomainError? = null,
     var declineError: DomainError? = null,
+    private val dataChanges: DataChanges? = null,
     private val latency: Long = FAKE_LATENCY_MS
 ) : GroupRepository {
 
@@ -45,6 +48,7 @@ class FakeGroupRepository(
         val group = Group(id = "fake-group-${groups.size + 1}", name = name)
         groups = groups + group
         createdGroupNames = createdGroupNames + name
+        dataChanges?.notify(DataChange.MyGroups)
         return group
     }
 
@@ -59,6 +63,7 @@ class FakeGroupRepository(
         acceptError?.let { throw it }
         acceptedInvitationIds = acceptedInvitationIds + invitationId
         invitations = invitations.filterNot { it.id == invitationId }
+        dataChanges?.notify(DataChange.MyGroups)
     }
 
     override suspend fun declineInvitation(invitationId: String) {

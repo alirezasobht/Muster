@@ -3,6 +3,8 @@ package app.muster.ui.screens.home
 import app.muster.data.fake.FakeGroupRepository
 import app.muster.data.fake.FakeProfileRepository
 import app.muster.domain.error.DomainError
+import app.muster.domain.event.DataChange
+import app.muster.domain.event.DataChanges
 import app.muster.domain.model.Group
 import app.muster.domain.model.GroupInvitation
 import app.muster.domain.usecase.AcceptGroupInvitationUseCase
@@ -12,6 +14,7 @@ import app.muster.domain.usecase.ListMyGroupsUseCase
 import app.muster.domain.usecase.ListPendingInvitationsUseCase
 import app.muster.testing.MainDispatcherRule
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import kotlin.test.Test
@@ -33,13 +36,15 @@ class HomeViewModelTest {
 
     private fun viewModel(
         profiles: FakeProfileRepository = FakeProfileRepository(),
-        groups: FakeGroupRepository = FakeGroupRepository()
+        groups: FakeGroupRepository = FakeGroupRepository(),
+        dataChanges: DataChanges = DataChanges()
     ) = HomeViewModel(
         getMyProfile = GetMyProfileUseCase(profiles),
         listMyGroups = ListMyGroupsUseCase(groups),
         listPendingInvitations = ListPendingInvitationsUseCase(groups),
         acceptGroupInvitation = AcceptGroupInvitationUseCase(groups),
-        declineGroupInvitation = DeclineGroupInvitationUseCase(groups)
+        declineGroupInvitation = DeclineGroupInvitationUseCase(groups),
+        dataChanges = dataChanges
     )
 
     @Test
@@ -164,6 +169,47 @@ class HomeViewModelTest {
         assertIs<HomeUiState.Error>(viewModel.state.value)
 
         viewModel.onRefresh()
+        advanceUntilIdle()
+
+        assertIs<HomeUiState.Error>(viewModel.state.value)
+    }
+
+    @Test
+    fun `a group created elsewhere reaches the list`() = runTest {
+        val changes = DataChanges()
+        val groups = FakeGroupRepository(dataChanges = changes)
+        val viewModel = viewModel(groups = groups, dataChanges = changes)
+        advanceUntilIdle()
+        assertEquals(emptyList(), (viewModel.state.value as HomeUiState.Success).groups)
+
+        groups.createGroup("Westgate Wednesday 7s")
+        advanceUntilIdle()
+
+        val state = assertIs<HomeUiState.Success>(viewModel.state.value)
+        assertEquals(listOf("Westgate Wednesday 7s"), state.groups.map { it.name })
+    }
+
+    @Test
+    fun `a MyGroups change shows the refresh indicator`() = runTest {
+        val changes = DataChanges()
+        val viewModel = viewModel(dataChanges = changes)
+        advanceUntilIdle()
+
+        changes.notify(DataChange.MyGroups)
+        runCurrent()
+
+        assertEquals(true, (viewModel.state.value as HomeUiState.Success).isRefreshing)
+    }
+
+    @Test
+    fun `a MyGroups change before the first load succeeds is ignored`() = runTest {
+        val changes = DataChanges()
+        val profiles = FakeProfileRepository(getError = DomainError.Network())
+        val viewModel = viewModel(profiles = profiles, dataChanges = changes)
+        advanceUntilIdle()
+        assertIs<HomeUiState.Error>(viewModel.state.value)
+
+        changes.notify(DataChange.MyGroups)
         advanceUntilIdle()
 
         assertIs<HomeUiState.Error>(viewModel.state.value)

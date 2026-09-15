@@ -85,6 +85,13 @@ A fifth migration, `get_my_pending_invitations()`, is on disk
 (`supabase/migrations/20260914090000_*.sql`) — confirm it's been pushed
 before relying on invitation data loading.
 
+`DataChanges` (`domain/event/`) is a broadcast bus for writes other
+screens depend on. Repositories notify, ViewModels subscribe. Only
+`DataChange.MyGroups` exists so far — `GroupRepositoryImpl` fires it on
+create and accept, and Home refreshes with its indicator. Add cases when
+a screen needs one, not before. It sits alongside refresh-on-resume,
+which stays the safety net.
+
 New group (1g) done: screen, `CreateGroupUseCase`, insert wired through
 `GroupRepository`, navigates to a `Group` placeholder on success. Needed
 two more migrations to actually work — `groups_select` must let a creator
