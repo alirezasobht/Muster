@@ -53,14 +53,15 @@ class EnterCodeViewModelTest {
     }
 
     @Test
-    fun `typing clears the error`() = runTest {
+    fun `typing clears both errors`() = runTest {
         val viewModel = viewModel()
         viewModel.onCodeChange(FakeAuthRepository.REJECTED_CODE)
         viewModel.onVerify()
         advanceUntilIdle()
-        assertIs<DomainError.InvalidCode>(viewModel.state.value.error)
+        assertIs<DomainError.InvalidCode>(viewModel.state.value.codeError)
 
         viewModel.onCodeChange("1")
+        assertNull(viewModel.state.value.codeError)
         assertNull(viewModel.state.value.error)
     }
 
@@ -86,6 +87,7 @@ class EnterCodeViewModelTest {
         advanceUntilIdle()
 
         assertIs<SessionState.SignedIn>(auth.session.value)
+        assertNull(viewModel.state.value.codeError)
         assertNull(viewModel.state.value.error)
     }
 
@@ -103,16 +105,71 @@ class EnterCodeViewModelTest {
     }
 
     @Test
-    fun `a wrong code clears the boxes and reports it`() = runTest {
+    fun `a wrong code clears the boxes and reports it under the field`() = runTest {
         val viewModel = viewModel()
         viewModel.onCodeChange(FakeAuthRepository.REJECTED_CODE)
         viewModel.onVerify()
         advanceUntilIdle()
 
         val state = viewModel.state.value
-        assertIs<DomainError.InvalidCode>(state.error)
+        assertIs<DomainError.InvalidCode>(state.codeError)
+        assertNull(state.error)
         assertEquals("", state.code)
         assertEquals(false, state.verifying)
+    }
+
+    @Test
+    fun `a rate limit goes above the button, not under the field`() = runTest {
+        val auth = FakeAuthRepository(verifyError = DomainError.RateLimited())
+        val viewModel = viewModel(auth)
+        viewModel.onCodeChange("418027")
+        viewModel.onVerify()
+        advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertIs<DomainError.RateLimited>(state.error)
+        assertNull(state.codeError)
+    }
+
+    // Terminal: retrying the same request fails the same way.
+    @Test
+    fun `a rate limit disables the button`() = runTest {
+        val auth = FakeAuthRepository(verifyError = DomainError.RateLimited())
+        val viewModel = viewModel(auth)
+        viewModel.onCodeChange("418027")
+        viewModel.onVerify()
+        advanceUntilIdle()
+
+        assertEquals(false, viewModel.state.value.canVerify)
+    }
+
+    @Test
+    fun `typing again re-enables the button after a rate limit`() = runTest {
+        val auth = FakeAuthRepository(verifyError = DomainError.RateLimited())
+        val viewModel = viewModel(auth)
+        viewModel.onCodeChange("418027")
+        viewModel.onVerify()
+        advanceUntilIdle()
+
+        viewModel.onCodeChange("418027")
+
+        assertTrue(viewModel.state.value.canVerify)
+    }
+
+    @Test
+    fun `an offline failure leaves the button live`() = runTest {
+        val auth = FakeAuthRepository(verifyError = DomainError.Network())
+        val viewModel = viewModel(auth)
+        viewModel.onCodeChange("418027")
+        viewModel.onVerify()
+        advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertIs<DomainError.Network>(state.error)
+        // The code is cleared on failure, so canVerify is false on length —
+        // what matters is that the error itself is not terminal.
+        viewModel.onCodeChange("418027")
+        assertTrue(viewModel.state.value.canVerify)
     }
 
     @Test
@@ -140,7 +197,7 @@ class EnterCodeViewModelTest {
     }
 
     @Test
-    fun `a failed resend surfaces the error`() = runTest {
+    fun `a failed resend surfaces the error above the button`() = runTest {
         val auth = FakeAuthRepository(requestError = DomainError.RateLimited())
         val viewModel = viewModel(auth)
         advanceTimeBy(61.seconds)
@@ -148,5 +205,6 @@ class EnterCodeViewModelTest {
         advanceUntilIdle()
 
         assertIs<DomainError.RateLimited>(viewModel.state.value.error)
+        assertNull(viewModel.state.value.codeError)
     }
 }

@@ -5,6 +5,7 @@ import app.muster.data.fake.FakeGroupRepository
 import app.muster.data.fake.FakeMemberRepository
 import app.muster.data.fake.FakeProfileRepository
 import app.muster.domain.error.DomainError
+import app.muster.domain.event.DataChanges
 import app.muster.domain.model.GroupRole
 import app.muster.domain.model.Member
 import app.muster.domain.model.PendingInvitation
@@ -38,11 +39,14 @@ class MembersViewModelTest {
     private val plainMember = Member(profileId = "member-1", name = "Sam Okafor", role = GroupRole.Member)
     private val pending = PendingInvitation(id = "invite-1", email = "j.moriarty@outlook.com")
 
+    // The fake and the ViewModel must share one instance: actions no longer
+    // refetch inline, they rely on the repository's announcement.
     private fun viewModel(
         groupId: String = this.groupId,
         profiles: FakeProfileRepository = FakeProfileRepository(),
         groups: FakeGroupRepository = FakeGroupRepository(myRole = GroupRole.Admin),
-        members: FakeMemberRepository = FakeMemberRepository()
+        members: FakeMemberRepository = FakeMemberRepository(),
+        dataChanges: DataChanges = DataChanges()
     ) = MembersViewModel(
         groupId = groupId,
         listGroupMembers = ListGroupMembersUseCase(members),
@@ -51,7 +55,8 @@ class MembersViewModelTest {
         promoteMember = PromoteMemberUseCase(members),
         demoteMember = DemoteMemberUseCase(members),
         removeMember = RemoveMemberUseCase(members),
-        revokeInvitation = RevokeInvitationUseCase(members)
+        revokeInvitation = RevokeInvitationUseCase(members),
+        dataChanges = dataChanges
     )
 
     @Test
@@ -168,8 +173,9 @@ class MembersViewModelTest {
 
     @Test
     fun `promoting a member calls the repository once and the row reflects it`() = runTest {
-        val members = FakeMemberRepository(members = listOf(self, plainMember))
-        val viewModel = viewModel(members = members)
+        val changes = DataChanges()
+        val members = FakeMemberRepository(members = listOf(self, plainMember), dataChanges = changes)
+        val viewModel = viewModel(members = members, dataChanges = changes)
         advanceUntilIdle()
 
         viewModel.onPromote(plainMember.profileId)
@@ -216,8 +222,9 @@ class MembersViewModelTest {
 
     @Test
     fun `removing a member drops their row`() = runTest {
-        val members = FakeMemberRepository(members = listOf(self, plainMember))
-        val viewModel = viewModel(members = members)
+        val changes = DataChanges()
+        val members = FakeMemberRepository(members = listOf(self, plainMember), dataChanges = changes)
+        val viewModel = viewModel(members = members, dataChanges = changes)
         advanceUntilIdle()
 
         viewModel.onRemove(plainMember.profileId)
@@ -230,8 +237,13 @@ class MembersViewModelTest {
 
     @Test
     fun `revoking an invitation drops its row`() = runTest {
-        val members = FakeMemberRepository(members = listOf(self), pendingInvitations = listOf(pending))
-        val viewModel = viewModel(members = members)
+        val changes = DataChanges()
+        val members = FakeMemberRepository(
+            members = listOf(self),
+            pendingInvitations = listOf(pending),
+            dataChanges = changes
+        )
+        val viewModel = viewModel(members = members, dataChanges = changes)
         advanceUntilIdle()
 
         viewModel.onRevokeInvitation(pending.id)

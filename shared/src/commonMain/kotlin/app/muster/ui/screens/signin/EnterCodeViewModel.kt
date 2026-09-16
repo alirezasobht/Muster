@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import app.muster.domain.error.DomainError
 import app.muster.domain.usecase.RequestSignInCodeUseCase
 import app.muster.domain.usecase.VerifySignInCodeUseCase
+import app.muster.ui.common.ErrorPresentation
+import app.muster.ui.common.presentation
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,15 +33,15 @@ class EnterCodeViewModel(
     }
 
     fun onCodeChange(code: String) {
-        _state.update { it.copy(code = code, error = null) }
+        _state.update { it.copy(code = code, codeError = null, error = null) }
     }
 
     fun onVerify() {
         val current = _state.value
-        if (current.code.length != CODE_LENGTH || current.verifying) return
+        if (!current.canVerify || current.verifying) return
         // Set before launching, not inside: the guard above must see it on a
         // second tap in the same frame, whatever dispatcher is in play.
-        _state.update { it.copy(verifying = true, error = null) }
+        _state.update { it.copy(verifying = true, codeError = null, error = null) }
         viewModelScope.launch {
             try {
                 verifySignInCode(current.email, current.code)
@@ -47,7 +49,12 @@ class EnterCodeViewModel(
                 // screen, and this one stays up with its spinner until then.
                 countdown?.cancel()
             } catch (e: DomainError) {
-                _state.update { it.copy(verifying = false, code = "", error = e) }
+                _state.update {
+                    when (e.presentation) {
+                        ErrorPresentation.Field -> it.copy(verifying = false, code = "", codeError = e)
+                        is ErrorPresentation.Form -> it.copy(verifying = false, code = "", error = e)
+                    }
+                }
             }
         }
     }
@@ -58,10 +65,15 @@ class EnterCodeViewModel(
         viewModelScope.launch {
             try {
                 requestSignInCode(current.email)
-                _state.update { it.copy(code = "", error = null) }
+                _state.update { it.copy(code = "", codeError = null, error = null) }
                 startCountdown()
             } catch (e: DomainError) {
-                _state.update { it.copy(error = e) }
+                _state.update {
+                    when (e.presentation) {
+                        ErrorPresentation.Field -> it.copy(codeError = e)
+                        is ErrorPresentation.Form -> it.copy(error = e)
+                    }
+                }
             }
         }
     }

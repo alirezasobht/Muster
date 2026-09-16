@@ -85,8 +85,9 @@ Not built:
 - **Add by email** — its own screen per SCREENS.md; the button is a no-op
   callback.
 - **Events tab**, New event, Event.
-- **The 2a–2d error treatment** — outstanding on 1a, 1b, 1c, 1f, 1g.
-  Those screens still put every error in the field's slot, including ones
-  that aren't about the field.
+- **The 2a–2d error treatment** — done on 1a and 1g. Still outstanding on
+  1b, 1c and 1f, which carry a single `error` field and put everything in
+  the field's slot, including errors that aren't about the field.
+  DESIGN.md says the form-error copy for these three was never written.
 
 Next: the overflow, then Add by email, then Events.

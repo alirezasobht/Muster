@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.muster.domain.error.DomainError
 import app.muster.ui.common.components.CodeInput
+import app.muster.ui.common.components.FormError
 import app.muster.ui.common.components.MusterIcons
 import app.muster.ui.common.components.PhoneWidth
 import app.muster.ui.common.components.PrimaryButton
@@ -62,7 +63,9 @@ fun EnterCodeRoute(
         onBack = onBack,
         resendInSeconds = state.resendInSeconds,
         verifying = state.verifying,
-        error = state.error
+        codeError = state.codeError,
+        error = state.error,
+        canVerify = state.canVerify
     )
 }
 
@@ -77,7 +80,9 @@ fun EnterCodeScreen(
     modifier: Modifier = Modifier,
     resendInSeconds: Int = 0,
     verifying: Boolean = false,
-    error: DomainError? = null
+    codeError: DomainError? = null,
+    error: DomainError? = null,
+    canVerify: Boolean = code.length == CODE_LENGTH
 ) {
     val complete = code.length == CODE_LENGTH
     val focusRequester = remember { FocusRequester() }
@@ -118,19 +123,23 @@ fun EnterCodeScreen(
                         onDone = { if (complete) onContinue() },
                         modifier = Modifier.focusRequester(focusRequester)
                     )
-                    if (error != null) {
+                    if (codeError != null) {
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            text = error.toMessage(),
+                            text = codeError.toMessage(),
                             style = MaterialTheme.typography.bodySmall,
                             color = MusterColors.OutText
                         )
+                    }
+                    if (error != null) {
+                        Spacer(Modifier.height(16.dp))
+                        FormError(message = error.toMessage(), modifier = Modifier.fillMaxWidth())
                     }
                     Spacer(Modifier.height(24.dp))
                     PrimaryButton(
                         text = stringResource(Res.string.action_continue),
                         onClick = onContinue,
-                        enabled = complete,
+                        enabled = canVerify,
                         loading = verifying
                     )
                     Spacer(Modifier.height(8.dp))
@@ -193,7 +202,24 @@ private fun EnterCodeScreenErrorPreview() {
             onContinue = {},
             onResend = {},
             onBack = {},
-            error = DomainError.InvalidCode()
+            codeError = DomainError.InvalidCode()
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun EnterCodeScreenFormErrorPreview() {
+    MusterTheme {
+        EnterCodeScreen(
+            email = "alex.doyle@gmail.com",
+            code = "",
+            onCodeChange = {},
+            onContinue = {},
+            onResend = {},
+            onBack = {},
+            error = DomainError.RateLimited(),
+            canVerify = false
         )
     }
 }

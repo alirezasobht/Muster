@@ -25,7 +25,9 @@ class EnterCodeScreenTest {
         onBack: () -> Unit = {},
         resendInSeconds: Int = 0,
         verifying: Boolean = false,
-        error: DomainError? = null
+        codeError: DomainError? = null,
+        error: DomainError? = null,
+        canVerify: Boolean = code.length == 6
     ) {
         composeRule.setContent {
             MusterTheme {
@@ -38,7 +40,9 @@ class EnterCodeScreenTest {
                     onBack = onBack,
                     resendInSeconds = resendInSeconds,
                     verifying = verifying,
-                    error = error
+                    codeError = codeError,
+                    error = error,
+                    canVerify = canVerify
                 )
             }
         }
@@ -86,8 +90,29 @@ class EnterCodeScreenTest {
 
     @Test
     fun aWrongCodeIsReported() {
-        show(code = "418027", error = DomainError.InvalidCode())
+        show(code = "418027", codeError = DomainError.InvalidCode())
         composeRule.onNodeWithText("That code is wrong or has expired.").assertIsDisplayed()
+    }
+
+    @Test
+    fun aFormErrorIsShown() {
+        show(code = "", error = DomainError.RateLimited(), canVerify = false)
+        composeRule.onNodeWithText("Too many attempts. Wait a minute and try again.")
+            .assertIsDisplayed()
+    }
+
+    // Terminal errors kill the action: retrying the same request fails the
+    // same way.
+    @Test
+    fun continueIsDisabledOnATerminalFormError() {
+        show(code = "418027", error = DomainError.RateLimited(), canVerify = false)
+        composeRule.onNodeWithText("Continue").assertIsNotEnabled()
+    }
+
+    @Test
+    fun continueStaysLiveOnARetryableFormError() {
+        show(code = "418027", error = DomainError.Network())
+        composeRule.onNodeWithText("Continue").assertIsEnabled()
     }
 
     // Verifying stays set after success while routing loads the profile, so
