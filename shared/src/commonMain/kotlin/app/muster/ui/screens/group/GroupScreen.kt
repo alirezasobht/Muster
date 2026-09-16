@@ -329,7 +329,7 @@ private fun GroupTabItem(
     modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = modifier.clickable(onClick = onClick).padding(vertical = 14.dp),
+        modifier = modifier.clickable(onClick = onClick).padding(top = 14.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -340,8 +340,8 @@ private fun GroupTabItem(
         Spacer(Modifier.height(10.dp))
         Box(
             modifier = Modifier
-                .fillMaxWidth(0.6f)
-                .height(2.dp)
+                .fillMaxWidth(0.9f)
+                .height(3.dp)
                 .background(if (selected) MusterColors.Accent else Color.Transparent)
         )
     }
