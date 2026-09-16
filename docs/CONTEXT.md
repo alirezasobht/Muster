@@ -126,26 +126,20 @@ goes into an ordered standby queue.
 
 - A standby player has **no RSVP row**. They are a name and a queue
   position, nothing more, and have no status.
-- Invariant: `pending` + `in` invitations <= `capacity`.
-- Promotion is **automatic**, with no admin approval step: while a slot
-  is free and the queue is non-empty, the first standby player is
-  invited — a new invitation with status `pending`. They can still
-  decline, which frees the slot again and pulls in the next.
-- It fires on every path that opens a slot or changes the queue: a player
-  declining, an admin setting a player to `out`, a member being removed
-  from the group (the FK cascade), and a player being added to or moved
-  up the queue.
-- The queue is **reorderable** by admins. Moving someone to the front
-  while a slot is open promotes them immediately. Reordering is the
-  admin's only promotion lever — there is no direct "promote this player"
-  action.
+- Promotion is **automatic**, with no admin approval step: whenever a
+  slot frees, the player at the front of the queue is invited. They can
+  still decline, which frees the slot again and pulls in the next.
+- The queue is **reorderable** by admins, and that is their only
+  promotion lever — there is no direct "promote this player" action.
+  Moving someone to the front while a slot is open promotes them
+  immediately.
 - An admin setting a player from `out` back to `in` on a full event is
   **rejected**. The admin must free a slot first.
 - Promotion stops at `starts_at`, like everything else.
 
-This lives in a **database trigger**, not the client. One of its entry
-points is an `ON DELETE CASCADE` (member removal), and no client code
-runs on a cascade.
+It lives in a **database trigger**, not the client — one of its entry
+points is an `ON DELETE CASCADE`, and no client code runs on a cascade.
+SCHEMA.md rules 11–13 have the invariant and every path that fires it.
 
 ## Event freeze
 
@@ -176,8 +170,6 @@ surviving.
 ## Working conventions
 
 - Understand the architectural implications before writing code.
-- Print files for review before pushing. Never push without explicit
-  permission.
 - Report differences rather than silently replacing files.
 - Enforce rules in the database (RLS, constraints, triggers), not in the
   client. The client is not a trust boundary.

@@ -6,20 +6,13 @@ choices in DECISIONS.md.
 
 ## Project setup
 
-Created via the Kotlin Multiplatform wizard (JetBrains KMP plugin in
-Android Studio, or kmp.jetbrains.com) — **not** a standard Android
-project.
-
-Targets: Android, iOS with **Share UI**, and Web. Desktop and Server
-unchecked.
+Created via the Kotlin Multiplatform wizard — **not** a standard Android
+project. Targets: Android, iOS with **Share UI**, and Web.
 
 ```
 shared/              shared module — UI + logic
   src/commonMain/    shared Compose UI, models, logic
-  src/androidMain/
-  src/iosMain/
-  src/jsMain/
-  src/wasmJsMain/
+  src/androidMain/ iosMain/ jsMain/ wasmJsMain/
   src/commonTest/    + androidHostTest (JVM unit tests),
                      androidDeviceTest (Compose UI tests), iosTest, webTest
 androidApp/          Android host — MainActivity only
@@ -28,9 +21,6 @@ webApp/              Web host — main.kt, index.html, styles.css
 ```
 
 Package: `app.muster`.
-
-Xcode must be installed; the plugin's preflight checks will flag it
-otherwise.
 
 ## On the Web target
 
@@ -109,45 +99,30 @@ UI state and its ViewModel share one name (`SetNameScreen`,
 screens share moves to `common/`, never into one screen's folder.
 
 A tab inside a screen gets its own ViewModel once its own state outgrows
-the shell's — Group's Members tab (`MembersUiState`/`MembersTab`/
-`MembersViewModel`, in `screens/group/members/`) is the first case:
-`GroupViewModel` holds only role and tab selection, nothing about the
-member list. The shell's `XScreen` takes the tab body as a
-`@Composable () -> Unit` slot rather than resolving the tab's ViewModel
-itself (`GroupScreen`'s `membersContent`), so the shell stays Koin-free
-and its own previews keep working; `XRoute` fills the slot with the tab's
-own route (`GroupRoute` renders `MembersRoute` into it).
+the shell's — Group's Members tab is the first case. The shell's
+`XScreen` takes the tab body as a `@Composable () -> Unit` slot rather
+than resolving the tab's ViewModel itself, so the shell stays Koin-free
+and its previews keep working; `XRoute` fills the slot.
 
-A screen's `XRoute` composable (resolves the ViewModel via
-`koinViewModel()`, collects state, forwards plain navigation callbacks
-like `onBack`/`onNameSet` up to `NavGraph`) lives in the same file as
-`XScreen`, not a separate file — every screen does this except Launch
-(`LaunchRoute.kt` is separate because `LaunchViewModel` is hoisted above
-the `NavHost` and shared, not resolved per-route).
+A screen's `XRoute` composable lives in the same file as `XScreen`. The
+exception is Launch, because `LaunchViewModel` is hoisted above the
+`NavHost` and shared rather than resolved per-route.
 
 `XRoute` calls `XScreen` exactly once, passing the raw `XUiState` plus an
 `XActions` bundle. `XScreen` does its own `when` over the state to pick
-which branch to render, delegating to private composables per branch —
-`XRoute` never dispatches to separately-exported per-state screen
-composables itself. `SettingsScreen` does this. `HomeScreen` does not:
-`HomeRoute` dispatches straight to `HomeLoadingScreen` /
-`HomeFailedScreen` / `HomeScreen`, predating this convention — treat that
-as the one exception to fix opportunistically, not a second valid shape.
+which branch to render, delegating to private composables per branch.
+`HomeScreen` predates this — `HomeRoute` dispatches straight to
+`HomeLoadingScreen` / `HomeFailedScreen` / `HomeScreen`. Treat that as
+the one exception to fix opportunistically, not a second valid shape.
 
-Two shapes for `XUiState`, pick by what the screen actually needs: a flat
-data class with nullable/boolean fields for a screen with one layout and
-inline affordances (a button disables, a label swaps for a spinner,
-error text appears below a field) — most screens. A sealed interface
-(`HomeUiState`, `SettingsUiState`: `Loading` / `Success` / `Error`) only
-when the screen has genuinely different full-screen layouts per state,
-per SCREENS.md "Staying current" and the loading/failure frames in
-DESIGN.md — the in-place cases (a refresh, an in-flight action) still
-live as fields on the `Success` case, not further sealed branches, since
-the list stays on screen either way.
+Two shapes for `XUiState`: a flat data class for a screen with one layout
+and inline affordances — most screens. A sealed interface (`Loading` /
+`Success` / `Error`) only when the screen has genuinely different
+full-screen layouts per state. In-place cases (a refresh, an in-flight
+action) stay as fields on `Success`, not further branches.
 
 When a screen's callback list gets long, bundle them into one `XActions`
-data class (`HomeActions`) instead of listing five-plus lambda params —
-`XScreen` takes `actions: XActions` alongside its data/state params.
+data class (`HomeActions`).
 
 The layering is kept even where it looks like overhead — interfaces in
 `domain`, implementations in `data`, a use case per operation, fakes
@@ -266,6 +241,22 @@ both before the call.
 This is for failed **writes**. A failed load keeps the full-screen
 treatment instead — `HomeFailedScreen`, frame 1t.
 
+## Data changes
+
+`DataChanges` (`domain/event/`) is a broadcast bus for writes another
+screen's data depends on. **Repositories notify, ViewModels subscribe** —
+notifying from the ViewModel means a new call site can forget to.
+
+`SharedFlow`, not `Channel`: it is a broadcast, and an emission with no
+listener should be dropped, since a screen that does not exist yet loads
+fresh when created.
+
+Add a `DataChange` case when a screen needs one, not before. A ViewModel
+that subscribes should not also refetch inline after its own write — the
+repository already announced it, and doing both fetches twice.
+
+This sits alongside refresh-on-resume, which stays the safety net.
+
 ## One-shot events
 
 A thing that should happen **once** — a "Saved" confirmation, a toast —
@@ -298,46 +289,26 @@ after a rotation or a return from background is state.
 ## Testing
 
 ViewModel tests live in **`androidHostTest`**, not `commonTest`. They
-need `Dispatchers.setMain`, which is solid on JVM and Native but flaky on
-JS and Wasm, and `commonTest` runs on every target. The ViewModels are
-common code, so testing them once on the JVM still covers all four.
-
-Every ViewModel test needs `MainDispatcherRule` (in `androidHostTest`,
-`app/muster/testing/`): `viewModelScope` runs on `Dispatchers.Main`, which
-has no implementation off Android, so without it the first `launch {}`
-fails.
+need `Dispatchers.setMain`, which is flaky on JS and Wasm, and
+`commonTest` runs on every target. The ViewModels are common code, so
+testing them once on the JVM covers all four. Every test needs
+`MainDispatcherRule` (`androidHostTest`, `app/muster/testing/`).
 
 ViewModels are tested against the **fakes** in `data/fake`, never against
-mocks. Each fake takes an error per method (`requestError`, `getError`,
-...) so failure paths can be driven. `FakeAuthRepository` also counts
-calls, so "sent exactly one code" is checkable; the others do not yet —
-where there is no counter, prove a call did not happen by arming its
-error and asserting nothing surfaced. They are `commonMain`, not
-`commonTest`, so they ship in the release binary — accepted for a private
-app.
-
-Test a one-shot event by reading the channel after the action rather than
-collecting in the background: `withTimeoutOrNull(1_000) { vm.saved.first() }`.
-The emission is buffered, so it is there when you ask, and a second read
-returning null is what proves "once". `withTimeoutOrNull` runs on virtual
-time under `runTest`, so it costs nothing.
+mocks. Each fake takes an error per method so failure paths can be
+driven. Where a fake has no call counter, prove a call did not happen by
+arming its error and asserting nothing surfaced. They are `commonMain`,
+not `commonTest`, so they ship in the release binary — accepted for a
+private app.
 
 **Set a ViewModel's in-flight flag before `launch`, never inside it.**
-`sending`, `verifying` and `saving` guard against a second tap, and the
-guard reads the flag synchronously. Setting it inside the coroutine works
-on device only because `viewModelScope` uses `Main.immediate`; under a
-standard test dispatcher two taps in one frame both got through, and sent
-two codes. The guard must not depend on which dispatcher is in play.
+The guard reads the flag synchronously. Setting it inside the coroutine
+works on device only because `viewModelScope` uses `Main.immediate`;
+under a standard test dispatcher two taps in one frame both got through,
+and sent two codes.
 
 `androidDeviceTest` holds a handful of Compose UI tests over the
 stateless screens — enabled and disabled states, callbacks, error
-rendering. Not full flows: the routing they would exercise is already
-covered by `LaunchViewModelTest`. Screens are driven directly with
-literal state, so no Koin and no `NavHost` is involved. A screen with
-several sealed-state composables (`HomeScreen`, `HomeLoadingScreen`,
-`HomeFailedScreen`) gets one test file covering all of them, not one per
-composable.
-
-Find a text field with `hasSetTextAction()`, not `onNodeWithText(label)`:
-the label is a separate node above the field and has no focus action, so
-text input against it fails.
+rendering. Not full flows. Screens are driven with literal state, so no
+Koin and no `NavHost` is involved. One test file per screen, covering all
+its state composables.

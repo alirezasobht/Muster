@@ -358,9 +358,9 @@ The concurrency-sensitive parts rest on six details:
 ### Application logic
 
 - **Invite notification** — after the admin inserts a `group_invitations`
-  row, an Edge Function sends a plain email via Resend telling the person
-  to sign in with that address. Fire-and-forget; no part of the flow
-  depends on delivery.
+  row, an Edge Function emails the person telling them to sign in with
+  that address. Fire-and-forget; no part of the flow depends on
+  delivery.
 
 Everything else is in the database. Standby promotion in particular
 cannot be client-side: one of its entry points is an `ON DELETE CASCADE`,
@@ -368,15 +368,10 @@ and no client code runs on a cascade.
 
 ## Migrations
 
-| File | Contents |
-|---|---|
-| `20260909030000_create_schema.sql` | Tables, constraints, indexes, `enable row level security` |
-| `20260909031500_rls_policies.sql` | Helper functions, policies, column grants |
-| `20260909033000_functions_triggers.sql` | RPCs and triggers |
-| `20260910120000_profile_name_nullable.sql` | `profiles.name` nullable; `handle_new_user` no longer invents one from the email |
-| `20260914090000_get_my_pending_invitations.sql` | `get_my_pending_invitations()` — pending invitations with the inviter's name |
-| `20260915100000_groups_select_creator.sql` | `groups_select` gains a `group_is_live(id) and created_by = auth.uid()` branch, so a creator can see their own group before `on_group_created` has run. Superseded by migration 7 — the function-call form doesn't work |
-| `20260915110000_groups_select_creator_direct.sql` | Corrects migration 6: the creator branch tests `archived_at is null` directly instead of calling `group_is_live(id)`, which is `stable` and can't see the row its own statement is inserting |
+`supabase/migrations/`, applied with the Supabase CLI. Each file's header
+comment says what it does and why. Migrations 1–3 are the schema,
+policies and triggers; everything after is a correction or an addition,
+and the rules above describe the current state rather than the history.
 
 ## Open questions
 

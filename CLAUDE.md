@@ -74,75 +74,19 @@ Migrations in `supabase/migrations/`, applied with the Supabase CLI.
 
 ## State
 
-Backend built and tested. Auth done — Koin wired, sign-in by email code,
-set-name gate. Home done (1d/1e/1s/1t): group cards, pending invitations
-with accept/decline, first-load spinner, empty and failed states, pull to
-refresh. Settings done (1f): editable name with save, save confirmation
-and a discard prompt on unsaved edits, read-only email, sign out,
-loading/failed states.
+Built: auth (email code, set-name gate), Home (1d/1e/1s/1t), Settings
+(1f), New group (1g), Group shell with tabs (1h), Members tab (1i/1j).
+Seven migrations, all pushed.
 
-A fifth migration, `get_my_pending_invitations()`, is on disk
-(`supabase/migrations/20260914090000_*.sql`) — confirm it's been pushed
-before relying on invitation data loading.
+Not built:
+- **App bar overflow** — Archive and Leave group. The ⋮ is an admin-only
+  stub; Leave group means opening it to every member. `MemberRepository.leave`
+  exists and is unreachable until then.
+- **Add by email** — its own screen per SCREENS.md; the button is a no-op
+  callback.
+- **Events tab**, New event, Event.
+- **The 2a–2d error treatment** — outstanding on 1a, 1b, 1c, 1f, 1g.
+  Those screens still put every error in the field's slot, including ones
+  that aren't about the field.
 
-`DataChanges` (`domain/event/`) is a broadcast bus for writes other
-screens depend on. Repositories notify, ViewModels subscribe. Only
-`DataChange.MyGroups` exists so far — `GroupRepositoryImpl` fires it on
-create and accept, and Home refreshes with its indicator. Add cases when
-a screen needs one, not before. It sits alongside refresh-on-resume,
-which stays the safety net.
-
-New group (1g) done: screen, `CreateGroupUseCase`, insert wired through
-`GroupRepository`, navigates to a `Group` placeholder on success. Needed
-two more migrations to actually work — `groups_select` must let a creator
-see their own row before `on_group_created` (an `after insert` trigger)
-has written their membership, or every create rolls back with the same
-error `can_create_groups() = false` produces. Migration 6
-(`20260915100000_*.sql`) tried a `group_is_live(id)` call, which doesn't
-work: that helper is `stable` and can't see the row its own statement is
-still inserting. Migration 7 (`20260915110000_*.sql`) corrects it with a
-plain `archived_at is null` column check, and is what's actually on the
-remote database now (applied by hand, then written up as a migration —
-see `docs/SCHEMA.md` rule 1). Both are pushed.
-
-Every screen currently renders every error in the field's error slot,
-including ones that aren't about the field — "Can't connect", "You're
-not allowed to create groups". The two-kinds-of-error treatment
-(DESIGN.md → "Two kinds of error", frames 2a–2d) fixes this and is
-still outstanding across 1a, 1b, 1c, 1f and 1g.
-
-Group shell done (1h/1i/1j's app bar and tabs, no designed 1s/1t of its
-own yet): `GroupScreen`/`GroupUiState`/`GroupViewModel`, back + group
-name + admin-only overflow (⋮, still stubbed — Archive and Leave group
-land there later, see below), Events/Members tabs. Loading and failed
-states reuse Home's shapes; the app bar can only
-show the back button there, since the group name and role — what the
-rest of the bar needs — are exactly what's loading. Added
-`GroupRepository.getGroup`/`getMyRole`, `GetGroupUseCase`,
-`GetMyGroupRoleUseCase`, `GroupRole`. Pulled Home's dashed-icon message
-state out into `ui/common/components/MessageState.kt` since Group now
-needs the same shape — Event's load failure will too. Replaces
-`GroupPlaceholderRoute` in `NavGraph`.
-
-Members tab done (1i/1j): `MembersUiState`/`MembersTab`/`MembersViewModel`,
-wired into `GroupScreen` through a `membersContent: @Composable () -> Unit`
-slot — the shell stays Koin-free and its own previews still work, and
-`GroupRoute` fills the slot with `MembersRoute`. One list, self first then
-admins/members/pending each A-Z, row moves animated with
-`Modifier.animateItem()`. Every admin affordance (promote/demote/remove,
-revoke an invitation, "Add by email") is a boolean `MembersViewModel`
-decides once per row/state — the composable only reads flags, never a raw
-role. Added `MemberRepository`, `Member`/`PendingInvitation`/
-`MemberListing`, six use cases, `DataChange.Members(groupId)` (notified on
-every write, nothing subscribes yet), and `DomainError.LastAdmin` for the
-`group_keeps_an_admin` trigger. Tests: `MembersViewModelTest`
-(androidHostTest) and `MembersTabTest` (androidDeviceTest, run against a
-real emulator, not just compiled).
-
-Add by email is a no-op callback — SCREENS.md gives it its own screen, not
-built yet. Leave group has no UI anywhere: frame 1j puts it in the Group
-app bar overflow, which is still Group shell's admin-only ⋮ stub — making
-it real means opening that overflow to every member, not just admins.
-
-Next: the app bar overflow (Archive, Leave group), then the Add by email
-screen, then Events. The 2a–2d error treatment above is still open.
+Next: the overflow, then Add by email, then Events.

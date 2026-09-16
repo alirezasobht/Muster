@@ -1,93 +1,129 @@
 # Muster
 
-A personal football-team organizing app, built to replace Teamer. Create
-events, invite players, keep an ordered standby queue, and see who is
-actually turning up.
+A football-team organizing app, built to replace Teamer. Create events,
+invite players, keep an ordered standby queue, and see who is actually
+turning up on Sunday.
 
-Private project, not a product.
+Personal project, not a product. Android, iOS and web from one Kotlin
+codebase.
 
-## Docs
+## How it works
 
-Read these before changing anything. They are the source of truth, and
-they move often.
+**Groups** are squads. You belong to as many as you like, and each has
+its own members and events. Anyone can sign up, but creating a group is
+allowlisted — a flag on your profile, set by hand. Everyone else joins by
+invitation.
 
-| File | What it covers |
-|---|---|
-| [docs/CONTEXT.md](docs/CONTEXT.md) | What it is, scope, roles, product rules |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Layers, DI, navigation, Kotlin style, testing |
-| [docs/SCHEMA.md](docs/SCHEMA.md) | Tables, constraints, RLS, triggers, what the database enforces versus the app |
-| [docs/SCREENS.md](docs/SCREENS.md) | Screen map, navigation, per-screen behaviour |
-| [docs/DECISIONS.md](docs/DECISIONS.md) | Why closed choices were closed |
-| [docs/design/DESIGN.md](docs/design/DESIGN.md) | Visual design of record, frames 1a–1t and 2a–2d |
-| [docs/design/muster-screens-v5.html](docs/design/muster-screens-v5.html) | The frames themselves — open in a browser. v1–v4 are superseded, kept as history |
+**Invitations** are by email address, whether or not that person has an
+account yet. They get an email saying they've been invited; the
+invitation itself lives in the app and waits for them to sign in. Nothing
+is visible to them until they accept.
 
-[CLAUDE.md](CLAUDE.md) at the root is the same map plus commands and
-conventions, read automatically by Claude Code.
+**Roles** are admin or member. The group's creator is its first admin,
+admins can promote others, and a group can never be left without one.
+Admins create events, invite and remove people, and can change anyone's
+RSVP. Members can see everything and change only their own.
 
-## Stack
+**Events** have a capacity. Admins invite up to that many players;
+anyone beyond it joins an ordered standby queue. When someone drops out,
+the player at the front of the queue is invited automatically — no admin
+action, and it happens in the database, so it works even when nobody has
+the app open. The queue can be reordered, which is how an admin decides
+who gets the next free spot.
 
-Compose Multiplatform (Android, iOS, Web/wasm) over Supabase — Postgres,
-Auth, RLS, Edge Functions. Koin for DI. Gmail SMTP for email. Sign-in is
-email codes, no passwords. Push notifications are deferred past the MVP.
+Once an event's start time passes it freezes: no RSVP changes, no
+promotions, no new invites.
 
-Package `app.muster`.
+**Signing in** is a six-digit code emailed to you. No passwords, so
+nothing to reset and no separate signup step — the first code creates the
+account.
 
-## Layout
+Groups are archived rather than deleted, and archiving hides and freezes
+everything without losing it.
+
+## Getting started
+
+You need JDK 17+, Android Studio with the Kotlin Multiplatform plugin,
+and the [Supabase CLI](https://supabase.com/docs/guides/cli). Xcode as
+well, if you want to build for iOS.
+
+**1. Create a Supabase project.** Any region; pick one near your players.
+
+**2. Apply the schema.**
 
 ```
-shared/       shared module — Compose UI, models, data access
-androidApp/   Android host
-iosApp/       Xcode project, thin SwiftUI wrapper
-webApp/       Web host
-supabase/     migrations
-buildSrc/     build-time Supabase config generation
-docs/         see above
+supabase link --project-ref <your-project-ref>
+supabase db push
 ```
 
-## Setup
+That creates every table, RLS policy and trigger from
+`supabase/migrations/`.
 
-Supabase credentials are injected at build time, never committed. Add to
-`local.properties`:
+**3. Configure email.** Auth → Emails → SMTP Settings. Without a custom
+SMTP provider, Supabase's built-in sender only delivers to your own
+address, so nobody else can sign in. Any provider works; this project
+uses a Gmail account with an app password.
+
+**4. Add your credentials** to `local.properties` (gitignored):
 
 ```
 supabase.url=https://<project>.supabase.co
 supabase.publishableKey=<publishable key>
 ```
 
-Or set `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` as environment
-variables, which take precedence. Without either, the build fails with a
-message telling you which is missing.
+`SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` as environment variables
+work too and take precedence. Without either, the build fails and tells
+you which is missing.
 
-The publishable key is safe to ship — RLS is what protects the data. The
-service role key belongs nowhere near this repo.
+The publishable key ships in every build and is meant to — RLS is what
+protects the data. The service role key belongs nowhere near this repo.
+
+**5. Allow yourself to create groups.** Sign in once so your profile
+exists, then in the Supabase table editor set `can_create_groups` to true
+on your row in `profiles`. Without it you can accept invitations but not
+start a group, and the app will look empty.
 
 ## Running
 
-- Android — `./gradlew :androidApp:assembleDebug`
-- Web (wasm) — `./gradlew :webApp:wasmJsBrowserDevelopmentRun`
-- Web (js) — `./gradlew :webApp:jsBrowserDevelopmentRun`
-- iOS — open `iosApp/` in Xcode and run
+| | |
+|---|---|
+| Android | `./gradlew :androidApp:assembleDebug`, or run from Android Studio |
+| Web (wasm) | `./gradlew :webApp:wasmJsBrowserDevelopmentRun` |
+| iOS | open `iosApp/` in Xcode and run |
 
-## Tests
+Tests: `./gradlew :shared:testAndroidHostTest` covers the shared logic
+and every ViewModel. `:shared:iosSimulatorArm64Test` and
+`:shared:wasmJsTest` run the same common tests on those targets.
+`:shared:connectedAndroidTest` needs a running emulator.
 
-- Android — `./gradlew :shared:testAndroidHostTest`
-- iOS — `./gradlew :shared:iosSimulatorArm64Test`
-- Web — `./gradlew :shared:wasmJsTest` or `:shared:jsTest`
+## Layout
 
-## Database
+```
+shared/       Compose UI, domain, data — nearly all the code
+androidApp/   Android host, MainActivity only
+iosApp/       Xcode project, thin SwiftUI wrapper
+webApp/       web host
+supabase/     migrations
+buildSrc/     build-time Supabase config generation
+docs/         see below
+```
 
-Migrations live in `supabase/migrations/` and are applied with the
-Supabase CLI. Rules are enforced in the database — RLS policies,
-constraints and triggers — never in the client. The app talks to Supabase
-directly, so the client is not a trust boundary.
+Rules live in the database — RLS policies, constraints and triggers —
+never in the client. The app talks to Supabase directly, so the client is
+not a trust boundary: anything it can ask for, a hand-written request
+could ask for too.
 
-## Status
+## Docs
 
-Backend built and tested, seven migrations. Auth done — Koin wired,
-sign-in by email code, set-name gate. Home done — group cards, pending
-invitations with accept/decline, empty and failed states, pull to
-refresh. Settings done — editable name with save confirmation and a
-discard prompt, read-only email, sign out. New group done, landing on a
-Group placeholder.
+| File | What it covers |
+|---|---|
+| [docs/CONTEXT.md](docs/CONTEXT.md) | Scope, roles, product rules |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Layers, DI, navigation, conventions, testing |
+| [docs/SCHEMA.md](docs/SCHEMA.md) | Tables, RLS, triggers — what the database enforces |
+| [docs/SCREENS.md](docs/SCREENS.md) | Screen map and per-screen behaviour |
+| [docs/DECISIONS.md](docs/DECISIONS.md) | Why closed choices were closed |
+| [docs/design/DESIGN.md](docs/design/DESIGN.md) | Visual design of record |
+| [docs/design/muster-screens-v6.html](docs/design/muster-screens-v6.html) | The frames — open in a browser |
 
-Next: the two-kinds-of-error treatment, then Group.
+[CLAUDE.md](CLAUDE.md) at the root holds the same map plus conventions
+and current state, read automatically by Claude Code.
