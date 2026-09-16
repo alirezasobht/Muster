@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -21,7 +23,11 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -31,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.muster.domain.error.DomainError
 import app.muster.domain.model.GroupRole
+import app.muster.ui.common.components.ConfirmDialog
 import app.muster.ui.common.components.MessageState
 import app.muster.ui.common.components.MusterIcons
 import app.muster.ui.common.components.MusterSpinner
@@ -44,9 +51,19 @@ import app.muster.ui.theme.MusterTheme
 import muster.shared.generated.resources.Res
 import muster.shared.generated.resources.content_description_back
 import muster.shared.generated.resources.content_description_more
+import muster.shared.generated.resources.group_archive_body
+import muster.shared.generated.resources.group_archive_cancel
+import muster.shared.generated.resources.group_archive_confirm
+import muster.shared.generated.resources.group_archive_title
 import muster.shared.generated.resources.group_events_placeholder
 import muster.shared.generated.resources.group_failed_title
 import muster.shared.generated.resources.group_failed_try_again
+import muster.shared.generated.resources.group_leave_body
+import muster.shared.generated.resources.group_leave_cancel
+import muster.shared.generated.resources.group_leave_confirm
+import muster.shared.generated.resources.group_leave_title
+import muster.shared.generated.resources.group_menu_archive
+import muster.shared.generated.resources.group_menu_leave
 import muster.shared.generated.resources.group_tab_events
 import muster.shared.generated.resources.group_tab_members
 import org.jetbrains.compose.resources.stringResource
@@ -56,7 +73,10 @@ import org.koin.core.parameter.parametersOf
 data class GroupActions(
     val onBack: () -> Unit,
     val onTabSelected: (GroupTab) -> Unit,
-    val onRetry: () -> Unit
+    val onRetry: () -> Unit,
+    val onOverflowActionRequested: (GroupOverflowAction) -> Unit,
+    val onOverflowConfirmed: () -> Unit,
+    val onOverflowDialogDismissed: () -> Unit
 )
 
 @Composable
@@ -67,13 +87,23 @@ fun GroupRoute(
     viewModel: GroupViewModel = koinViewModel { parametersOf(groupId, groupName) }
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val exited = (state as? GroupUiState.Success)?.exitedGroup == true
+    LaunchedEffect(exited) {
+        if (exited) {
+            onBack()
+            viewModel.onExitedHandled()
+        }
+    }
     GroupScreen(
         groupId = groupId,
         state = state,
         actions = GroupActions(
             onBack = onBack,
             onTabSelected = viewModel::onTabSelected,
-            onRetry = viewModel::onRetry
+            onRetry = viewModel::onRetry,
+            onOverflowActionRequested = viewModel::onOverflowActionRequested,
+            onOverflowConfirmed = viewModel::onOverflowConfirmed,
+            onOverflowDialogDismissed = viewModel::onOverflowDialogDismissed
         ),
         membersContent = {
             MembersRoute(
@@ -99,8 +129,12 @@ fun GroupScreen(
                 GroupAppBar(
                     groupId = groupId,
                     groupName = state.groupName,
-                    isAdmin = (state as? GroupUiState.Success)?.isAdmin == true,
-                    onBack = actions.onBack
+                    overflowActions = (state as? GroupUiState.Success)?.overflowActions ?: emptyList(),
+                    overflowDialog = (state as? GroupUiState.Success)?.overflowDialog,
+                    onBack = actions.onBack,
+                    onOverflowActionRequested = actions.onOverflowActionRequested,
+                    onOverflowConfirmed = actions.onOverflowConfirmed,
+                    onOverflowDialogDismissed = actions.onOverflowDialogDismissed
                 )
                 when (state) {
                     is GroupUiState.Loading -> {
@@ -158,8 +192,12 @@ fun GroupScreen(
 private fun GroupAppBar(
     groupId: String,
     groupName: String,
-    isAdmin: Boolean,
+    overflowActions: List<GroupOverflowAction>,
+    overflowDialog: OverflowDialogState?,
     onBack: () -> Unit,
+    onOverflowActionRequested: (GroupOverflowAction) -> Unit,
+    onOverflowConfirmed: () -> Unit,
+    onOverflowDialogDismissed: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -183,9 +221,30 @@ private fun GroupAppBar(
                 .weight(1f)
                 .sharedBoundsOrNone(SharedTransitionKeys.groupName(groupId))
         )
-        // Archive and Leave group land here later (1p). Members-only: nothing yet.
-        if (isAdmin) {
-            IconButton(onClick = {}) {
+        GroupOverflowMenu(
+            actions = overflowActions,
+            dialog = overflowDialog,
+            onActionRequested = onOverflowActionRequested,
+            onConfirm = onOverflowConfirmed,
+            onDismiss = onOverflowDialogDismissed
+        )
+    }
+}
+
+@Composable
+private fun GroupOverflowMenu(
+    actions: List<GroupOverflowAction>,
+    dialog: OverflowDialogState?,
+    onActionRequested: (GroupOverflowAction) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    if (actions.isNotEmpty()) {
+        Box(modifier = modifier) {
+            IconButton(onClick = { expanded = true }) {
                 Icon(
                     imageVector = MusterIcons.MoreVert,
                     contentDescription = stringResource(Res.string.content_description_more),
@@ -193,8 +252,48 @@ private fun GroupAppBar(
                     modifier = Modifier.size(24.dp)
                 )
             }
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                actions.forEach { action ->
+                    DropdownMenuItem(
+                        text = { Text(stringResource(action.menuLabel())) },
+                        onClick = { expanded = false; onActionRequested(action) }
+                    )
+                }
+            }
         }
     }
+
+    // Stays open across the call: it owns the loading state and, on failure,
+    // the error — tapping the same button again is the retry.
+    when (dialog?.action) {
+        GroupOverflowAction.Leave -> ConfirmDialog(
+            title = stringResource(Res.string.group_leave_title),
+            body = stringResource(Res.string.group_leave_body),
+            confirmText = stringResource(Res.string.group_leave_confirm),
+            cancelText = stringResource(Res.string.group_leave_cancel),
+            onConfirm = onConfirm,
+            onDismiss = onDismiss,
+            confirmLoading = dialog.inFlight,
+            errorMessage = dialog.error?.toMessage()
+        )
+        GroupOverflowAction.Archive -> ConfirmDialog(
+            title = stringResource(Res.string.group_archive_title),
+            body = stringResource(Res.string.group_archive_body),
+            confirmText = stringResource(Res.string.group_archive_confirm),
+            cancelText = stringResource(Res.string.group_archive_cancel),
+            onConfirm = onConfirm,
+            onDismiss = onDismiss,
+            destructive = true,
+            confirmLoading = dialog.inFlight,
+            errorMessage = dialog.error?.toMessage()
+        )
+        null -> Unit
+    }
+}
+
+private fun GroupOverflowAction.menuLabel() = when (this) {
+    GroupOverflowAction.Archive -> Res.string.group_menu_archive
+    GroupOverflowAction.Leave -> Res.string.group_menu_leave
 }
 
 @Composable
@@ -248,7 +347,14 @@ private fun GroupTabItem(
     }
 }
 
-private val PreviewActions = GroupActions(onBack = {}, onTabSelected = {}, onRetry = {})
+private val PreviewActions = GroupActions(
+    onBack = {},
+    onTabSelected = {},
+    onRetry = {},
+    onOverflowActionRequested = {},
+    onOverflowConfirmed = {},
+    onOverflowDialogDismissed = {}
+)
 private const val PreviewGroupName = "Westgate Wednesday 7s"
 
 @Preview

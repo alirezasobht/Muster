@@ -20,4 +20,7 @@ interface GroupRepository {
     suspend fun acceptInvitation(invitationId: String)
 
     suspend fun declineInvitation(invitationId: String)
+
+    // Sets archived_at. Dashboard-only to undo — see CONTEXT.md.
+    suspend fun archive(groupId: String)
 }

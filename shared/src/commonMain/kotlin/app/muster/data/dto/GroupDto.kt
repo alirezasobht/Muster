@@ -17,6 +17,11 @@ internal data class GroupInsertDto(
     @SerialName("created_by") val createdBy: String
 )
 
+@Serializable
+internal data class GroupArchiveUpdateDto(
+    @SerialName("archived_at") val archivedAt: String
+)
+
 // group_members joined to groups, for "my groups".
 @Serializable
 internal data class GroupMembershipDto(

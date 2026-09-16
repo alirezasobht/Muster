@@ -1,5 +1,6 @@
 package app.muster.data.repository
 
+import app.muster.data.dto.GroupArchiveUpdateDto
 import app.muster.data.dto.GroupDto
 import app.muster.data.dto.GroupInsertDto
 import app.muster.data.dto.GroupMemberRoleDto
@@ -23,6 +24,7 @@ import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import kotlin.time.Clock
 
 internal class GroupRepositoryImpl(
     private val client: SupabaseClient,
@@ -76,6 +78,13 @@ internal class GroupRepositoryImpl(
 
     override suspend fun declineInvitation(invitationId: String): Unit = mapErrors {
         client.postgrest.rpc(DECLINE_INVITATION_FUNCTION, invitationIdParams(invitationId))
+    }
+
+    override suspend fun archive(groupId: String): Unit = mapErrors {
+        client.from(GROUPS_TABLE).update(GroupArchiveUpdateDto(archivedAt = Clock.System.now().toString())) {
+            filter { eq("id", groupId) }
+        }
+        dataChanges.notify(DataChange.MyGroups)
     }
 
     private fun invitationIdParams(invitationId: String) = buildJsonObject {

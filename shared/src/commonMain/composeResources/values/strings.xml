@@ -56,6 +56,18 @@
     <string name="group_failed_title">Couldn’t load this group</string>
     <string name="group_failed_try_again">Try again</string>
 
+    <!-- Group app bar overflow (1p) -->
+    <string name="group_menu_archive">Archive group</string>
+    <string name="group_menu_leave">Leave group</string>
+    <string name="group_archive_title">Archive this group?</string>
+    <string name="group_archive_body">It disappears for everyone, including you, and its events stop accepting changes. This can’t be undone in the app.</string>
+    <string name="group_archive_confirm">Archive</string>
+    <string name="group_archive_cancel">Cancel</string>
+    <string name="group_leave_title">Leave this group?</string>
+    <string name="group_leave_body">You’ll lose access to this group, and any RSVPs you’ve made will be removed.</string>
+    <string name="group_leave_confirm">Leave</string>
+    <string name="group_leave_cancel">Cancel</string>
+
     <!-- Group — Members tab (1i, 1j) -->
     <string name="members_add_by_email">Add by email</string>
     <string name="members_status_admin">Admin</string>

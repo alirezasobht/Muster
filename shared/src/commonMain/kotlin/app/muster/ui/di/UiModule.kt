@@ -23,7 +23,7 @@ val uiModule = module {
     // Email comes from the EnterCode route, not the graph.
     viewModel { (email: String) -> EnterCodeViewModel(email, get(), get()) }
     // Group id and name come from the Group route, not the graph.
-    viewModel { (groupId: String, groupName: String) -> GroupViewModel(groupId, groupName, get()) }
+    viewModel { (groupId: String, groupName: String) -> GroupViewModel(groupId, groupName, get(), get(), get()) }
     // Group id comes from the Members tab's host (GroupRoute), not the graph.
     viewModel { (groupId: String) ->
         MembersViewModel(groupId, get(), get(), get(), get(), get(), get(), get(), get())

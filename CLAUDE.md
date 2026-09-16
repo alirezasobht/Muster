@@ -75,19 +75,17 @@ Migrations in `supabase/migrations/`, applied with the Supabase CLI.
 ## State
 
 Built: auth (email code, set-name gate), Home (1d/1e/1s/1t), Settings
-(1f), New group (1g), Group shell with tabs (1h), Members tab (1i/1j).
+(1f), New group (1g), Group shell with tabs (1h), Members tab (1i/1j),
+app bar overflow — Leave group for everyone, Archive for admins (1j).
 Seven migrations, all pushed.
 
 Not built:
-- **App bar overflow** — Archive and Leave group. The ⋮ is an admin-only
-  stub; Leave group means opening it to every member. `MemberRepository.leave`
-  exists and is unreachable until then.
 - **Add by email** — its own screen per SCREENS.md; the button is a no-op
   callback.
 - **Events tab**, New event, Event.
-- **The 2a–2d error treatment** — done on 1a and 1g. Still outstanding on
-  1b, 1c and 1f, which carry a single `error` field and put everything in
-  the field's slot, including errors that aren't about the field.
-  DESIGN.md says the form-error copy for these three was never written.
+- **The 2a–2d error treatment** — done on 1a, 1b and 1g. Still
+  outstanding on 1c and 1f, which carry a single `error` field and put
+  everything in the field's slot, including errors that aren't about the
+  field.
 
-Next: the overflow, then Add by email, then Events.
+Next: Add by email, then Events.

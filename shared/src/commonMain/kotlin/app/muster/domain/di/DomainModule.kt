@@ -1,6 +1,7 @@
 package app.muster.domain.di
 
 import app.muster.domain.usecase.AcceptGroupInvitationUseCase
+import app.muster.domain.usecase.ArchiveGroupUseCase
 import app.muster.domain.usecase.CreateGroupUseCase
 import app.muster.domain.usecase.DeclineGroupInvitationUseCase
 import app.muster.domain.usecase.DemoteMemberUseCase
@@ -44,4 +45,5 @@ val domainModule = module {
     factoryOf(::RemoveMemberUseCase)
     factoryOf(::RevokeInvitationUseCase)
     factoryOf(::LeaveGroupUseCase)
+    factoryOf(::ArchiveGroupUseCase)
 }

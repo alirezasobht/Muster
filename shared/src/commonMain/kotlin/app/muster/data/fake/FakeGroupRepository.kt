@@ -22,6 +22,7 @@ class FakeGroupRepository(
     var getPendingInvitationsError: DomainError? = null,
     var acceptError: DomainError? = null,
     var declineError: DomainError? = null,
+    var archiveError: DomainError? = null,
     private val dataChanges: DataChanges? = null,
     private val latency: Long = FAKE_LATENCY_MS
 ) : GroupRepository {
@@ -39,6 +40,9 @@ class FakeGroupRepository(
         private set
 
     var declinedInvitationIds = listOf<String>()
+        private set
+
+    var archivedGroupIds = listOf<String>()
         private set
 
     override suspend fun getMyGroups(): List<Group> {
@@ -88,5 +92,13 @@ class FakeGroupRepository(
         declineError?.let { throw it }
         declinedInvitationIds = declinedInvitationIds + invitationId
         invitations = invitations.filterNot { it.id == invitationId }
+    }
+
+    override suspend fun archive(groupId: String) {
+        delay(latency.milliseconds)
+        archiveError?.let { throw it }
+        groups = groups.filterNot { it.id == groupId }
+        archivedGroupIds = archivedGroupIds + groupId
+        dataChanges?.notify(DataChange.MyGroups)
     }
 }

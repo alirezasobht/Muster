@@ -5,6 +5,14 @@ import app.muster.domain.model.GroupRole
 
 enum class GroupTab { Events, Members }
 
+enum class GroupOverflowAction { Leave, Archive }
+
+data class OverflowDialogState(
+    val action: GroupOverflowAction,
+    val inFlight: Boolean = false,
+    val error: DomainError? = null
+)
+
 sealed interface GroupUiState {
 
     val groupName: String
@@ -14,9 +22,17 @@ sealed interface GroupUiState {
     data class Success(
         override val groupName: String,
         val myRole: GroupRole,
-        val selectedTab: GroupTab = GroupTab.Events
+        val selectedTab: GroupTab = GroupTab.Events,
+        val overflowDialog: OverflowDialogState? = null,
+        val exitedGroup: Boolean = false
     ) : GroupUiState {
         val isAdmin: Boolean get() = myRole == GroupRole.Admin
+
+        val overflowActions: List<GroupOverflowAction>
+            get() = buildList {
+                if (isAdmin) add(GroupOverflowAction.Archive)
+                add(GroupOverflowAction.Leave)
+            }
     }
 
     data class Error(override val groupName: String, val error: DomainError) : GroupUiState
