@@ -25,3 +25,6 @@ data object NewGroup
 
 @Serializable
 data class Group(val id: String, val name: String)
+
+@Serializable
+data class AddMemberByEmail(val groupId: String, val groupName: String)

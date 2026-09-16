@@ -14,6 +14,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import app.muster.ui.common.util.LocalAnimatedVisibilityScope
 import app.muster.ui.common.util.LocalSharedTransitionScope
+import app.muster.ui.screens.addbyemail.AddMemberByEmailRoute
 import app.muster.ui.screens.group.GroupRoute
 import app.muster.ui.screens.home.HomeRoute
 import app.muster.ui.screens.launch.LaunchRoute
@@ -110,9 +111,18 @@ fun NavGraph(
                         GroupRoute(
                             groupId = group.id,
                             groupName = group.name,
-                            onBack = { navController.popBackStack() }
+                            onBack = { navController.popBackStack() },
+                            onAddMemberByEmail = { navController.navigate(AddMemberByEmail(group.id, group.name)) }
                         )
                     }
+                }
+                composable<AddMemberByEmail> { entry ->
+                    val route = entry.toRoute<AddMemberByEmail>()
+                    AddMemberByEmailRoute(
+                        groupId = route.groupId,
+                        groupName = route.groupName,
+                        onClose = { navController.popBackStack() }
+                    )
                 }
             }
         }

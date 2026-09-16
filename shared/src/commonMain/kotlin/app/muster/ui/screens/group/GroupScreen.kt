@@ -84,6 +84,7 @@ fun GroupRoute(
     groupId: String,
     groupName: String,
     onBack: () -> Unit,
+    onAddMemberByEmail: () -> Unit,
     viewModel: GroupViewModel = koinViewModel { parametersOf(groupId, groupName) }
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -108,7 +109,7 @@ fun GroupRoute(
         membersContent = {
             MembersRoute(
                 groupId = groupId,
-                onAddByEmail = {}
+                onAddMemberByEmail = onAddMemberByEmail
             )
         }
     )

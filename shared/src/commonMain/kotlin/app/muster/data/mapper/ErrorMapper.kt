@@ -46,11 +46,16 @@ private fun AuthRestException.toDomainError(): DomainError = when (errorCode) {
 private fun PostgrestRestException.toDomainError(): DomainError = when (code) {
     // Auto-named from profiles.name's CHECK; renaming the constraint breaks this.
     "23514" -> if ("profiles_name_check" in error) DomainError.InvalidName() else DomainError.Unknown(this)
+    // group_invitations_one_pending partial unique index: a second open
+    // invitation to the same address in the same group.
+    "23505" -> if ("group_invitations_one_pending" in error) DomainError.AlreadyInvited() else DomainError.Unknown(this)
     // plpgsql raise exception with no SQLSTATE: accept/decline_group_invitation,
-    // or group_keeps_an_admin rejecting a promote/demote/remove/leave.
+    // group_keeps_an_admin rejecting a promote/demote/remove/leave, or
+    // reject_if_already_member rejecting an invite to an existing member.
     "P0001" -> when {
         "no pending invitation for you" in error -> DomainError.InvitationNotPending()
         "a group must keep at least one admin" in error -> DomainError.LastAdmin()
+        "already a member of this group" in error -> DomainError.AlreadyMember()
         else -> DomainError.Unknown(this)
     }
     // groups_insert's WITH CHECK: no can_create_groups, or the trigger race

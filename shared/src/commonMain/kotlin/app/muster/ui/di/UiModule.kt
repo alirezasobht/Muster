@@ -1,5 +1,6 @@
 package app.muster.ui.di
 
+import app.muster.ui.screens.addbyemail.AddMemberByEmailViewModel
 import app.muster.ui.screens.group.GroupViewModel
 import app.muster.ui.screens.group.members.MembersViewModel
 import app.muster.ui.screens.home.HomeViewModel
@@ -28,4 +29,6 @@ val uiModule = module {
     viewModel { (groupId: String) ->
         MembersViewModel(groupId, get(), get(), get(), get(), get(), get(), get(), get())
     }
+    // Group id comes from the AddMemberByEmail route, not the graph.
+    viewModel { (groupId: String) -> AddMemberByEmailViewModel(groupId, get()) }
 }

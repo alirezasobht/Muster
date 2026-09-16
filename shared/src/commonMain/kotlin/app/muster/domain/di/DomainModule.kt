@@ -8,6 +8,7 @@ import app.muster.domain.usecase.DemoteMemberUseCase
 import app.muster.domain.usecase.GetGroupUseCase
 import app.muster.domain.usecase.GetMyGroupRoleUseCase
 import app.muster.domain.usecase.GetMyProfileUseCase
+import app.muster.domain.usecase.InviteByEmailUseCase
 import app.muster.domain.usecase.LeaveGroupUseCase
 import app.muster.domain.usecase.ListGroupMembersUseCase
 import app.muster.domain.usecase.ListMyGroupsUseCase
@@ -40,6 +41,7 @@ val domainModule = module {
     factoryOf(::AcceptGroupInvitationUseCase)
     factoryOf(::DeclineGroupInvitationUseCase)
     factoryOf(::ListGroupMembersUseCase)
+    factoryOf(::InviteByEmailUseCase)
     factoryOf(::PromoteMemberUseCase)
     factoryOf(::DemoteMemberUseCase)
     factoryOf(::RemoveMemberUseCase)

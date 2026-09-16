@@ -1,5 +1,6 @@
 package app.muster.data.repository
 
+import app.muster.data.dto.GroupInvitationInsertDto
 import app.muster.data.dto.GroupInvitationRowDto
 import app.muster.data.dto.GroupMemberDto
 import app.muster.data.dto.GroupMemberRoleUpdateDto
@@ -40,6 +41,13 @@ internal class MemberRepositoryImpl(
             .map { it.toPendingInvitation() }
 
         MemberListing(members = members, pendingInvitations = pendingInvitations)
+    }
+
+    override suspend fun inviteByEmail(groupId: String, email: String): Unit = mapErrors {
+        client.from(GROUP_INVITATIONS_TABLE).insert(
+            GroupInvitationInsertDto(groupId = groupId, email = email, invitedBy = myId())
+        )
+        dataChanges.notify(DataChange.Members(groupId))
     }
 
     override suspend fun promote(groupId: String, profileId: String): Unit = mapErrors {

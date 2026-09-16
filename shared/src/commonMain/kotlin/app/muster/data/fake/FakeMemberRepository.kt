@@ -15,6 +15,7 @@ class FakeMemberRepository(
     members: List<Member> = emptyList(),
     pendingInvitations: List<PendingInvitation> = emptyList(),
     var listMembersError: DomainError? = null,
+    var inviteByEmailError: DomainError? = null,
     var promoteError: DomainError? = null,
     var demoteError: DomainError? = null,
     var removeError: DomainError? = null,
@@ -28,6 +29,9 @@ class FakeMemberRepository(
         private set
 
     var pendingInvitations = pendingInvitations
+        private set
+
+    var invitedEmails = listOf<String>()
         private set
 
     var promotedIds = listOf<String>()
@@ -49,6 +53,13 @@ class FakeMemberRepository(
         delay(latency.milliseconds)
         listMembersError?.let { throw it }
         return MemberListing(members = members, pendingInvitations = pendingInvitations)
+    }
+
+    override suspend fun inviteByEmail(groupId: String, email: String) {
+        delay(latency.milliseconds)
+        inviteByEmailError?.let { throw it }
+        invitedEmails = invitedEmails + email
+        dataChanges?.notify(DataChange.Members(groupId))
     }
 
     override suspend fun promote(groupId: String, profileId: String) {

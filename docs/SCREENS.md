@@ -19,7 +19,7 @@ flowchart TD
     Settings[Settings]
     NewGroup[New group<br/><i>if allowed</i>]
     Group[Group<br/><i>events / members tabs</i>]
-    AddByEmail[Add by email<br/><i>admins</i>]
+    AddMemberByEmail[Add by email<br/><i>admins</i>]
     NewEvent[New event<br/><i>admins</i>]
     Event[Event<br/><i>roster, standby</i>]
     AddPlayers[Add players<br/><i>admins</i>]
@@ -34,7 +34,7 @@ flowchart TD
     Home --> NewGroup
     Home --> Group
     NewGroup --> Group
-    Group --> AddByEmail
+    Group --> AddMemberByEmail
     Group --> NewEvent
     Group --> Event
     NewEvent --> Event

@@ -25,7 +25,7 @@ class MembersTabTest {
     private fun show(
         state: MembersUiState,
         actionErrorMessage: String? = null,
-        onAddByEmail: () -> Unit = {},
+        onAddMemberByEmail: () -> Unit = {},
         onPromote: (String) -> Unit = {},
         onDemote: (String) -> Unit = {},
         onRemove: (String) -> Unit = {},
@@ -37,7 +37,7 @@ class MembersTabTest {
                 MembersTab(
                     state = state,
                     actions = MembersActions(
-                        onAddByEmail = onAddByEmail,
+                        onAddMemberByEmail = onAddMemberByEmail,
                         onPromote = onPromote,
                         onDemote = onDemote,
                         onRemove = onRemove,
@@ -75,23 +75,23 @@ class MembersTabTest {
     }
 
     @Test
-    fun addByEmailIsShownOnlyWhenAllowed() {
+    fun addMemberByEmailIsShownOnlyWhenAllowed() {
         show(state = MembersUiState.Success(rows = listOf(self), canAddMembers = true))
         composeRule.onNodeWithText("Add by email").assertIsDisplayed()
     }
 
     @Test
-    fun addByEmailIsHiddenForNonAdmins() {
+    fun addMemberByEmailIsHiddenForNonAdmins() {
         show(state = MembersUiState.Success(rows = listOf(self.copy(isSelf = false)), canAddMembers = false))
         composeRule.onNodeWithText("Add by email").assertDoesNotExist()
     }
 
     @Test
-    fun tappingAddByEmailReachesTheCallback() {
+    fun tappingAddMemberByEmailReachesTheCallback() {
         var tapped = false
         show(
             state = MembersUiState.Success(rows = listOf(self), canAddMembers = true),
-            onAddByEmail = { tapped = true }
+            onAddMemberByEmail = { tapped = true }
         )
         composeRule.onNodeWithText("Add by email").performClick()
         assert(tapped)

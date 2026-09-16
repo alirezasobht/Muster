@@ -7,6 +7,8 @@ interface MemberRepository {
 
     suspend fun listMembers(groupId: String): MemberListing
 
+    suspend fun inviteByEmail(groupId: String, email: String)
+
     suspend fun promote(groupId: String, profileId: String)
 
     suspend fun demote(groupId: String, profileId: String)

@@ -82,7 +82,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 data class MembersActions(
-    val onAddByEmail: () -> Unit,
+    val onAddMemberByEmail: () -> Unit,
     val onPromote: (id: String) -> Unit,
     val onDemote: (id: String) -> Unit,
     val onRemove: (id: String) -> Unit,
@@ -94,7 +94,7 @@ data class MembersActions(
 @Composable
 fun MembersRoute(
     groupId: String,
-    onAddByEmail: () -> Unit,
+    onAddMemberByEmail: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: MembersViewModel = koinViewModel { parametersOf(groupId) }
 ) {
@@ -104,7 +104,7 @@ fun MembersRoute(
     MembersTab(
         state = state,
         actions = MembersActions(
-            onAddByEmail = onAddByEmail,
+            onAddMemberByEmail = onAddMemberByEmail,
             onPromote = viewModel::onPromote,
             onDemote = viewModel::onDemote,
             onRemove = viewModel::onRemove,
@@ -174,7 +174,7 @@ private fun MembersContent(
 
     Column(modifier = modifier.fillMaxSize()) {
         if (state.canAddMembers) {
-            AddByEmailRow(onClick = actions.onAddByEmail)
+            AddMemberByEmailRow(onClick = actions.onAddMemberByEmail)
             HorizontalDivider(color = MusterColors.Hairline)
         } else {
             Spacer(Modifier.height(8.dp))
@@ -233,7 +233,7 @@ private fun MembersContent(
 }
 
 @Composable
-private fun AddByEmailRow(onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun AddMemberByEmailRow(onClick: () -> Unit, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -453,7 +453,7 @@ private fun initials(name: String): String {
 }
 
 private val PreviewActions = MembersActions(
-    onAddByEmail = {},
+    onAddMemberByEmail = {},
     onPromote = {},
     onDemote = {},
     onRemove = {},

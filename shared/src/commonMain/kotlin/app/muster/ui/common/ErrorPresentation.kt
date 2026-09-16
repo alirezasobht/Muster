@@ -25,7 +25,9 @@ val DomainError.presentation: ErrorPresentation
     get() = when (this) {
         is DomainError.InvalidEmail,
         is DomainError.InvalidCode,
-        is DomainError.InvalidName ->
+        is DomainError.InvalidName,
+        is DomainError.AlreadyInvited,
+        is DomainError.AlreadyMember ->
             ErrorPresentation.Field
 
         is DomainError.Network,

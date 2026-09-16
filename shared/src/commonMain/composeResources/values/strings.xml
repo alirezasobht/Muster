@@ -68,6 +68,14 @@
     <string name="group_leave_confirm">Leave</string>
     <string name="group_leave_cancel">Cancel</string>
 
+    <!-- Add by email -->
+    <string name="add_by_email_hint">They’ll be notified, and can accept once they sign in.</string>
+    <string name="action_send_invite">Send invite</string>
+    <string name="add_by_email_success_title">Invite sent</string>
+    <string name="add_by_email_success_body">They’ll be notified, and can accept once they sign in with this address.</string>
+    <string name="add_by_email_invite_more">Invite more</string>
+    <string name="add_by_email_close">Close</string>
+
     <!-- Group — Members tab (1i, 1j) -->
     <string name="members_add_by_email">Add by email</string>
     <string name="members_status_admin">Admin</string>
@@ -99,6 +107,7 @@
     <string name="field_group_name">Group name</string>
     <string name="content_description_back">Back</string>
     <string name="content_description_more">More options</string>
+    <string name="content_description_close">Close</string>
 
     <!-- Errors: one per DomainError case -->
     <string name="error_invalid_email">That doesn’t look like an email address.</string>
@@ -108,6 +117,8 @@
     <string name="error_invitation_not_pending">That invitation is no longer available.</string>
     <string name="error_not_allowed_to_create_groups">You’re not allowed to create groups.</string>
     <string name="error_last_admin">A group needs at least one admin. Promote someone else first.</string>
+    <string name="error_already_invited">There’s already an open invitation for that address.</string>
+    <string name="error_already_member">That address is already in the group.</string>
     <string name="error_network">Can’t connect. Check your connection and try again.</string>
     <string name="error_not_signed_in">You’ve been signed out. Sign in again.</string>
     <string name="error_unknown">Something went wrong. Try again.</string>

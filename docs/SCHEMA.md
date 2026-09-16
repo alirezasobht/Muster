@@ -85,7 +85,8 @@ No token column. The email is a notification only — nothing is redeemed,
 so there is nothing to authenticate. The invitee is matched by address.
 
 Partial unique index on `(group_id, email) WHERE status = 'pending'` —
-one open invite per person per group.
+one open invite per person per group. A second one raises 23505; someone
+who has already accepted is caught separately, by rule 16.
 
 ### events
 
@@ -236,6 +237,14 @@ depends on positions being contiguous.
     in that group via `ON DELETE CASCADE`. Groups themselves are
     archived rather than deleted, so a group's records are never
     cascaded away in normal use.
+16. **Not already a member** — trigger on `group_invitations` insert,
+    rejecting an address that already holds a `group_members` row in that
+    group. The partial unique index covers a second *open* invitation;
+    this covers one that was already accepted, which would otherwise
+    insert fine and fail much later inside `accept_group_invitation` on
+    the `group_members` primary key. `security definer`, because the
+    admin cannot read the invitee's `profiles` row — a shared group is
+    exactly what is being established.
 
 ### Functions and triggers
 
@@ -282,6 +291,7 @@ already holds an invitation.
 | `on_auth_user_created` | `handle_new_user` | insert on `auth.users` | creates the `profiles` row |
 | `on_auth_user_email_changed` | `sync_user_email` | update of email on `auth.users` | keeps `profiles.email` in step with Auth |
 | `on_group_created` | `handle_new_group` | insert on `groups` | creator's admin membership |
+| `group_invitations_not_member` | `reject_if_already_member` | insert on `group_invitations` | rejects inviting someone already in the group |
 | `group_keeps_an_admin` | `ensure_admin_remains` | update/delete on `group_members` | rejects leaving a group admin-less. **Deferred** — lets a transaction promote and demote in either order, and lets a group's cascade through |
 | `event_invitations_frozen` | `reject_if_event_started` | insert/update on `event_invitations` | rejects writes past `starts_at` |
 | `event_standby_frozen` | `reject_if_event_started` | insert/update on `event_standby` | as above |

@@ -28,5 +28,13 @@ sealed class DomainError(message: String, cause: Throwable? = null) : Exception(
     // demoting the only other admin.
     class LastAdmin : DomainError("a group must keep at least one admin")
 
+    // group_invitations_one_pending partial unique index (23505): an open
+    // invitation to this address in this group already exists.
+    class AlreadyInvited : DomainError("already invited to this group")
+
+    // group_invitations_not_member trigger, migration 8 (P0001): the address
+    // already holds a group_members row in this group.
+    class AlreadyMember : DomainError("already a member of this group")
+
     class Unknown(cause: Throwable) : DomainError(cause.message ?: "unknown error", cause)
 }
