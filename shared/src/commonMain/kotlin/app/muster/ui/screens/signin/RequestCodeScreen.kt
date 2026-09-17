@@ -98,7 +98,8 @@ fun RequestCodeScreen(
                 Text(
                     text = stringResource(Res.string.request_code_title),
                     style = MaterialTheme.typography.headlineLarge,
-                    color = MusterColors.White
+                    color = MusterColors.White,
+                    modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
@@ -176,7 +177,7 @@ private fun RequestCodeScreenOfflinePreview() {
             email = "alex.doyle@gmail.com",
             onEmailChange = {},
             onSendCode = {},
-            error = DomainError.Network()
+            error = DomainError.Unknown(Throwable())
         )
     }
 }
