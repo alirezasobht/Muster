@@ -76,16 +76,21 @@ Migrations in `supabase/migrations/`, applied with the Supabase CLI.
 
 Built: auth (email code, set-name gate), Home (1d/1e/1s/1t), Settings
 (1f), New group (1g), Group shell with tabs (1h), Members tab (1i/1j),
-app bar overflow — Leave group for everyone, Archive for admins (1j).
-Seven migrations, all pushed.
+app bar overflow — Leave group for everyone, Archive for admins (1j),
+Add by email. Eight migrations, all pushed.
 
 Not built:
-- **Add by email** — its own screen per SCREENS.md; the button is a no-op
-  callback.
 - **Events tab**, New event, Event.
-- **The 2a–2d error treatment** — done on 1a, 1b and 1g. Still
-  outstanding on 1c and 1f, which carry a single `error` field and put
-  everything in the field's slot, including errors that aren't about the
-  field.
+- **Edit group** — renaming a group. `groups_update` already grants
+  `name`; no screen or entry point for it.
+- **Edit event** — title, time, location. Not capacity: it is set at
+  creation and never editable, which is what keeps the capacity
+  invariant to one entry point (SCHEMA.md rule 11).
+- **The 2a–2d error treatment** — done on 1a, 1b, 1g and Add by email.
+  Still outstanding on 1c and 1f, which carry a single `error` field and
+  put everything in the field's slot, including errors that aren't about
+  the field.
+- **The invitation email.** The invitation itself works — the invitee
+  finds it on signing in — but nothing tells them it exists.
 
-Next: Add by email, then Events.
+Next: Events.

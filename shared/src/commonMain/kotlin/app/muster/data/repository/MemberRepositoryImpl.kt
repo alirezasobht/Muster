@@ -72,7 +72,10 @@ internal class MemberRepositoryImpl(
 
     override suspend fun revokeInvitation(groupId: String, invitationId: String): Unit = mapErrors {
         client.from(GROUP_INVITATIONS_TABLE).delete {
-            filter { eq("id", invitationId) }
+            filter {
+                eq("id", invitationId)
+                eq("group_id", groupId)
+            }
         }
         dataChanges.notify(DataChange.Members(groupId))
     }
