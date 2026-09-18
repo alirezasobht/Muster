@@ -15,11 +15,13 @@ import androidx.navigation.toRoute
 import app.muster.ui.common.util.LocalAnimatedVisibilityScope
 import app.muster.ui.common.util.LocalSharedTransitionScope
 import app.muster.ui.screens.addbyemail.AddMemberByEmailRoute
+import app.muster.ui.screens.event.EventScreen
 import app.muster.ui.screens.group.GroupRoute
 import app.muster.ui.screens.home.HomeRoute
 import app.muster.ui.screens.launch.LaunchRoute
 import app.muster.ui.screens.launch.LaunchUiState
 import app.muster.ui.screens.launch.LaunchViewModel
+import app.muster.ui.screens.newevent.NewEventRoute
 import app.muster.ui.screens.newgroup.NewGroupRoute
 import app.muster.ui.screens.settings.SettingsRoute
 import app.muster.ui.screens.setname.SetNameRoute
@@ -59,6 +61,7 @@ fun NavGraph(
     SharedTransitionLayout {
         CompositionLocalProvider(LocalSharedTransitionScope provides this) {
             NavHost(navController = navController, startDestination = Launch) {
+
                 composable<Launch> {
                     CompositionLocalProvider(LocalAnimatedVisibilityScope provides this@composable) {
                         LaunchRoute(viewModel = launchViewModel)
@@ -113,9 +116,9 @@ fun NavGraph(
                             groupName = group.name,
                             onBack = { navController.popBackStack() },
                             onAddMemberByEmail = { navController.navigate(AddMemberByEmail(group.id, group.name)) },
-                            // Event and New event aren't built yet (CLAUDE.md, State).
+                            // Event isn't built yet
                             onSelectEvent = {},
-                            onNewEvent = {}
+                            onNewEvent = { navController.navigate(NewEvent(group.id)) }
                         )
                     }
                 }
@@ -126,6 +129,22 @@ fun NavGraph(
                         groupName = route.groupName,
                         onClose = { navController.popBackStack() }
                     )
+                }
+                composable<NewEvent> { entry ->
+                    val route = entry.toRoute<NewEvent>()
+                    NewEventRoute(
+                        groupId = route.groupId,
+                        onBack = { navController.popBackStack() },
+                        onEventCreated = { event ->
+                            navController.navigate(Event(event.id, event.title, route.groupId)) {
+                                popUpTo(route) { inclusive = true }
+                            }
+                        }
+                    )
+                }
+                composable<Event> { entry ->
+                    val route = entry.toRoute<Event>()
+                    EventScreen(title = route.title, onBack = { navController.popBackStack() })
                 }
             }
         }

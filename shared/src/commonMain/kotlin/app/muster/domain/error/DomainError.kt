@@ -36,5 +36,9 @@ sealed class DomainError(message: String, cause: Throwable? = null) : Exception(
     // already holds a group_members row in this group.
     class AlreadyMember : DomainError("already a member of this group")
 
+    // Client-side gate, not a database rule: nothing in the schema stops a
+    // past start time. Thrown by CreateEventUseCase, checked against MusterTimeZone.
+    class EventStartsInPast : DomainError("event start time must be in the future")
+
     class Unknown(cause: Throwable) : DomainError(cause.message ?: "unknown error", cause)
 }

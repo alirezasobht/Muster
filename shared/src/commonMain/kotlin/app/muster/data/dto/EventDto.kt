@@ -13,6 +13,17 @@ internal data class EventDto(
     val capacity: Int
 )
 
+// RLS requires the caller to be a group admin; created_by is the caller.
+@Serializable
+internal data class EventInsertDto(
+    @SerialName("group_id") val groupId: String,
+    val title: String,
+    @SerialName("starts_at") val startsAt: String,
+    val location: String? = null,
+    val capacity: Int,
+    @SerialName("created_by") val createdBy: String
+)
+
 // A second query against event_invitations, grouped client-side by event_id
 // to get in/pending counts and the caller's own status — the event row and
 // the roster are different tables, same as MemberListing's two queries.

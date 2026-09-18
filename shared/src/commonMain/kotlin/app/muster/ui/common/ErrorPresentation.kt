@@ -27,7 +27,8 @@ val DomainError.presentation: ErrorPresentation
         is DomainError.InvalidCode,
         is DomainError.InvalidName,
         is DomainError.AlreadyInvited,
-        is DomainError.AlreadyMember ->
+        is DomainError.AlreadyMember,
+        is DomainError.EventStartsInPast ->
             ErrorPresentation.Field
 
         is DomainError.Network,

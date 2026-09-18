@@ -77,10 +77,11 @@ Migrations in `supabase/migrations/`, applied with the Supabase CLI.
 Built: auth (email code, set-name gate), Home (1d/1e/1s/1t), Settings
 (1f), New group (1g), Group shell with tabs (1h), Members tab (1i/1j),
 app bar overflow — Leave group for everyone, Archive for admins (1j),
-Add by email. Eight migrations, all pushed.
+Add by email, Events tab, New event. Eight migrations, all pushed.
 
 Not built:
-- **Events tab**, New event, Event.
+- **Event** — the screen itself: roster, standby queue, RSVP,
+  drag-to-reorder. New event lands on a placeholder.
 - **Edit group** — renaming a group. `groups_update` already grants
   `name`; no screen or entry point for it.
 - **Edit event** — title, time, location. Not capacity: it is set at
@@ -93,4 +94,4 @@ Not built:
 - **The invitation email.** The invitation itself works — the invitee
   finds it on signing in — but nothing tells them it exists.
 
-Next: Events.
+Next: the Event screen.

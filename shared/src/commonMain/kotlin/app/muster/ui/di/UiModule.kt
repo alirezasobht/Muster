@@ -6,6 +6,7 @@ import app.muster.ui.screens.group.events.EventsViewModel
 import app.muster.ui.screens.group.members.MembersViewModel
 import app.muster.ui.screens.home.HomeViewModel
 import app.muster.ui.screens.launch.LaunchViewModel
+import app.muster.ui.screens.newevent.NewEventViewModel
 import app.muster.ui.screens.newgroup.NewGroupViewModel
 import app.muster.ui.screens.setname.SetNameViewModel
 import app.muster.ui.screens.settings.SettingsViewModel
@@ -34,4 +35,6 @@ val uiModule = module {
     viewModel { (groupId: String) -> EventsViewModel(groupId, get(), get(), get()) }
     // Group id comes from the AddMemberByEmail route, not the graph.
     viewModel { (groupId: String) -> AddMemberByEmailViewModel(groupId, get()) }
+    // Group id comes from the New event route, not the graph.
+    viewModel { (groupId: String) -> NewEventViewModel(groupId, get()) }
 }

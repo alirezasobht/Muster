@@ -25,7 +25,9 @@ class EventsTabTest {
         title = "Weekly 7-a-side",
         date = "Wed 17 Sep · 7:00 pm",
         location = "Westgate Pitch 2",
-        stats = "10 of 10 slots · 7 in, 3 pending",
+        capacity = 10,
+        inCount = 7,
+        pendingCount = 3,
         status = MemberEventStatus.In
     )
 

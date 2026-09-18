@@ -28,3 +28,9 @@ data class Group(val id: String, val name: String)
 
 @Serializable
 data class AddMemberByEmail(val groupId: String, val groupName: String)
+
+@Serializable
+data class NewEvent(val groupId: String)
+
+@Serializable
+data class Event(val id: String, val title: String, val groupId: String)

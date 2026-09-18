@@ -22,5 +22,5 @@ val dataModule = module {
     single<ProfileRepository> { ProfileRepositoryImpl(get()) }
     single<GroupRepository> { GroupRepositoryImpl(get(), get()) }
     single<MemberRepository> { MemberRepositoryImpl(get(), get()) }
-    single<EventRepository> { EventRepositoryImpl(get()) }
+    single<EventRepository> { EventRepositoryImpl(get(), get()) }
 }

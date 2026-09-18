@@ -105,6 +105,22 @@
     <string name="events_failed_title">Couldn’t load events</string>
     <string name="events_try_again">Try again</string>
 
+    <!-- New event (1k) -->
+    <string name="new_event_title">New event</string>
+    <string name="field_event_title">Title</string>
+    <string name="field_event_location">Location</string>
+    <string name="new_event_date_label">Date</string>
+    <string name="new_event_time_label">Start</string>
+    <string name="new_event_date_placeholder">Select date</string>
+    <string name="new_event_time_placeholder">Select time</string>
+    <string name="new_event_capacity_label">Capacity</string>
+    <string name="new_event_capacity_value">%1$d players</string>
+    <string name="new_event_capacity_hint">Invites count toward this, answered or not. Can’t be changed later.</string>
+    <string name="new_event_decrease_capacity">Decrease capacity</string>
+    <string name="new_event_increase_capacity">Increase capacity</string>
+    <string name="new_event_picker_confirm">OK</string>
+    <string name="new_event_picker_cancel">Cancel</string>
+
     <!-- Shared -->
     <string name="action_continue">Continue</string>
     <string name="action_save">Save</string>
@@ -112,6 +128,7 @@
     <string name="action_accept">Accept</string>
     <string name="action_decline">Decline</string>
     <string name="action_create_group">Create group</string>
+    <string name="action_create_event">Create event</string>
     <string name="field_email">Email</string>
     <string name="field_name">Name</string>
     <string name="field_group_name">Group name</string>
@@ -129,6 +146,7 @@
     <string name="error_last_admin">A group needs at least one admin. Promote someone else first.</string>
     <string name="error_already_invited">There’s already an open invitation for that address.</string>
     <string name="error_already_member">That address is already in the group.</string>
+    <string name="error_event_starts_in_past">Pick a time that hasn’t passed yet.</string>
     <string name="error_network">Can’t connect. Check your connection and try again.</string>
     <string name="error_not_signed_in">You’ve been signed out. Sign in again.</string>
     <string name="error_unknown">Something went wrong. Try again.</string>
