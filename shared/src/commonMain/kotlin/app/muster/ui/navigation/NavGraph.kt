@@ -112,7 +112,10 @@ fun NavGraph(
                             groupId = group.id,
                             groupName = group.name,
                             onBack = { navController.popBackStack() },
-                            onAddMemberByEmail = { navController.navigate(AddMemberByEmail(group.id, group.name)) }
+                            onAddMemberByEmail = { navController.navigate(AddMemberByEmail(group.id, group.name)) },
+                            // Event and New event aren't built yet (CLAUDE.md, State).
+                            onSelectEvent = {},
+                            onNewEvent = {}
                         )
                     }
                 }

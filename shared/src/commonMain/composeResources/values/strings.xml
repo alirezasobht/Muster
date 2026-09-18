@@ -52,7 +52,6 @@
     <!-- Group (1h, 1i, 1j) -->
     <string name="group_tab_events">Events</string>
     <string name="group_tab_members">Members</string>
-    <string name="group_events_placeholder">Events tab isn’t built yet.</string>
     <string name="group_failed_title">Couldn’t load this group</string>
     <string name="group_failed_try_again">Try again</string>
 
@@ -94,6 +93,17 @@
     <string name="members_failed_title">Couldn’t load members</string>
     <string name="members_try_again">Try again</string>
     <string name="members_you_suffix"> · you</string>
+
+    <!-- Group — Events tab (1h) -->
+    <string name="events_new">New event</string>
+    <string name="events_status_in">In</string>
+    <string name="events_status_pending">Pending</string>
+    <string name="events_status_out">Out</string>
+    <string name="events_slots">%1$d of %2$d slots · %3$d in, %4$d pending</string>
+    <string name="events_empty_title">No upcoming events</string>
+    <string name="events_empty_body">New events will show up here once one is scheduled.</string>
+    <string name="events_failed_title">Couldn’t load events</string>
+    <string name="events_try_again">Try again</string>
 
     <!-- Shared -->
     <string name="action_continue">Continue</string>

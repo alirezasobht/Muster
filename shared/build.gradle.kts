@@ -116,9 +116,15 @@ kotlin {
         jsMain.dependencies {
             implementation(libs.wrappers.browser)
             implementation(libs.ktor.client.js)
+            // kotlinx-datetime has no IANA tz database of its own on JS;
+            // without this, TimeZone.of("Australia/Sydney") compiles but
+            // throws IllegalTimeZoneException at runtime.
+            implementation(npm("@js-joda/timezone", "2.25.2"))
         }
         wasmJsMain.dependencies {
             implementation(libs.ktor.client.js)
+            // Same gap as jsMain, wasmJs has its own copy of the module.
+            implementation(npm("@js-joda/timezone", "2.25.2"))
         }
     }
 }

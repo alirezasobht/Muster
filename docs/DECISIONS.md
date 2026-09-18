@@ -89,33 +89,36 @@ alone. With code-only sign-in a session is unreachable without receiving
 mail at that address, so confirmation stops being a toggle that could be
 turned off.
 
-Cost: email delivery is the only way in, with no fallback if Gmail is
+Cost: email delivery is the only way in, with no fallback if Resend is
 down. Sessions never expire, so this only bites on a new device or a
 reinstall.
 
-## Gmail SMTP over Resend
+## Resend on a domain, after Gmail SMTP
 
-Auth emails go through `muster.team.app@gmail.com` with a Google app
-password, set in Supabase under Authentication → Emails → SMTP Settings.
-Event invitations will go the same way, from an Edge Function.
+Auth emails go through Resend from `send.musterapp.fyi`, with SPF and
+DKIM on a domain we control (`musterapp.fyi`, about $5.66/yr). Event
+invitations will go the same way, from an Edge Function.
 
-Resend came first and worked, but its free tier only delivers from a
-verified domain — without one it falls back to a shared test sender that
-reaches nobody but the account holder. Gmail needs no domain, no DNS and
-no money, and delivers to real addresses today.
+This is the second answer. Resend came first and was dropped: its free
+tier only delivers from a verified domain, and without one it falls back
+to a shared test sender that reaches nobody but the account holder. Gmail
+SMTP needed no domain, no DNS and no money, so it won — with two known
+costs recorded at the time: no SPF or DKIM under our control, and a
+sending cap around 500/day.
 
-Supabase flags `smtp.gmail.com` as a personal rather than transactional
-provider, and it is right to: there is no SPF or DKIM under our control,
-and Gmail caps sending at roughly 500/day. Verified working to real
-inboxes. The limits are in CONTEXT.md → Known risks.
+That ended when Google disabled the dedicated account the app sent
+through. Sign-in is code-only, so a disabled sender is a total outage —
+nobody can sign in at all. A personal mailbox turned out to be the wrong
+foundation for the one thing the whole app depends on, and a domain at
+$5.66/yr was never the real obstacle.
 
-Note the Supabase auth rate limit (30/hour by default) covers **sign-in
-codes only**. Invitations sent from an Edge Function never touch it —
-their only ceiling is Gmail's daily cap.
+What the domain also buys: deliverability that does not depend on a
+consumer provider's spam heuristics, a sender address that is not
+someone's Gmail, and sending limits that fit a transactional provider
+rather than a personal account.
 
-This holds while Muster is a few private teams. Anything wider needs a
-domain and a real transactional provider; the change is one field in
-Supabase and nothing in the app.
+Note the Supabase auth rate limit covers **sign-in codes only**.
+Invitations sent from an Edge Function never touch it.
 
 ## Sessions never expire
 

@@ -37,14 +37,15 @@ Explicitly out of scope:
 | Backend | Supabase | Postgres, Auth, RLS, Edge Functions |
 | Region | Sydney (`ap-southeast-2`) | Users are AU-based |
 | Auth | Email codes | No passwords anywhere |
-| Email | Gmail SMTP | `muster.team.app@gmail.com`, app password |
+| Email | Resend | `send.musterapp.fyi`, SPF and DKIM verified |
 | Push (post-MVP) | FCM | Delivers to both Android and iOS (via APNs) |
 
 Every row here was a choice with an argument behind it — see
 DECISIONS.md.
 
-Cost: Supabase free tier, Gmail free. Apple Developer account
-($99/yr) needed only when shipping to iPhones. No domain needed.
+Cost: Supabase free tier, Resend free tier, `musterapp.fyi` at about
+$5.66/yr. Apple Developer account ($99/yr) needed only when shipping to
+iPhones.
 
 ## Known risks
 
@@ -52,15 +53,10 @@ Cost: Supabase free tier, Gmail free. Apple Developer account
   expect/actual bindings. Only relevant once push is picked back up.
 - Supabase free-tier projects pause after 7 days of inactivity. Fine
   during a season; an off-season break will need a manual unpause.
-- **Gmail deliverability.** Mail from a `@gmail.com` sender has no SPF or
-  DKIM of its own and is more likely to be filtered than mail from a
-  verified domain. Sign-in codes landing in spam look identical to a
-  broken app, since they are the only way in. Verified working to real
-  addresses; worth re-checking spam folders after any change.
-- **Gmail's daily cap is about 500 messages**, which is the real ceiling —
-  not Supabase's. Raising Supabase's auth rate limit past it just moves
-  the failure from a 429 to a Gmail rejection. Fine for a few teams,
-  wrong for anything larger.
+- **Email delivery is the only way in.** Sign-in is code-only, so if
+  Resend is down or a message is filtered, nobody can sign in. Sessions
+  never expire, so it only bites on a new device or a reinstall. Worth
+  re-checking spam folders after any change to the sending setup.
 
 ## Roles
 
@@ -166,6 +162,33 @@ RSVPs are operational data, not records. Removing a member from a group
 deletes their `event_invitations` rows across all its events, past
 included. There are no season stats, so nothing depends on those rows
 surviving.
+
+## Time zones
+
+`events.starts_at` is `timestamptz` — an absolute instant, correct
+everywhere. What an instant cannot tell you is what wall-clock time it
+was *meant* to be, and that is what people actually care about: kickoff
+is 9pm at the pitch, wherever the admin happened to be when they created
+it.
+
+**For now every group plays in Sydney.** `Australia/Sydney` is a
+constant, used in exactly two places — converting the picker's
+`LocalDateTime` to an instant on the way in, and back again for display.
+Never `TimeZone.currentSystemDefault()`: that is the obvious thing to
+reach for and it is wrong. An admin creating a fixture while travelling
+would silently set the wrong time, and nobody would notice until people
+turned up at the wrong hour.
+
+The zone is not stored. The instant is already unambiguous, and while
+there is one city a constant does the rest of the job.
+
+**Later: a `time_zone` column on `groups`,** set at creation with a
+picker and editable afterwards. IANA names like `Australia/Sydney`, not
+offsets — offsets move with daylight saving, names don't. Adding it
+backfills cleanly: every existing row is Sydney by definition, so
+`default 'Australia/Sydney'` is correct history rather than a guess. On
+the group rather than the event, because a team plays where it plays;
+per-event would only matter for a tour.
 
 ## Working conventions
 

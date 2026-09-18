@@ -45,6 +45,7 @@ import app.muster.ui.common.components.PhoneWidth
 import app.muster.ui.common.toMessage
 import app.muster.ui.common.util.SharedTransitionKeys
 import app.muster.ui.common.util.sharedBoundsOrNone
+import app.muster.ui.screens.group.events.EventsRoute
 import app.muster.ui.screens.group.members.MembersRoute
 import app.muster.ui.theme.MusterColors
 import app.muster.ui.theme.MusterTheme
@@ -55,7 +56,6 @@ import muster.shared.generated.resources.group_archive_body
 import muster.shared.generated.resources.group_archive_cancel
 import muster.shared.generated.resources.group_archive_confirm
 import muster.shared.generated.resources.group_archive_title
-import muster.shared.generated.resources.group_events_placeholder
 import muster.shared.generated.resources.group_failed_title
 import muster.shared.generated.resources.group_failed_try_again
 import muster.shared.generated.resources.group_leave_body
@@ -85,6 +85,8 @@ fun GroupRoute(
     groupName: String,
     onBack: () -> Unit,
     onAddMemberByEmail: () -> Unit,
+    onSelectEvent: (id: String) -> Unit,
+    onNewEvent: () -> Unit,
     viewModel: GroupViewModel = koinViewModel { parametersOf(groupId, groupName) }
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -111,6 +113,13 @@ fun GroupRoute(
                 groupId = groupId,
                 onAddMemberByEmail = onAddMemberByEmail
             )
+        },
+        eventsContent = {
+            EventsRoute(
+                groupId = groupId,
+                onSelectEvent = onSelectEvent,
+                onNewEvent = onNewEvent
+            )
         }
     )
 }
@@ -122,7 +131,8 @@ fun GroupScreen(
     modifier: Modifier = Modifier,
     groupId: String = "",
     spinnerDelayMillis: Long = 400,
-    membersContent: @Composable () -> Unit = {}
+    membersContent: @Composable () -> Unit = {},
+    eventsContent: @Composable () -> Unit = {}
 ) {
     Surface(modifier = modifier.fillMaxSize()) {
         PhoneWidth {
@@ -169,14 +179,8 @@ fun GroupScreen(
                     is GroupUiState.Success -> {
                         GroupTabRow(selectedTab = state.selectedTab, onTabSelected = actions.onTabSelected)
                         when (state.selectedTab) {
-                            GroupTab.Events -> Box(
-                                modifier = Modifier.weight(1f).fillMaxWidth(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = stringResource(Res.string.group_events_placeholder),
-                                    color = MusterColors.Muted
-                                )
+                            GroupTab.Events -> Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                                eventsContent()
                             }
                             GroupTab.Members -> Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                                 membersContent()
