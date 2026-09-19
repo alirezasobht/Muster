@@ -18,11 +18,11 @@ data class EventRow(
 sealed interface EventsUiState {
     data object Loading : EventsUiState
     data class Success(
-        val events: List<EventRow> = emptyList(),
+        val eventRows: List<EventRow> = emptyList(),
         val isRefreshing: Boolean = false,
         val canCreateEvent: Boolean = false
     ) : EventsUiState {
-        val isEmpty: Boolean get() = events.isEmpty()
+        val isEmpty: Boolean get() = eventRows.isEmpty()
     }
     data class Error(val error: DomainError) : EventsUiState
 }

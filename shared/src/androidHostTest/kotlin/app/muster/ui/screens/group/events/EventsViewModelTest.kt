@@ -74,7 +74,7 @@ class EventsViewModelTest {
         advanceUntilIdle()
 
         val state = assertIs<EventsUiState.Success>(viewModel.state.value)
-        val row = state.events.single()
+        val row = state.eventRows.single()
         assertEquals("Weekly 7-a-side", row.title)
         assertEquals("Westgate Pitch 2", row.location)
         assertEquals("Thu 17 Sep · 7:00 pm", row.date)
@@ -93,8 +93,8 @@ class EventsViewModelTest {
         advanceUntilIdle()
 
         val state = assertIs<EventsUiState.Success>(viewModel.state.value)
-        assertEquals("Thu 17 Sep · 12:00 am", state.events.first { it.id == "event-midnight" }.date)
-        assertEquals("Wed 16 Sep · 12:00 pm", state.events.first { it.id == "event-noon" }.date)
+        assertEquals("Thu 17 Sep · 12:00 am", state.eventRows.first { it.id == "event-midnight" }.date)
+        assertEquals("Wed 16 Sep · 12:00 pm", state.eventRows.first { it.id == "event-noon" }.date)
     }
 
     @Test
@@ -104,7 +104,7 @@ class EventsViewModelTest {
         val viewModel = viewModel(events = events)
         advanceUntilIdle()
 
-        val row = assertIs<EventsUiState.Success>(viewModel.state.value).events.single()
+        val row = assertIs<EventsUiState.Success>(viewModel.state.value).eventRows.single()
         assertNull(row.status)
         assertEquals("", row.location)
     }
@@ -153,14 +153,14 @@ class EventsViewModelTest {
 
         viewModel.onResume()
         advanceUntilIdle()
-        assertEquals(1, assertIs<EventsUiState.Success>(viewModel.state.value).events.size)
+        assertEquals(1, assertIs<EventsUiState.Success>(viewModel.state.value).eventRows.size)
 
         // Simulates a second event appearing between resumes.
         events.events = listOf(fullEvent, fullEvent.copy(id = "event-2"))
         viewModel.onResume()
         advanceUntilIdle()
 
-        assertEquals(2, assertIs<EventsUiState.Success>(viewModel.state.value).events.size)
+        assertEquals(2, assertIs<EventsUiState.Success>(viewModel.state.value).eventRows.size)
     }
 
     @Test
@@ -174,7 +174,7 @@ class EventsViewModelTest {
         changes.notify(DataChange.Events(groupId))
         advanceUntilIdle()
 
-        assertEquals(2, assertIs<EventsUiState.Success>(viewModel.state.value).events.size)
+        assertEquals(2, assertIs<EventsUiState.Success>(viewModel.state.value).eventRows.size)
     }
 
     @Test
@@ -188,6 +188,6 @@ class EventsViewModelTest {
         changes.notify(DataChange.Events("other-group"))
         advanceUntilIdle()
 
-        assertEquals(1, assertIs<EventsUiState.Success>(viewModel.state.value).events.size)
+        assertEquals(1, assertIs<EventsUiState.Success>(viewModel.state.value).eventRows.size)
     }
 }

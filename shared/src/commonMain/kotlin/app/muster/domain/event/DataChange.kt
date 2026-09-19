@@ -8,4 +8,5 @@ sealed interface DataChange {
     data object MyGroups : DataChange
     data class Members(val groupId: String) : DataChange
     data class Events(val groupId: String) : DataChange
+    data class Roster(val eventId: String) : DataChange
 }

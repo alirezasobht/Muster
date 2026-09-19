@@ -6,6 +6,8 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import app.muster.domain.error.DomainError
+import app.muster.domain.model.Event
+import app.muster.domain.model.emptyEvent
 import app.muster.ui.screens.group.events.EventRow
 import app.muster.ui.screens.group.events.EventsActions
 import app.muster.ui.screens.group.events.EventsTab
@@ -33,7 +35,8 @@ class EventsTabTest {
 
     private fun show(
         state: EventsUiState,
-        onSelectEvent: (String) -> Unit = {},
+        onSelectEvent: (Event) -> Unit = {},
+        getEvent: (String) -> Event = { Event.emptyEvent(id = it) },
         onNewEvent: () -> Unit = {},
         onRetry: () -> Unit = {}
     ) {
@@ -43,6 +46,7 @@ class EventsTabTest {
                     state = state,
                     actions = EventsActions(
                         onSelectEvent = onSelectEvent,
+                        getEvent = getEvent,
                         onNewEvent = onNewEvent,
                         onRetry = onRetry
                     ),
@@ -74,19 +78,19 @@ class EventsTabTest {
 
     @Test
     fun theEmptyStateIsShownWhenThereAreNoUpcomingEvents() {
-        show(state = EventsUiState.Success(events = emptyList()))
+        show(state = EventsUiState.Success(eventRows = emptyList()))
         composeRule.onNodeWithText("No upcoming events").assertIsDisplayed()
     }
 
     @Test
     fun newEventIsShownOnlyWhenAllowed() {
-        show(state = EventsUiState.Success(events = listOf(event), canCreateEvent = true))
+        show(state = EventsUiState.Success(eventRows = listOf(event), canCreateEvent = true))
         composeRule.onNodeWithContentDescription("New event").assertIsDisplayed()
     }
 
     @Test
     fun newEventIsHiddenForNonAdmins() {
-        show(state = EventsUiState.Success(events = listOf(event), canCreateEvent = false))
+        show(state = EventsUiState.Success(eventRows = listOf(event), canCreateEvent = false))
         composeRule.onNodeWithContentDescription("New event").assertDoesNotExist()
     }
 
@@ -94,7 +98,7 @@ class EventsTabTest {
     fun tappingNewEventReachesTheCallback() {
         var tapped = false
         show(
-            state = EventsUiState.Success(events = listOf(event), canCreateEvent = true),
+            state = EventsUiState.Success(eventRows = listOf(event), canCreateEvent = true),
             onNewEvent = { tapped = true }
         )
         composeRule.onNodeWithContentDescription("New event").performClick()
@@ -103,7 +107,7 @@ class EventsTabTest {
 
     @Test
     fun aRowShowsItsDateTitleLocationStatsAndStatus() {
-        show(state = EventsUiState.Success(events = listOf(event)))
+        show(state = EventsUiState.Success(eventRows = listOf(event)))
         composeRule.onNodeWithText("Wed 17 Sep · 7:00 pm").assertIsDisplayed()
         composeRule.onNodeWithText("Weekly 7-a-side").assertIsDisplayed()
         composeRule.onNodeWithText("Westgate Pitch 2").assertIsDisplayed()
@@ -113,7 +117,7 @@ class EventsTabTest {
 
     @Test
     fun aRowWithNoStatusShowsNoBadge() {
-        show(state = EventsUiState.Success(events = listOf(event.copy(status = null))))
+        show(state = EventsUiState.Success(eventRows = listOf(event.copy(status = null))))
         composeRule.onNodeWithText("In").assertDoesNotExist()
         composeRule.onNodeWithText("Pending").assertDoesNotExist()
         composeRule.onNodeWithText("Out").assertDoesNotExist()
@@ -122,7 +126,7 @@ class EventsTabTest {
     @Test
     fun tappingARowReachesTheCallbackWithItsId() {
         var selected: String? = null
-        show(state = EventsUiState.Success(events = listOf(event)), onSelectEvent = { selected = it })
+        show(state = EventsUiState.Success(eventRows = listOf(event)), onSelectEvent = { selected = it.id })
         composeRule.onNodeWithText("Weekly 7-a-side").performClick()
         assert(selected == "1")
     }

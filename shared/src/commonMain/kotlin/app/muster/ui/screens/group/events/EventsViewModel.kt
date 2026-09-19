@@ -8,6 +8,7 @@ import app.muster.domain.event.DataChanges
 import app.muster.domain.model.Event
 import app.muster.domain.model.GroupRole
 import app.muster.domain.model.RsvpStatus
+import app.muster.domain.model.emptyEvent
 import app.muster.domain.usecase.GetMyGroupRoleUseCase
 import app.muster.domain.usecase.ListUpcomingEventsUseCase
 import app.muster.ui.common.util.toDisplayDate
@@ -30,6 +31,7 @@ class EventsViewModel(
 
     // init already loads, so the first resume after launch would load twice.
     private var resumedOnce = false
+    private var events: List<Event> = emptyList()
 
     init {
         load()
@@ -56,6 +58,8 @@ class EventsViewModel(
         refresh(showIndicator = true)
     }
 
+    fun getEvent(eventId: String): Event = events.find { it.id == eventId } ?: Event.emptyEvent(id = eventId)
+
     private fun load() {
         _state.value = EventsUiState.Loading
         viewModelScope.launch {
@@ -74,7 +78,7 @@ class EventsViewModel(
                 val fetched = fetchSuccess()
                 updateSuccess {
                     it.copy(
-                        events = fetched.events,
+                        eventRows = fetched.eventRows,
                         canCreateEvent = fetched.canCreateEvent,
                         isRefreshing = false
                     )
@@ -87,9 +91,9 @@ class EventsViewModel(
 
     private suspend fun fetchSuccess(): EventsUiState.Success {
         val isAdmin = getMyGroupRole(groupId) == GroupRole.Admin
-        val events = listUpcomingEvents(groupId)
+        events = listUpcomingEvents(groupId)
         return EventsUiState.Success(
-            events = events.map { it.toRow() },
+            eventRows = events.map { it.toRow() },
             canCreateEvent = isAdmin
         )
     }

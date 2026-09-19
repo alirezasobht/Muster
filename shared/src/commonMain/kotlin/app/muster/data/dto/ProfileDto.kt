@@ -11,9 +11,14 @@ internal data class ProfileDto(
     @SerialName("can_create_groups") val canCreateGroups: Boolean = false
 )
 
-// Only `name` is granted for update. Sending any other column is refused
-// by the grant, so this must never grow a second field.
+
 @Serializable
 internal data class ProfileNameUpdateDto(
     val name: String
+)
+
+@Serializable
+internal data class ProfileNameRowDto(
+    val id: String,
+    val name: String? = null
 )

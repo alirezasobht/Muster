@@ -39,7 +39,13 @@ val DomainError.presentation: ErrorPresentation
         is DomainError.NotAllowedToCreateGroups,
         is DomainError.InvitationNotPending,
         is DomainError.LastAdmin,
-        is DomainError.NotSignedIn ->
+        is DomainError.NotSignedIn,
+        // Rendered inline on the roster row or RSVP block via toMessage(),
+        // same as Members' row actions — never actually consults this. Still
+        // classified for the exhaustive when: retrying the identical change
+        // fails identically until capacity frees or the freeze already held.
+        is DomainError.EventFull,
+        is DomainError.EventFrozen ->
             ErrorPresentation.Form(ErrorPresentation.Severity.Terminal)
     }
 

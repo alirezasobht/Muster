@@ -50,12 +50,16 @@ private fun PostgrestRestException.toDomainError(): DomainError = when (code) {
     // invitation to the same address in the same group.
     "23505" -> if ("group_invitations_one_pending" in error) DomainError.AlreadyInvited() else DomainError.Unknown(this)
     // plpgsql raise exception with no SQLSTATE: accept/decline_group_invitation,
-    // group_keeps_an_admin rejecting a promote/demote/remove/leave, or
-    // reject_if_already_member rejecting an invite to an existing member.
+    // group_keeps_an_admin rejecting a promote/demote/remove/leave,
+    // reject_if_already_member rejecting an invite to an existing member,
+    // enforce_capacity rejecting an invite/RSVP over capacity, or
+    // reject_if_event_started(_self) rejecting a write past starts_at.
     "P0001" -> when {
         "no pending invitation for you" in error -> DomainError.InvitationNotPending()
         "a group must keep at least one admin" in error -> DomainError.LastAdmin()
         "already a member of this group" in error -> DomainError.AlreadyMember()
+        "event is full" in error -> DomainError.EventFull()
+        "event has already started" in error -> DomainError.EventFrozen()
         else -> DomainError.Unknown(this)
     }
     // groups_insert's WITH CHECK: no can_create_groups, or the trigger race

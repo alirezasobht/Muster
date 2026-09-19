@@ -40,5 +40,16 @@ sealed class DomainError(message: String, cause: Throwable? = null) : Exception(
     // past start time. Thrown by CreateEventUseCase, checked against MusterTimeZone.
     class EventStartsInPast : DomainError("event start time must be in the future")
 
+    // enforce_capacity trigger (P0001, "event is full"): pending + in would
+    // exceed capacity. A normal outcome, not an edge case — setting someone
+    // from out back to in on a full event always hits this; a slot must
+    // free first (SCHEMA.md rule 11, CONTEXT.md Standby).
+    class EventFull : DomainError("event is full")
+
+    // reject_if_event_started / _self trigger (P0001, "event has already
+    // started"): the RSVP write races the freeze (SCHEMA.md rule 14). The
+    // UI hides every control once frozen, so this only fires on that race.
+    class EventFrozen : DomainError("event has already started")
+
     class Unknown(cause: Throwable) : DomainError(cause.message ?: "unknown error", cause)
 }

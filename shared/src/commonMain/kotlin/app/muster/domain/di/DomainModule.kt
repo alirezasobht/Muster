@@ -6,6 +6,7 @@ import app.muster.domain.usecase.CreateEventUseCase
 import app.muster.domain.usecase.CreateGroupUseCase
 import app.muster.domain.usecase.DeclineGroupInvitationUseCase
 import app.muster.domain.usecase.DemoteMemberUseCase
+import app.muster.domain.usecase.GetEventUseCase
 import app.muster.domain.usecase.GetGroupUseCase
 import app.muster.domain.usecase.GetMyGroupRoleUseCase
 import app.muster.domain.usecase.GetMyProfileUseCase
@@ -21,6 +22,7 @@ import app.muster.domain.usecase.RemoveMemberUseCase
 import app.muster.domain.usecase.RequestSignInCodeUseCase
 import app.muster.domain.usecase.RetrySessionUseCase
 import app.muster.domain.usecase.RevokeInvitationUseCase
+import app.muster.domain.usecase.SetRsvpUseCase
 import app.muster.domain.usecase.SignOutUseCase
 import app.muster.domain.usecase.UpdateNameUseCase
 import app.muster.domain.usecase.VerifySignInCodeUseCase
@@ -45,6 +47,8 @@ val domainModule = module {
     factoryOf(::ListGroupMembersUseCase)
     factoryOf(::ListUpcomingEventsUseCase)
     factoryOf(::CreateEventUseCase)
+    factoryOf(::GetEventUseCase)
+    factoryOf(::SetRsvpUseCase)
     factoryOf(::InviteByEmailUseCase)
     factoryOf(::PromoteMemberUseCase)
     factoryOf(::DemoteMemberUseCase)

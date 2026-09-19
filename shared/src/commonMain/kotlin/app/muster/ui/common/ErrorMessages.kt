@@ -5,6 +5,8 @@ import app.muster.domain.error.DomainError
 import muster.shared.generated.resources.Res
 import muster.shared.generated.resources.error_already_invited
 import muster.shared.generated.resources.error_already_member
+import muster.shared.generated.resources.error_event_frozen
+import muster.shared.generated.resources.error_event_full
 import muster.shared.generated.resources.error_event_starts_in_past
 import muster.shared.generated.resources.error_invalid_code
 import muster.shared.generated.resources.error_invalid_email
@@ -33,6 +35,8 @@ fun DomainError.toMessage(): String = stringResource(
         is DomainError.AlreadyInvited -> Res.string.error_already_invited
         is DomainError.AlreadyMember -> Res.string.error_already_member
         is DomainError.EventStartsInPast -> Res.string.error_event_starts_in_past
+        is DomainError.EventFull -> Res.string.error_event_full
+        is DomainError.EventFrozen -> Res.string.error_event_frozen
         is DomainError.Network -> Res.string.error_network
         is DomainError.NotSignedIn -> Res.string.error_not_signed_in
         is DomainError.Unknown -> Res.string.error_unknown

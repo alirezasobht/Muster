@@ -14,9 +14,12 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import app.muster.ui.common.util.LocalAnimatedVisibilityScope
 import app.muster.ui.common.util.LocalSharedTransitionScope
+import app.muster.ui.common.util.toDisplayDate
 import app.muster.ui.screens.addbyemail.AddMemberByEmailRoute
-import app.muster.ui.screens.event.EventScreen
+import app.muster.ui.screens.event.EventRoute
+import app.muster.ui.screens.event.EventSummary
 import app.muster.ui.screens.group.GroupRoute
+import app.muster.ui.screens.group.events.EventRow
 import app.muster.ui.screens.home.HomeRoute
 import app.muster.ui.screens.launch.LaunchRoute
 import app.muster.ui.screens.launch.LaunchUiState
@@ -116,9 +119,22 @@ fun NavGraph(
                             groupName = group.name,
                             onBack = { navController.popBackStack() },
                             onAddMemberByEmail = { navController.navigate(AddMemberByEmail(group.id, group.name)) },
-                            // Event isn't built yet
-                            onSelectEvent = {},
-                            onNewEvent = { navController.navigate(NewEvent(group.id)) }
+                            onSelectEvent = { groupId, groupName, event ->
+                                navController.navigate(
+                                    Event(
+                                        groupId = groupId,
+                                        groupName = groupName,
+                                        eventId = event.id,
+                                        title = event.title,
+                                        date = event.startsAt.toDisplayDate(),
+                                        location = event.location.orEmpty(),
+                                        capacity = event.capacity,
+                                        inCount = event.inCount,
+                                        pendingCount = event.pendingCount
+                                    )
+                                )
+                            },
+                            onNewEvent = { navController.navigate(NewEvent(group.id, group.name)) }
                         )
                     }
                 }
@@ -136,7 +152,19 @@ fun NavGraph(
                         groupId = route.groupId,
                         onBack = { navController.popBackStack() },
                         onEventCreated = { event ->
-                            navController.navigate(Event(event.id, event.title, route.groupId)) {
+                            navController.navigate(
+                                Event(
+                                    groupId = event.groupId,
+                                    groupName = route.groupName,
+                                    eventId = event.id,
+                                    title = event.title,
+                                    date = event.startsAt.toDisplayDate(),
+                                    location = event.location.orEmpty(),
+                                    capacity = event.capacity,
+                                    inCount = event.inCount,
+                                    pendingCount = event.pendingCount
+                                )
+                            ) {
                                 popUpTo(route) { inclusive = true }
                             }
                         }
@@ -144,7 +172,22 @@ fun NavGraph(
                 }
                 composable<Event> { entry ->
                     val route = entry.toRoute<Event>()
-                    EventScreen(title = route.title, onBack = { navController.popBackStack() })
+                    CompositionLocalProvider(LocalAnimatedVisibilityScope provides this@composable) {
+                        EventRoute(
+                            initialSummary = EventSummary(
+                                groupId = route.groupId,
+                                eventId = route.eventId,
+                                groupName = route.groupName,
+                                title = route.title,
+                                date = route.date,
+                                location = route.location,
+                                capacity = route.capacity,
+                                inCount = route.inCount,
+                                pendingCount = route.pendingCount
+                            ),
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
                 }
             }
         }

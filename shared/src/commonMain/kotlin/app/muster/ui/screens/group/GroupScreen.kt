@@ -36,6 +36,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.muster.domain.error.DomainError
+import app.muster.domain.model.Event
 import app.muster.domain.model.GroupRole
 import app.muster.ui.common.components.ConfirmDialog
 import app.muster.ui.common.components.MessageState
@@ -85,7 +86,7 @@ fun GroupRoute(
     groupName: String,
     onBack: () -> Unit,
     onAddMemberByEmail: () -> Unit,
-    onSelectEvent: (id: String) -> Unit,
+    onSelectEvent: (groupId: String, groupName: String, event: Event) -> Unit,
     onNewEvent: () -> Unit,
     viewModel: GroupViewModel = koinViewModel { parametersOf(groupId, groupName) }
 ) {
@@ -117,7 +118,7 @@ fun GroupRoute(
         eventsContent = {
             EventsRoute(
                 groupId = groupId,
-                onSelectEvent = onSelectEvent,
+                onSelectEvent = { event -> onSelectEvent(groupId, groupName, event) },
                 onNewEvent = onNewEvent
             )
         }
@@ -154,6 +155,7 @@ fun GroupScreen(
                             MusterSpinner(delayMillis = spinnerDelayMillis)
                         }
                     }
+
                     is GroupUiState.Error -> {
                         HorizontalDivider(color = MusterColors.Hairline)
                         Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -176,12 +178,14 @@ fun GroupScreen(
                             }
                         }
                     }
+
                     is GroupUiState.Success -> {
                         GroupTabRow(selectedTab = state.selectedTab, onTabSelected = actions.onTabSelected)
                         when (state.selectedTab) {
                             GroupTab.Events -> Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                                 eventsContent()
                             }
+
                             GroupTab.Members -> Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                                 membersContent()
                             }
@@ -281,6 +285,7 @@ private fun GroupOverflowMenu(
             confirmLoading = dialog.inFlight,
             errorMessage = dialog.error?.toMessage()
         )
+
         GroupOverflowAction.Archive -> ConfirmDialog(
             title = stringResource(Res.string.group_archive_title),
             body = stringResource(Res.string.group_archive_body),
@@ -292,6 +297,7 @@ private fun GroupOverflowMenu(
             confirmLoading = dialog.inFlight,
             errorMessage = dialog.error?.toMessage()
         )
+
         null -> Unit
     }
 }

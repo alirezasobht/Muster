@@ -30,7 +30,18 @@ data class Group(val id: String, val name: String)
 data class AddMemberByEmail(val groupId: String, val groupName: String)
 
 @Serializable
-data class NewEvent(val groupId: String)
+data class NewEvent(val groupId: String, val groupName: String)
 
+// Carries everything the caller already knows from the Events tab card
 @Serializable
-data class Event(val id: String, val title: String, val groupId: String)
+data class Event(
+    val groupId: String,
+    val groupName: String,
+    val eventId: String,
+    val title: String,
+    val date: String,
+    val location: String,
+    val capacity: Int,
+    val inCount: Int,
+    val pendingCount: Int
+)

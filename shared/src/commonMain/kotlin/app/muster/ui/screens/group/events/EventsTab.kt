@@ -38,9 +38,13 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.muster.domain.error.DomainError
+import app.muster.domain.model.Event
+import app.muster.domain.model.emptyEvent
 import app.muster.ui.common.components.MessageState
 import app.muster.ui.common.components.MusterSpinner
 import app.muster.ui.common.toMessage
+import app.muster.ui.common.util.SharedTransitionKeys
+import app.muster.ui.common.util.sharedBoundsOrNone
 import app.muster.ui.theme.MusterColors
 import app.muster.ui.theme.MusterTheme
 import muster.shared.generated.resources.Res
@@ -58,7 +62,8 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 data class EventsActions(
-    val onSelectEvent: (id: String) -> Unit,
+    val onSelectEvent: (event: Event) -> Unit,
+    val getEvent: (id: String) -> Event,
     val onNewEvent: () -> Unit,
     val onRetry: () -> Unit,
     val onRefresh: () -> Unit = {}
@@ -67,7 +72,7 @@ data class EventsActions(
 @Composable
 fun EventsRoute(
     groupId: String,
-    onSelectEvent: (id: String) -> Unit,
+    onSelectEvent: (Event) -> Unit,
     onNewEvent: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: EventsViewModel = koinViewModel { parametersOf(groupId) }
@@ -79,6 +84,7 @@ fun EventsRoute(
         state = state,
         actions = EventsActions(
             onSelectEvent = onSelectEvent,
+            getEvent = viewModel::getEvent,
             onNewEvent = onNewEvent,
             onRetry = viewModel::onRetry,
             onRefresh = viewModel::onRefresh
@@ -162,10 +168,10 @@ private fun EventsContent(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(vertical = 8.dp)
                 ) {
-                    items(state.events, key = { it.id }) { event ->
+                    items(state.eventRows, key = { it.id }) { eventRow ->
                         EventRowItem(
-                            event = event,
-                            onClick = { actions.onSelectEvent(event.id) }
+                            eventRow = eventRow,
+                            onClick = { actions.onSelectEvent(actions.getEvent(eventRow.id)) }
                         )
                     }
                 }
@@ -191,7 +197,7 @@ private fun EventsContent(
 
 @Composable
 private fun EventRowItem(
-    event: EventRow,
+    eventRow: EventRow,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -206,37 +212,41 @@ private fun EventRowItem(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = event.date,
+                    text = eventRow.date,
                     style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
-                    color = MusterColors.Muted
+                    color = MusterColors.Muted,
+                    modifier = Modifier.sharedBoundsOrNone(SharedTransitionKeys.eventDate(eventRow.id))
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = event.title,
-                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+                    text = eventRow.title,
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                    modifier = Modifier.sharedBoundsOrNone(SharedTransitionKeys.eventTitle(eventRow.id))
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text = event.location,
+                    text = eventRow.location,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MusterColors.Secondary
+                    color = MusterColors.Secondary,
+                    modifier = Modifier.sharedBoundsOrNone(SharedTransitionKeys.eventLocation(eventRow.id))
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
                     text = stringResource(
                         Res.string.events_slots,
-                        event.inCount + event.pendingCount,
-                        event.capacity,
-                        event.inCount,
-                        event.pendingCount
+                        eventRow.inCount + eventRow.pendingCount,
+                        eventRow.capacity,
+                        eventRow.inCount,
+                        eventRow.pendingCount
                     ),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MusterColors.Muted
+                    color = MusterColors.Muted,
+                    modifier = Modifier.sharedBoundsOrNone(SharedTransitionKeys.eventStats(eventRow.id))
                 )
             }
-            if (event.status != null) {
+            if (eventRow.status != null) {
                 Spacer(Modifier.width(12.dp))
-                EventStatusBadge(status = event.status)
+                EventStatusBadge(status = eventRow.status)
             }
         }
     }
@@ -273,6 +283,7 @@ private fun EventStatusBadge(status: MemberEventStatus, modifier: Modifier = Mod
 
 private val PreviewActions = EventsActions(
     onSelectEvent = {},
+    getEvent = {Event.emptyEvent(id = it)},
     onNewEvent = {},
     onRetry = {}
 )
@@ -316,7 +327,7 @@ private fun EventsTabAdminPreview() {
     MusterTheme {
         Surface {
             EventsTab(
-                state = EventsUiState.Success(events = AdminPreviewEvents, canCreateEvent = true),
+                state = EventsUiState.Success(eventRows = AdminPreviewEvents, canCreateEvent = true),
                 actions = PreviewActions
             )
         }
@@ -329,7 +340,7 @@ private fun EventsTabMemberPreview() {
     MusterTheme {
         Surface {
             EventsTab(
-                state = EventsUiState.Success(events = AdminPreviewEvents, canCreateEvent = false),
+                state = EventsUiState.Success(eventRows = AdminPreviewEvents, canCreateEvent = false),
                 actions = PreviewActions
             )
         }
@@ -342,7 +353,7 @@ private fun EventsTabEmptyPreview() {
     MusterTheme {
         Surface {
             EventsTab(
-                state = EventsUiState.Success(events = emptyList(), canCreateEvent = true),
+                state = EventsUiState.Success(eventRows = emptyList(), canCreateEvent = true),
                 actions = PreviewActions
             )
         }

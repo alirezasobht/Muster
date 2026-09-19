@@ -1,6 +1,8 @@
 package app.muster.ui.di
 
 import app.muster.ui.screens.addbyemail.AddMemberByEmailViewModel
+import app.muster.ui.screens.event.EventSummary
+import app.muster.ui.screens.event.EventViewModel
 import app.muster.ui.screens.group.GroupViewModel
 import app.muster.ui.screens.group.events.EventsViewModel
 import app.muster.ui.screens.group.members.MembersViewModel
@@ -37,4 +39,6 @@ val uiModule = module {
     viewModel { (groupId: String) -> AddMemberByEmailViewModel(groupId, get()) }
     // Group id comes from the New event route, not the graph.
     viewModel { (groupId: String) -> NewEventViewModel(groupId, get()) }
+    // The initial summary comes from the Event route, not the graph.
+    viewModel { (summary: EventSummary) -> EventViewModel(summary, get(), get(), get(), get(), get()) }
 }

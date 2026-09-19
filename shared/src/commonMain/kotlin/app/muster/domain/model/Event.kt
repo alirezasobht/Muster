@@ -2,10 +2,6 @@ package app.muster.domain.model
 
 import kotlin.time.Instant
 
-// inCount/pendingCount, not a full roster: the Events tab shows counts and
-// the viewer's own status, never the other rows. myStatus is null when the
-// viewer holds no event_invitations row for this event — not invited, or
-// queued on standby.
 data class Event(
     val id: String,
     val groupId: String,
@@ -16,4 +12,18 @@ data class Event(
     val inCount: Int,
     val pendingCount: Int,
     val myStatus: RsvpStatus?
+) {
+    companion object
+}
+
+fun Event.Companion.emptyEvent(id: String): Event = Event(
+    id = id,
+    groupId = "",
+    title = "",
+    startsAt = Instant.DISTANT_PAST,
+    location = null,
+    capacity = 0,
+    inCount = 0,
+    pendingCount = 0,
+    myStatus = null
 )
