@@ -17,6 +17,7 @@ import muster.shared.generated.resources.error_network
 import muster.shared.generated.resources.error_not_allowed_to_create_groups
 import muster.shared.generated.resources.error_not_signed_in
 import muster.shared.generated.resources.error_rate_limited
+import muster.shared.generated.resources.error_standby_queue_stale
 import muster.shared.generated.resources.error_unknown
 import org.jetbrains.compose.resources.stringResource
 
@@ -37,6 +38,7 @@ fun DomainError.toMessage(): String = stringResource(
         is DomainError.EventStartsInPast -> Res.string.error_event_starts_in_past
         is DomainError.EventFull -> Res.string.error_event_full
         is DomainError.EventFrozen -> Res.string.error_event_frozen
+        is DomainError.StandbyQueueStale -> Res.string.error_standby_queue_stale
         is DomainError.Network -> Res.string.error_network
         is DomainError.NotSignedIn -> Res.string.error_not_signed_in
         is DomainError.Unknown -> Res.string.error_unknown

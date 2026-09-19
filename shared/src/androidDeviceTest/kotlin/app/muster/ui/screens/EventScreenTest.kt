@@ -1,7 +1,10 @@
 package app.muster.ui.screens
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -12,6 +15,7 @@ import app.muster.ui.screens.event.EventScreen
 import app.muster.ui.screens.event.EventSummary
 import app.muster.ui.screens.event.EventUiState
 import app.muster.ui.screens.event.RosterRow
+import app.muster.ui.screens.event.StandbyRow
 import app.muster.ui.theme.MusterTheme
 import org.junit.Rule
 import org.junit.Test
@@ -51,6 +55,7 @@ class EventScreenTest {
         onBack: () -> Unit = {},
         onRsvp: (RsvpStatus) -> Unit = {},
         onChangeRowStatus: (String, RsvpStatus) -> Unit = { _, _ -> },
+        onReorderStandby: (List<String>) -> Unit = {},
         onRetry: () -> Unit = {}
     ) {
         composeRule.setContent {
@@ -61,6 +66,7 @@ class EventScreenTest {
                         onBack = onBack,
                         onRsvp = onRsvp,
                         onChangeRowStatus = onChangeRowStatus,
+                        onReorderStandby = onReorderStandby,
                         onRetry = onRetry
                     ),
                     spinnerDelayMillis = 0
@@ -260,5 +266,73 @@ class EventScreenTest {
     fun frozenHidesTheAdminMenuEvenForAdmins() {
         show(state = successState.copy(isAdmin = true, isFrozen = true, startTime = "7:00 pm"))
         composeRule.onNodeWithText("›").assertDoesNotExist()
+    }
+
+    private val standby = listOf(
+        StandbyRow(id = "p4", name = "Priya Nair"),
+        StandbyRow(id = "p5", name = "Joe Moriarty", isSelf = true)
+    )
+
+    @Test
+    fun emptyStandbyShowsNoSectionAtAll() {
+        show(state = successState.copy(standby = emptyList()))
+        composeRule.onNodeWithText("Standby", substring = true).assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("Drag to reorder").assertDoesNotExist()
+    }
+
+    @Test
+    fun adminSeesTheHeaderAndTheDragHint() {
+        show(state = successState.copy(isAdmin = true, standby = standby))
+        composeRule.onNodeWithText("Standby · 2").assertIsDisplayed()
+        composeRule.onNodeWithText("Drag to reorder").assertIsDisplayed()
+    }
+
+    @Test
+    fun membersSeeNoDragHintOrHandle() {
+        show(state = successState.copy(isAdmin = false, standby = standby))
+        composeRule.onNodeWithText("Standby · 2").assertIsDisplayed()
+        composeRule.onNodeWithText("Drag to reorder").assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("Drag to reorder").assertDoesNotExist()
+    }
+
+    @Test
+    fun standbyShowsNamesAndMarksTheViewersOwnRow() {
+        show(state = successState.copy(isAdmin = false, standby = standby))
+        composeRule.onNodeWithText("Priya Nair").assertIsDisplayed()
+        composeRule.onNodeWithText("Joe Moriarty · you").assertIsDisplayed()
+    }
+
+    @Test
+    fun adminSeesADragHandlePerRow() {
+        show(state = successState.copy(isAdmin = true, standby = standby))
+        composeRule.onAllNodesWithContentDescription("Drag to reorder").assertCountEquals(2)
+    }
+
+    @Test
+    fun frozenStandbyReadsNotCalledUpWithNoHandleEvenForAdmins() {
+        show(
+            state = successState.copy(
+                isAdmin = true,
+                isFrozen = true,
+                startTime = "7:00 pm",
+                standby = standby
+            )
+        )
+        composeRule.onNodeWithText("Standby · Not called up").assertIsDisplayed()
+        composeRule.onNodeWithText("Drag to reorder").assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("Drag to reorder").assertDoesNotExist()
+    }
+
+    @Test
+    fun aStandbyErrorIsShown() {
+        show(
+            state = successState.copy(
+                isAdmin = true,
+                standby = standby,
+                standbyError = DomainError.StandbyQueueStale()
+            )
+        )
+        composeRule.onNodeWithText("Someone was promoted while you were reordering. Refresh and try again.")
+            .assertIsDisplayed()
     }
 }

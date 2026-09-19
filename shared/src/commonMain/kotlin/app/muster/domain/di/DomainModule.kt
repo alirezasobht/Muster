@@ -19,6 +19,7 @@ import app.muster.domain.usecase.ListUpcomingEventsUseCase
 import app.muster.domain.usecase.ObserveSessionUseCase
 import app.muster.domain.usecase.PromoteMemberUseCase
 import app.muster.domain.usecase.RemoveMemberUseCase
+import app.muster.domain.usecase.ReorderStandbyUseCase
 import app.muster.domain.usecase.RequestSignInCodeUseCase
 import app.muster.domain.usecase.RetrySessionUseCase
 import app.muster.domain.usecase.RevokeInvitationUseCase
@@ -49,6 +50,7 @@ val domainModule = module {
     factoryOf(::CreateEventUseCase)
     factoryOf(::GetEventUseCase)
     factoryOf(::SetRsvpUseCase)
+    factoryOf(::ReorderStandbyUseCase)
     factoryOf(::InviteByEmailUseCase)
     factoryOf(::PromoteMemberUseCase)
     factoryOf(::DemoteMemberUseCase)

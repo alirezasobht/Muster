@@ -61,6 +61,26 @@ object MusterIcons {
             fill = SolidColor(Color.Black)
         ).build()
     }
+
+    val DragHandle: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "DragHandle",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f
+        ).addPath(
+            pathData = addPathNodes(
+                "M11,18c0,1.1 -0.9,2 -2,2s-2,-0.9 -2,-2 0.9,-2 2,-2 2,0.9 2,2z" +
+                    "M9,10c-1.1,0 -2,0.9 -2,2s0.9,2 2,2 2,-0.9 2,-2 -0.9,-2 -2,-2z" +
+                    "M9,4C7.9,4 7,4.9 7,6s0.9,2 2,2 2,-0.9 2,-2 -0.9,-2 -2,-2z" +
+                    "M15,8c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2z" +
+                    "M15,10c-1.1,0 -2,0.9 -2,2s0.9,2 2,2 2,-0.9 2,-2 -0.9,-2 -2,-2z" +
+                    "M15,16c-1.1,0 -2,0.9 -2,2s0.9,2 2,2 2,-0.9 2,-2 -0.9,-2 -2,-2z"
+            ),
+            fill = SolidColor(Color.Black)
+        ).build()
+    }
 }
 
 @Preview
@@ -72,6 +92,7 @@ private fun IconsPreview() {
                 IconPreview(imageVector = MusterIcons.ArrowBack)
                 IconPreview(imageVector = MusterIcons.MoreVert)
                 IconPreview(imageVector = MusterIcons.Close)
+                IconPreview(imageVector = MusterIcons.DragHandle)
             }
         }
     }

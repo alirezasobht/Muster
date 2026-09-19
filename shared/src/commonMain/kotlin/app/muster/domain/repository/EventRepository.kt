@@ -22,4 +22,7 @@ interface EventRepository {
     // profileId is the caller for a self-RSVP, or the target player when an
     // admin changes someone else's — RLS is what actually tells them apart.
     suspend fun setRsvp(eventId: String, profileId: String, status: RsvpStatus)
+
+    // The whole ordered queue, set_standby_order rewrites positions 1..n
+    suspend fun reorderStandby(eventId: String, orderedProfileIds: List<String>)
 }

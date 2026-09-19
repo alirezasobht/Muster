@@ -1,6 +1,11 @@
 package app.muster.ui.screens.event
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -32,11 +38,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -71,6 +82,9 @@ import muster.shared.generated.resources.event_rsvp_out
 import muster.shared.generated.resources.event_rsvp_question
 import muster.shared.generated.resources.event_slots
 import muster.shared.generated.resources.event_slots_frozen
+import muster.shared.generated.resources.event_standby_drag_hint
+import muster.shared.generated.resources.event_standby_header
+import muster.shared.generated.resources.event_standby_header_frozen
 import muster.shared.generated.resources.event_status_no_reply
 import muster.shared.generated.resources.event_try_again
 import muster.shared.generated.resources.events_status_in
@@ -79,11 +93,14 @@ import muster.shared.generated.resources.events_status_pending
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
+import kotlin.math.roundToInt
 
 data class EventActions(
     val onBack: () -> Unit,
     val onRsvp: (RsvpStatus) -> Unit,
     val onChangeRowStatus: (playerId: String, status: RsvpStatus) -> Unit,
+    // Send the whole ordered queue
+    val onReorderStandby: (orderedIds: List<String>) -> Unit,
     val onRetry: () -> Unit,
     val onRefresh: () -> Unit = {}
 )
@@ -102,6 +119,7 @@ fun EventRoute(
             onBack = onBack,
             onRsvp = viewModel::onRsvp,
             onChangeRowStatus = viewModel::onChangeRowStatus,
+            onReorderStandby = viewModel::onReorderStandby,
             onRetry = viewModel::onRetry,
             onRefresh = viewModel::onRefresh
         )
@@ -220,12 +238,16 @@ private fun EventContent(
             }
         }
         HorizontalDivider(color = MusterColors.Hairline)
+        // A standby drag is itself a vertical drag, same axis the list
+        // scrolls on — without this the list scrolls under the finger
+        // while a row is being dragged.
+        var standbyDragging by remember { mutableStateOf(false) }
         PullToRefreshBox(
             isRefreshing = state.isRefreshing,
             onRefresh = actions.onRefresh,
             modifier = Modifier.weight(1f).fillMaxWidth()
         ) {
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(modifier = Modifier.fillMaxSize(), userScrollEnabled = !standbyDragging) {
                 item {
                     Column(modifier = Modifier.padding(horizontal = 24.dp)) {
                         Spacer(Modifier.height(16.dp))
@@ -264,6 +286,20 @@ private fun EventContent(
                             errorMessage = state.rowActionError?.toMessage()
                                 ?.takeIf { state.rowActionTargetId == row.id },
                             onChangeStatus = { status -> actions.onChangeRowStatus(row.id, status) },
+                            modifier = Modifier.padding(horizontal = 24.dp)
+                        )
+                    }
+                }
+                if (state.standby.isNotEmpty()) {
+                    item {
+                        StandbySection(
+                            standby = state.standby,
+                            isAdmin = state.isAdmin,
+                            isFrozen = state.isFrozen,
+                            reordering = state.standbyReordering,
+                            errorMessage = state.standbyError?.toMessage(),
+                            onDraggingChanged = { standbyDragging = it },
+                            onReorder = actions.onReorderStandby,
                             modifier = Modifier.padding(horizontal = 24.dp)
                         )
                     }
@@ -447,6 +483,231 @@ private fun RosterRowItem(
     }
 }
 
+private val StandbyRowHeight = 48.dp
+
+@Composable
+private fun StandbySection(
+    standby: List<StandbyRow>,
+    isAdmin: Boolean,
+    isFrozen: Boolean,
+    reordering: Boolean,
+    errorMessage: String?,
+    onDraggingChanged: (Boolean) -> Unit,
+    onReorder: (List<String>) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val reorderable = isAdmin && !isFrozen
+    Column(modifier = modifier) {
+        Spacer(Modifier.height(20.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = if (isFrozen) {
+                    stringResource(Res.string.event_standby_header_frozen)
+                } else {
+                    stringResource(Res.string.event_standby_header, standby.size)
+                },
+                style = MaterialTheme.typography.labelMedium,
+                color = MusterColors.Muted,
+                modifier = Modifier.weight(1f)
+            )
+            if (reorderable) {
+                Text(
+                    text = stringResource(Res.string.event_standby_drag_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MusterColors.Muted
+                )
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        if (reorderable) {
+            // A drag dropped while the previous one is still in flight would
+            // race the same queue write — disabled, not queued, until it
+            // settles.
+            ReorderableStandbyList(
+                standby = standby,
+                enabled = !reordering,
+                onDraggingChanged = onDraggingChanged,
+                onReorder = onReorder
+            )
+        } else {
+            Column {
+                standby.forEachIndexed { index, row ->
+                    StandbyRowItem(position = index + 1, row = row)
+                }
+            }
+        }
+        if (errorMessage != null) {
+            Spacer(Modifier.height(8.dp))
+            Text(text = errorMessage, style = MaterialTheme.typography.bodySmall, color = MusterColors.OutText)
+        }
+    }
+}
+
+@Composable
+private fun StandbyRowItem(position: Int, row: StandbyRow, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier.fillMaxWidth().height(StandbyRowHeight),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = position.toString(),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MusterColors.Muted,
+            modifier = Modifier.width(24.dp)
+        )
+        Text(
+            text = row.name + if (row.isSelf) " · you" else "",
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+// Hand-rolled: no drag-reorder library in this project. A LazyColumn with
+// scrolling off, not a plain Column — Compose only animates a reordered
+// item into its new slot (`animateItem`) when items carry a stable `key`,
+// and only LazyColumn supports item keys.
+//
+// `standby` itself is only ever read here, never copied — the caller (the
+// ViewModel) already reorders it optimistically the instant a drop lands,
+// before the write round-trips, so what's on screen never has to wait on
+// the network to look right. A failed write reverts it there too.
+@Composable
+private fun ReorderableStandbyList(
+    standby: List<StandbyRow>,
+    enabled: Boolean,
+    onDraggingChanged: (Boolean) -> Unit,
+    onReorder: (List<String>) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var draggedId by remember { mutableStateOf<String?>(null) }
+    var dragOffset by remember { mutableStateOf(0f) }
+    val density = LocalDensity.current
+    val rowHeightPx = with(density) { StandbyRowHeight.toPx() }
+    val dragHandleDescription = stringResource(Res.string.event_standby_drag_hint)
+
+    val draggedIndex = standby.indexOfFirst { it.id == draggedId }
+    // Where the drag would land if dropped right now — for the visual
+    // make-room offsets below. Recomputed from live state each frame, not
+    // captured, since onDragEnd needs this same formula fresh at drop time.
+    val targetIndex = if (draggedIndex < 0) {
+        -1
+    } else {
+        (draggedIndex + (dragOffset / rowHeightPx).roundToInt()).coerceIn(0, standby.lastIndex)
+    }
+
+    LazyColumn(modifier = modifier.height(StandbyRowHeight * standby.size), userScrollEnabled = false) {
+        itemsIndexed(standby, key = { _, row -> row.id }) { index, row ->
+            val isDragged = row.id == draggedId
+            val rawOffset = when {
+                draggedIndex < 0 -> 0f
+                isDragged -> dragOffset
+                draggedIndex < targetIndex && index in (draggedIndex + 1)..targetIndex -> -rowHeightPx
+                draggedIndex > targetIndex && index in targetIndex until draggedIndex -> rowHeightPx
+                else -> 0f
+            }
+            // Spring only while a drag is in progress, so making room reads
+            // as a shift. The moment the drop lands the list has reordered
+            // and every offset is stale by exactly one row — snap clears them
+            // instantly instead of sliding rows in from where they used to be.
+            val animatedOffset by animateFloatAsState(
+                targetValue = if (isDragged) 0f else rawOffset,
+                animationSpec = if (draggedId != null) spring() else snap(),
+                label = "standbyRowOffset"
+            )
+            val offset = if (isDragged) dragOffset else animatedOffset
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(StandbyRowHeight)
+                    .zIndex(if (isDragged) 1f else 0f)
+                    // No animateItem(): the make-room shifts below are already
+                    // moving these rows with translationY, and letting Compose
+                    // animate the slot change as well adds the two distances
+                    // together — rows overshoot their new position on drop.
+                    .graphicsLayer { translationY = offset }
+                    .then(
+                        if (isDragged) {
+                            Modifier
+                                .shadow(elevation = 8.dp, shape = RoundedCornerShape(12.dp))
+                                .background(MusterColors.White, RoundedCornerShape(12.dp))
+                                .padding(horizontal = 8.dp)
+                        } else {
+                            Modifier
+                        }
+                    ),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = (index + 1).toString(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MusterColors.Muted,
+                    modifier = Modifier.width(24.dp)
+                )
+                Text(
+                    text = row.name + if (row.isSelf) " · you" else "",
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                val dragModifier = if (!enabled) {
+                    Modifier
+                } else {
+                    Modifier.pointerInput(row.id) {
+                        detectDragGesturesAfterLongPress(
+                            onDragStart = {
+                                draggedId = row.id
+                                dragOffset = 0f
+                                onDraggingChanged(true)
+                            },
+                            onDragEnd = {
+                                // Fresh read, not the outer `targetIndex` val
+                                // — that one was captured when this gesture
+                                // block was set up and won't have moved.
+                                val from = standby.indexOfFirst { it.id == draggedId }
+                                val to = if (from < 0) {
+                                    -1
+                                } else {
+                                    (from + (dragOffset / rowHeightPx).roundToInt()).coerceIn(0, standby.lastIndex)
+                                }
+                                draggedId = null
+                                dragOffset = 0f
+                                onDraggingChanged(false)
+                                if (from != to && from in standby.indices && to in standby.indices) {
+                                    val reordered = standby.toMutableList().apply { add(to, removeAt(from)) }
+                                    onReorder(reordered.map { it.id })
+                                }
+                            },
+                            onDragCancel = {
+                                draggedId = null
+                                dragOffset = 0f
+                                onDraggingChanged(false)
+                            },
+                            onDrag = { change, delta ->
+                                change.consume()
+                                if (draggedId == null) return@detectDragGesturesAfterLongPress
+                                dragOffset += delta.y
+                            }
+                        )
+                    }
+                }
+                Icon(
+                    imageVector = MusterIcons.DragHandle,
+                    contentDescription = dragHandleDescription,
+                    tint = if (enabled) MusterColors.Hint else MusterColors.Hairline,
+                    modifier = Modifier
+                        .size(32.dp)
+                        .then(dragModifier)
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun AdminStatusMenu(
     status: RsvpStatus,
@@ -562,6 +823,7 @@ private val PreviewActions = EventActions(
     onBack = {},
     onRsvp = {},
     onChangeRowStatus = { _, _ -> },
+    onReorderStandby = {},
     onRetry = {}
 )
 
@@ -651,6 +913,66 @@ private fun EventScreenLoadingPreview() {
             state = EventUiState.Loading(PreviewSummary),
             actions = PreviewActions,
             spinnerDelayMillis = 0
+        )
+    }
+}
+
+private val PreviewStandby = listOf(
+    StandbyRow(id = "6", name = "Joe Moriarty"),
+    StandbyRow(id = "7", name = "Priya Nair", isSelf = true),
+    StandbyRow(id = "8", name = "Leo Fanning")
+)
+
+// Admin: drag handles and the "Drag to reorder" hint.
+@Preview
+@Composable
+private fun EventScreenAdminWithStandbyPreview() {
+    MusterTheme {
+        EventScreen(
+            state = PreviewSuccess.copy(isAdmin = true, standby = PreviewStandby),
+            actions = PreviewActions
+        )
+    }
+}
+
+// Member: plain numbered list, no handles, no hint.
+@Preview
+@Composable
+private fun EventScreenMemberWithStandbyPreview() {
+    MusterTheme {
+        EventScreen(
+            state = PreviewSuccess.copy(isAdmin = false, standby = PreviewStandby),
+            actions = PreviewActions
+        )
+    }
+}
+
+// An empty queue: the section doesn't render at all, not an empty-state line.
+@Preview
+@Composable
+private fun EventScreenStandbyEmptyPreview() {
+    MusterTheme {
+        EventScreen(
+            state = PreviewSuccess.copy(isAdmin = true, standby = emptyList()),
+            actions = PreviewActions
+        )
+    }
+}
+
+// Frozen: "Not called up" header, plain list, no handles even for admins.
+@Preview
+@Composable
+private fun EventScreenFrozenWithStandbyPreview() {
+    MusterTheme {
+        EventScreen(
+            state = PreviewSuccess.copy(
+                isAdmin = true,
+                isFrozen = true,
+                startTime = "7:00 pm",
+                myStatus = RsvpStatus.In,
+                standby = PreviewStandby
+            ),
+            actions = PreviewActions
         )
     }
 }

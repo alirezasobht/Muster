@@ -12,9 +12,11 @@ import app.muster.domain.model.EventDetail
 import app.muster.domain.model.GroupRole
 import app.muster.domain.model.RosterEntry
 import app.muster.domain.model.RsvpStatus
+import app.muster.domain.model.StandbyEntry
 import app.muster.domain.usecase.GetEventUseCase
 import app.muster.domain.usecase.GetMyGroupRoleUseCase
 import app.muster.domain.usecase.GetMyProfileUseCase
+import app.muster.domain.usecase.ReorderStandbyUseCase
 import app.muster.domain.usecase.SetRsvpUseCase
 import app.muster.testing.MainDispatcherRule
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -55,7 +57,16 @@ class EventViewModelTest {
         RosterEntry(profileId = "player-3", name = "Marcus Keane", status = RsvpStatus.Out)
     )
 
-    private fun detail(startsAt: Instant = futureStart, roster: List<RosterEntry> = defaultRoster) = EventDetail(
+    private val defaultStandby = listOf(
+        StandbyEntry(profileId = "player-4", name = "Priya Nair"),
+        StandbyEntry(profileId = "player-5", name = "Joe Moriarty")
+    )
+
+    private fun detail(
+        startsAt: Instant = futureStart,
+        roster: List<RosterEntry> = defaultRoster,
+        standby: List<StandbyEntry> = emptyList()
+    ) = EventDetail(
         event = Event(
             id = eventId,
             groupId = groupId,
@@ -67,7 +78,8 @@ class EventViewModelTest {
             pendingCount = roster.count { it.status == RsvpStatus.Pending },
             myStatus = roster.firstOrNull { it.profileId == FAKE_USER_ID }?.status
         ),
-        roster = roster
+        roster = roster,
+        standby = standby
     )
 
     private fun viewModel(
@@ -81,6 +93,7 @@ class EventViewModelTest {
         getMyGroupRole = GetMyGroupRoleUseCase(groups),
         getMyProfile = GetMyProfileUseCase(profiles),
         setRsvp = SetRsvpUseCase(events),
+        reorderStandby = ReorderStandbyUseCase(events),
         dataChanges = dataChanges
     )
 
@@ -328,5 +341,97 @@ class EventViewModelTest {
         advanceUntilIdle()
 
         assertEquals(1, events.rsvpUpdates.size)
+    }
+
+    @Test
+    fun `the standby queue keeps its own order, not alphabetical`() = runTest {
+        val events = FakeEventRepository(eventDetail = detail(standby = defaultStandby))
+        val viewModel = viewModel(events = events)
+        advanceUntilIdle()
+
+        val state = assertIs<EventUiState.Success>(viewModel.state.value)
+        assertEquals(listOf("Priya Nair", "Joe Moriarty"), state.standby.map { it.name })
+    }
+
+    @Test
+    fun `the viewer's own standby row is marked isSelf`() = runTest {
+        val standby = defaultStandby + StandbyEntry(profileId = FAKE_USER_ID, name = "Alex Doyle")
+        val events = FakeEventRepository(eventDetail = detail(roster = emptyList(), standby = standby))
+        val viewModel = viewModel(events = events)
+        advanceUntilIdle()
+
+        val state = assertIs<EventUiState.Success>(viewModel.state.value)
+        assertTrue(state.standby.single { it.id == FAKE_USER_ID }.isSelf)
+        assertTrue(state.standby.filterNot { it.id == FAKE_USER_ID }.none { it.isSelf })
+    }
+
+    @Test
+    fun `onReorderStandby sends the ordered ids and clears in-flight via the refresh`() = runTest {
+        val changes = DataChanges()
+        val events = FakeEventRepository(eventDetail = detail(standby = defaultStandby), dataChanges = changes)
+        val viewModel = viewModel(dataChanges = changes, events = events)
+        advanceUntilIdle()
+
+        viewModel.onReorderStandby(listOf("player-5", "player-4"))
+        advanceUntilIdle()
+
+        assertEquals(listOf(listOf("player-5", "player-4")), events.reorderCalls)
+        val state = assertIs<EventUiState.Success>(viewModel.state.value)
+        assertEquals(false, state.standbyReordering)
+        assertEquals(listOf("Joe Moriarty", "Priya Nair"), state.standby.map { it.name })
+    }
+
+    // The exact race the task calls out: reordering can promote, so the
+    // queue the admin just sent can already be shorter/different by the
+    // time the write lands.
+    @Test
+    fun `reordering can promote, shrinking the queue the caller just sent`() = runTest {
+        val changes = DataChanges()
+        val events = FakeEventRepository(eventDetail = detail(standby = defaultStandby), dataChanges = changes)
+        val viewModel = viewModel(dataChanges = changes, events = events)
+        advanceUntilIdle()
+
+        // Simulates the trigger promoting player-4 out of the queue and
+        // into the roster as part of the same write.
+        events.eventDetail = events.eventDetail.copy(
+            roster = defaultRoster + RosterEntry("player-4", "Priya Nair", RsvpStatus.Pending),
+            standby = listOf(StandbyEntry("player-5", "Joe Moriarty"))
+        )
+        viewModel.onReorderStandby(listOf("player-4", "player-5"))
+        advanceUntilIdle()
+
+        val state = assertIs<EventUiState.Success>(viewModel.state.value)
+        assertEquals(1, state.standby.size)
+        assertEquals(4, state.roster.size)
+    }
+
+    @Test
+    fun `a failed reorder surfaces standbyError`() = runTest {
+        val events = FakeEventRepository(
+            eventDetail = detail(standby = defaultStandby),
+            reorderStandbyError = DomainError.StandbyQueueStale()
+        )
+        val viewModel = viewModel(events = events)
+        advanceUntilIdle()
+
+        viewModel.onReorderStandby(listOf("player-5", "player-4"))
+        advanceUntilIdle()
+
+        val state = assertIs<EventUiState.Success>(viewModel.state.value)
+        assertIs<DomainError.StandbyQueueStale>(state.standbyError)
+        assertEquals(false, state.standbyReordering)
+    }
+
+    @Test
+    fun `a second reorder while one is in flight is ignored`() = runTest {
+        val events = FakeEventRepository(eventDetail = detail(standby = defaultStandby))
+        val viewModel = viewModel(events = events)
+        advanceUntilIdle()
+
+        viewModel.onReorderStandby(listOf("player-5", "player-4"))
+        viewModel.onReorderStandby(listOf("player-4", "player-5"))
+        advanceUntilIdle()
+
+        assertEquals(1, events.reorderCalls.size)
     }
 }

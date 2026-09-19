@@ -124,6 +124,9 @@
     <string name="event_roster_empty_body">Invited players will show up here.</string>
     <string name="event_failed_title">Couldn’t load this event</string>
     <string name="event_try_again">Try again</string>
+    <string name="event_standby_header">Standby · %1$d</string>
+    <string name="event_standby_header_frozen">Standby · Not called up</string>
+    <string name="event_standby_drag_hint">Drag to reorder</string>
 
     <!-- New event (1k) -->
     <string name="new_event_title">New event</string>
@@ -169,6 +172,7 @@
     <string name="error_event_starts_in_past">Pick a time that hasn’t passed yet.</string>
     <string name="error_event_full">This event is full. Free a slot first.</string>
     <string name="error_event_frozen">This event has already started.</string>
+    <string name="error_standby_queue_stale">Someone was promoted while you were reordering. Refresh and try again.</string>
     <string name="error_network">Can’t connect. Check your connection and try again.</string>
     <string name="error_not_signed_in">You’ve been signed out. Sign in again.</string>
     <string name="error_unknown">Something went wrong. Try again.</string>

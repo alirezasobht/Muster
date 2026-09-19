@@ -27,10 +27,12 @@ class FakeEventRepository(
             pendingCount = 0,
             myStatus = null
         ),
-        roster = emptyList()
+        roster = emptyList(),
+        standby = emptyList()
     ),
     var getEventError: DomainError? = null,
     var setRsvpError: DomainError? = null,
+    var reorderStandbyError: DomainError? = null,
     private val dataChanges: DataChanges? = null,
     private val latency: Long = FAKE_LATENCY_MS
 ) : EventRepository {
@@ -39,6 +41,9 @@ class FakeEventRepository(
         private set
 
     var rsvpUpdates = listOf<Triple<String, String, RsvpStatus>>()
+        private set
+
+    var reorderCalls = listOf<List<String>>()
         private set
 
     override suspend fun listUpcomingEvents(groupId: String): List<Event> {
@@ -99,5 +104,14 @@ class FakeEventRepository(
         )
         dataChanges?.notify(DataChange.Roster(eventId))
         dataChanges?.notify(DataChange.Events(eventDetail.event.groupId))
+    }
+
+    override suspend fun reorderStandby(eventId: String, orderedProfileIds: List<String>) {
+        delay(latency.milliseconds)
+        reorderStandbyError?.let { throw it }
+        reorderCalls = reorderCalls + listOf(orderedProfileIds)
+        val byId = eventDetail.standby.associateBy { it.profileId }
+        eventDetail = eventDetail.copy(standby = orderedProfileIds.mapNotNull { byId[it] })
+        dataChanges?.notify(DataChange.Roster(eventId))
     }
 }

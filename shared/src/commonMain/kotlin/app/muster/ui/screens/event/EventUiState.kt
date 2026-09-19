@@ -14,6 +14,12 @@ data class RosterRow(
     val isSelf: Boolean = false
 )
 
+data class StandbyRow(
+    val id: String,
+    val name: String,
+    val isSelf: Boolean = false
+)
+
 data class EventSummary(
     val groupId: String,
     val groupName: String,
@@ -53,13 +59,16 @@ sealed interface EventUiState {
         // Null = not invited
         val myStatus: RsvpStatus?,
         val roster: List<RosterRow> = emptyList(),
+        val standby: List<StandbyRow> = emptyList(),
         val isFrozen: Boolean = false,
         val startTime: String = "",
         val isRefreshing: Boolean = false,
         val rsvpInFlight: Boolean = false,
         val rsvpError: DomainError? = null,
         val rowActionTargetId: String? = null,
-        val rowActionError: DomainError? = null
+        val rowActionError: DomainError? = null,
+        val standbyReordering: Boolean = false,
+        val standbyError: DomainError? = null
     ) : EventUiState {
         val isRosterEmpty: Boolean get() = roster.isEmpty()
     }

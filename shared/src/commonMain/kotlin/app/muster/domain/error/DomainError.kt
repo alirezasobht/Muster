@@ -51,5 +51,11 @@ sealed class DomainError(message: String, cause: Throwable? = null) : Exception(
     // UI hides every control once frozen, so this only fires on that race.
     class EventFrozen : DomainError("event has already started")
 
+    // set_standby_order's own guard (P0001, "queue is out of date, reload"):
+    // one of the submitted players was promoted between loading the screen
+    // and dropping the drag. The exact race the task calls out — reordering
+    // can promote, so the list just sent back can already be stale.
+    class StandbyQueueStale : DomainError("standby queue changed, reload")
+
     class Unknown(cause: Throwable) : DomainError(cause.message ?: "unknown error", cause)
 }

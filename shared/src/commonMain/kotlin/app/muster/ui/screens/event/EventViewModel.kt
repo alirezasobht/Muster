@@ -11,6 +11,7 @@ import app.muster.domain.model.RsvpStatus
 import app.muster.domain.usecase.GetEventUseCase
 import app.muster.domain.usecase.GetMyGroupRoleUseCase
 import app.muster.domain.usecase.GetMyProfileUseCase
+import app.muster.domain.usecase.ReorderStandbyUseCase
 import app.muster.domain.usecase.SetRsvpUseCase
 import app.muster.ui.common.util.toDisplayDate
 import app.muster.ui.common.util.toDisplayTime
@@ -28,6 +29,7 @@ class EventViewModel(
     private val getMyGroupRole: GetMyGroupRoleUseCase,
     private val getMyProfile: GetMyProfileUseCase,
     private val setRsvp: SetRsvpUseCase,
+    private val reorderStandby: ReorderStandbyUseCase,
     dataChanges: DataChanges
 ) : ViewModel() {
 
@@ -101,6 +103,28 @@ class EventViewModel(
         }
     }
 
+    fun onReorderStandby(orderedProfileIds: List<String>) {
+        val current = _state.value as? EventUiState.Success ?: return
+        if (current.standbyReordering) return
+        val previousOrder = current.standby
+        val optimisticOrder = orderedProfileIds.mapNotNull { id -> previousOrder.find { it.id == id } }
+        updateSuccess { it.copy(standby = optimisticOrder, standbyReordering = true, standbyError = null) }
+        viewModelScope.launch {
+            try {
+                reorderStandby(eventId, orderedProfileIds)
+                // Already showing the new order; the repository's
+                // DataChange.Roster notification and the refresh it triggers
+                // only need to confirm it, not apply it.
+                updateSuccess { it.copy(standbyReordering = false) }
+            } catch (e: DomainError) {
+                // The write was rejected — the optimistic order was wrong, back
+                // it out rather than leaving the screen showing an order the
+                // database never had.
+                updateSuccess { it.copy(standby = previousOrder, standbyReordering = false, standbyError = e) }
+            }
+        }
+    }
+
     private fun load() {
         val summary = _state.value.summary
         _state.value = EventUiState.Loading(summary)
@@ -143,6 +167,7 @@ class EventViewModel(
             isAdmin = isAdmin,
             myStatus = detail.event.myStatus,
             roster = detail.toRosterRows(myId),
+            standby = detail.toStandbyRows(myId),
             isFrozen = isFrozen,
             startTime = detail.event.startsAt.toDisplayTime()
         )
@@ -167,3 +192,14 @@ private fun EventDetail.toRosterRows(myProfileId: String): List<RosterRow> = ros
         )
     }
     .sortedWith(compareBy({ statusOrder.getValue(it.status) }, { it.name.lowercase() }))
+
+// Queue order, not alphabetical — this list's order is the position, per
+// set_standby_order's own contract of rewriting 1..n on every write.
+private fun EventDetail.toStandbyRows(myProfileId: String): List<StandbyRow> = standby
+    .map { entry ->
+        StandbyRow(
+            id = entry.profileId,
+            name = entry.name,
+            isSelf = entry.profileId == myProfileId
+        )
+    }

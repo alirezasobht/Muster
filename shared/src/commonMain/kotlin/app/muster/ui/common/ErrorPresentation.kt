@@ -45,7 +45,10 @@ val DomainError.presentation: ErrorPresentation
         // classified for the exhaustive when: retrying the identical change
         // fails identically until capacity frees or the freeze already held.
         is DomainError.EventFull,
-        is DomainError.EventFrozen ->
+        is DomainError.EventFrozen,
+        // Resubmitting the same stale list fails the same way — a refresh
+        // has to happen first, not a bare retry.
+        is DomainError.StandbyQueueStale ->
             ErrorPresentation.Form(ErrorPresentation.Severity.Terminal)
     }
 
