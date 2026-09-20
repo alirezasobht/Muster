@@ -1,5 +1,6 @@
 package app.muster.ui.screens.home
 
+import app.muster.ui.common.components.MusterPullToRefreshBox
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,7 +23,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -204,16 +204,12 @@ fun HomeScreen(
                 Column(modifier = Modifier.safeDrawingPadding().fillMaxSize()) {
                     HomeAppBar(onSettingsClick = actions.onSettingsClick)
 
-                    PullToRefreshBox(
+                    MusterPullToRefreshBox(
                         isRefreshing = isRefreshing,
                         onRefresh = actions.onRefresh,
                         modifier = Modifier.weight(1f).fillMaxWidth()
                     ) {
                         if (myGroups.isEmpty() && invitations.isEmpty()) {
-                            // A plain Box emits no scroll events, so
-                            // PullToRefreshBox never sees the gesture. A
-                            // single full-height item keeps it centred and
-                            // scrollable.
                             LazyColumn(modifier = Modifier.fillMaxSize()) {
                                 item {
                                     Box(

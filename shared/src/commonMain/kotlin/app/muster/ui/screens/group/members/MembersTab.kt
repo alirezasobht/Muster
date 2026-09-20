@@ -1,5 +1,6 @@
 package app.muster.ui.screens.group.members
 
+import app.muster.ui.common.components.MusterPullToRefreshBox
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -27,7 +28,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -179,7 +179,7 @@ private fun MembersContent(
         } else {
             Spacer(Modifier.height(8.dp))
         }
-        PullToRefreshBox(
+        MusterPullToRefreshBox(
             isRefreshing = state.isRefreshing,
             onRefresh = actions.onRefresh,
             modifier = Modifier.weight(1f).fillMaxWidth()
