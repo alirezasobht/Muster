@@ -20,6 +20,7 @@ kotlin-wrappers = "2026.8.4"
 ktor = "3.5.1"
 material3 = "1.11.0-alpha07"
 navigation = "2.9.2"
+reorderable = "3.1.0"
 supabase = "3.8.0"
 
 [libraries]
@@ -41,6 +42,7 @@ compose-material3 = { module = "org.jetbrains.compose.material3:material3", vers
 compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "composeMultiplatform" }
 compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "composeMultiplatform" }
 compose-uiToolingPreview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "composeMultiplatform" }
+reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "reorderable" }
 wrappers-browser = { module = "org.jetbrains.kotlin-wrappers:kotlin-browser", version.ref = "kotlin-wrappers" }
 supabase-postgrest = { module = "io.github.jan-tennert.supabase:postgrest-kt", version.ref = "supabase" }
 supabase-auth = { module = "io.github.jan-tennert.supabase:auth-kt", version.ref = "supabase" }

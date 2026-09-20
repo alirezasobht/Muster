@@ -117,9 +117,7 @@ class EventViewModel(
                 // only need to confirm it, not apply it.
                 updateSuccess { it.copy(standbyReordering = false) }
             } catch (e: DomainError) {
-                // The write was rejected — the optimistic order was wrong, back
-                // it out rather than leaving the screen showing an order the
-                // database never had.
+                // The write was rejected — back it out
                 updateSuccess { it.copy(standby = previousOrder, standbyReordering = false, standbyError = e) }
             }
         }
