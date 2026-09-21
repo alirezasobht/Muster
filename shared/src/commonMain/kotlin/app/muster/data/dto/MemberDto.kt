@@ -33,3 +33,11 @@ internal data class GroupInvitationInsertDto(
     @SerialName("invited_by") val invitedBy: String,
     val status: String = "pending"
 )
+
+@Serializable
+data class InviteGroupMemberDto(
+    @SerialName("group_id")
+    val groupId: String,
+
+    val email: String
+)

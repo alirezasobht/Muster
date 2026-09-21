@@ -4,6 +4,7 @@ import app.muster.data.dto.GroupInvitationInsertDto
 import app.muster.data.dto.GroupInvitationRowDto
 import app.muster.data.dto.GroupMemberDto
 import app.muster.data.dto.GroupMemberRoleUpdateDto
+import app.muster.data.dto.InviteGroupMemberDto
 import app.muster.data.mapper.mapErrors
 import app.muster.data.mapper.toMember
 import app.muster.data.mapper.toPendingInvitation
@@ -15,7 +16,11 @@ import app.muster.domain.repository.MemberRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
+import io.github.jan.supabase.postgrest.rpc
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 internal class MemberRepositoryImpl(
     private val client: SupabaseClient,
@@ -43,15 +48,27 @@ internal class MemberRepositoryImpl(
         MemberListing(members = members, pendingInvitations = pendingInvitations)
     }
 
+//    override suspend fun inviteByEmail(groupId: String, email: String): Unit = mapErrors {
+//        val normalizedEmail = email.trim().lowercase()
+//        client.from(GROUP_INVITATIONS_TABLE).insert(
+//            GroupInvitationInsertDto(
+//                groupId = groupId,
+//                email = normalizedEmail,
+//                invitedBy = myId()
+//            )
+//        )
+//        dataChanges.notify(DataChange.Members(groupId))
+//    }
+
     override suspend fun inviteByEmail(groupId: String, email: String): Unit = mapErrors {
-        val normalizedEmail = email.trim().lowercase()
-        client.from(GROUP_INVITATIONS_TABLE).insert(
-            GroupInvitationInsertDto(
+        client.postgrest.rpc(
+            INVITE_GROUP_MEMBER_BY_EMAIL_FUNCTION,
+            InviteGroupMemberDto(
                 groupId = groupId,
-                email = normalizedEmail,
-                invitedBy = myId()
+                email = email
             )
         )
+
         dataChanges.notify(DataChange.Members(groupId))
     }
 
@@ -116,5 +133,6 @@ internal class MemberRepositoryImpl(
         const val PENDING_STATUS = "pending"
         const val ADMIN_ROLE = "admin"
         const val MEMBER_ROLE = "member"
+        const val INVITE_GROUP_MEMBER_BY_EMAIL_FUNCTION = "invite_group_member_by_email"
     }
 }
