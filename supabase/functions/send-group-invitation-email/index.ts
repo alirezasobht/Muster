@@ -1,15 +1,29 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const WEBHOOK_SECRET = Deno.env.get("GROUP_INVITATION_WEBHOOK_SECRET")!;
+// Injected by Supabase into every deployed function; never set by hand.
+const SUPABASE_URL = requireEnv("SUPABASE_URL");
+const SUPABASE_SERVICE_ROLE_KEY = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
 
-const supabase = createClient(
-  SUPABASE_URL,
-  SUPABASE_SERVICE_ROLE_KEY
-);
+// Edge Function secrets, per environment. See .env.example.
+const WEBHOOK_SECRET = requireEnv("GROUP_INVITATION_WEBHOOK_SECRET");
+const RESEND_API_KEY = requireEnv("RESEND_API_KEY");
+const RESEND_FROM = requireEnv("RESEND_FROM");
+const RESEND_MEMBER_INVITATION_TEMPLATE_ID = requireEnv("RESEND_MEMBER_INVITATION_TEMPLATE_ID");
+const CONTACT_EMAIL = requireEnv("CONTACT_EMAIL");
+const WEB_APP_URL = requireEnv("WEB_APP_URL");
+// Optional until there is a Play Store listing. Falls back to the web app
+const ANDROID_APP_URL = Deno.env.get("ANDROID_APP_URL") || WEB_APP_URL;
+
+// Read at module load, so a missing secret fails the deploy's first request
+// with a clear log line instead of sending an email with an empty field.
+function requireEnv(name: string): string {
+  const value = Deno.env.get(name);
+  if (!value) throw new Error(`missing environment variable: ${name}`);
+  return value;
+}
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 export default {
   async fetch(req: Request) {
@@ -52,17 +66,17 @@ export default {
           Authorization: `Bearer ${RESEND_API_KEY}`,
         },
         body: JSON.stringify({
-          from: "Muster <noreply@send.musterapp.fyi>",
+          from: RESEND_FROM,
           to: invitation.email,
           template: {
-            id: "group-member-invitation",
+            id: RESEND_MEMBER_INVITATION_TEMPLATE_ID,
             variables: {
               GROUP_NAME: groupName,
               INVITER_NAME: inviterName,
               RECIPIENT_EMAIL: invitation.email,
-              CONTACT_EMAIL: "muster.team.app@gmail.com",
-              ANDROID_APP_URL: "YOUR_PLAY_STORE_URL",
-              WEB_APP_URL: "https://musterteamapp.netlify.app/",
+              CONTACT_EMAIL: CONTACT_EMAIL,
+              ANDROID_APP_URL: ANDROID_APP_URL,
+              WEB_APP_URL: WEB_APP_URL,
             },
           },
         }),
