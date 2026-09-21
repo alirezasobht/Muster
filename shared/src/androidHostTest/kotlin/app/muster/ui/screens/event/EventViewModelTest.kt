@@ -13,6 +13,7 @@ import app.muster.domain.model.GroupRole
 import app.muster.domain.model.RosterEntry
 import app.muster.domain.model.RsvpStatus
 import app.muster.domain.model.StandbyEntry
+import app.muster.domain.usecase.DisinvitePlayerUseCase
 import app.muster.domain.usecase.GetEventUseCase
 import app.muster.domain.usecase.GetMyGroupRoleUseCase
 import app.muster.domain.usecase.GetMyProfileUseCase
@@ -94,6 +95,7 @@ class EventViewModelTest {
         getMyProfile = GetMyProfileUseCase(profiles),
         setRsvp = SetRsvpUseCase(events),
         reorderStandby = ReorderStandbyUseCase(events),
+        disinvitePlayer = DisinvitePlayerUseCase(events),
         dataChanges = dataChanges
     )
 

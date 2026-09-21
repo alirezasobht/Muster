@@ -23,6 +23,10 @@ interface EventRepository {
     // admin changes someone else's — RLS is what actually tells them apart.
     suspend fun setRsvp(eventId: String, profileId: String, status: RsvpStatus)
 
+    // groupId only for the Events(groupId) notification; the RPC takes the
+    // event and player alone.
+    suspend fun disinvitePlayer(eventId: String, groupId: String, profileId: String)
+
     // The whole ordered queue, set_standby_order rewrites positions 1..n
     suspend fun reorderStandby(eventId: String, orderedProfileIds: List<String>)
 }

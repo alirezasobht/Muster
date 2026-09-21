@@ -64,6 +64,9 @@ import muster.shared.generated.resources.action_cant_make_it
 import muster.shared.generated.resources.action_change
 import muster.shared.generated.resources.action_im_in
 import muster.shared.generated.resources.content_description_back
+import muster.shared.generated.resources.event_action_cancel_invite
+import muster.shared.generated.resources.event_action_remove_from_event
+import muster.shared.generated.resources.event_action_remove_from_list
 import muster.shared.generated.resources.event_failed_title
 import muster.shared.generated.resources.event_frozen_strip
 import muster.shared.generated.resources.event_roster_empty_body
@@ -93,7 +96,7 @@ import sh.calvin.reorderable.ReorderableColumn
 data class EventActions(
     val onBack: () -> Unit,
     val onRsvp: (RsvpStatus) -> Unit,
-    val onChangeRowStatus: (playerId: String, status: RsvpStatus) -> Unit,
+    val onRosterAction: (playerId: String, action: RosterAction) -> Unit,
     // Send the whole ordered queue
     val onReorderStandby: (orderedIds: List<String>) -> Unit,
     val onRetry: () -> Unit,
@@ -113,7 +116,7 @@ fun EventRoute(
         actions = EventActions(
             onBack = onBack,
             onRsvp = viewModel::onRsvp,
-            onChangeRowStatus = viewModel::onChangeRowStatus,
+            onRosterAction = viewModel::onRosterAction,
             onReorderStandby = viewModel::onReorderStandby,
             onRetry = viewModel::onRetry,
             onRefresh = viewModel::onRefresh
@@ -275,12 +278,11 @@ private fun EventContent(
                         key(row.id) {
                             RosterRowItem(
                                 row = row,
-                                isAdmin = state.isAdmin,
                                 isFrozen = state.isFrozen,
                                 inFlight = state.rowActionTargetId == row.id,
                                 errorMessage = state.rowActionError?.toMessage()
                                     ?.takeIf { state.rowActionTargetId == row.id },
-                                onChangeStatus = { status -> actions.onChangeRowStatus(row.id, status) },
+                                onAction = { action -> actions.onRosterAction(row.id, action) },
                                 modifier = Modifier
                             )
                         }
@@ -445,11 +447,10 @@ private fun OwnRsvpBlock(
 @Composable
 private fun RosterRowItem(
     row: RosterRow,
-    isAdmin: Boolean,
     isFrozen: Boolean,
     inFlight: Boolean,
     errorMessage: String?,
-    onChangeStatus: (RsvpStatus) -> Unit,
+    onAction: (RosterAction) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxWidth().padding(vertical = 10.dp)) {
@@ -464,11 +465,13 @@ private fun RosterRowItem(
                 overflow = TextOverflow.Ellipsis
             )
             Spacer(Modifier.width(8.dp))
-            if (isAdmin && !isFrozen) {
-                AdminStatusMenu(status = row.status, inFlight = inFlight, onChangeStatus = onChangeStatus)
-            } else {
-                RsvpStatusBadge(status = row.status, isFrozen = isFrozen)
-            }
+            StatusMenu(
+                status = row.status,
+                inFlight = inFlight,
+                rowActions = row.actions,
+                isFrozen = isFrozen,
+                onAction = onAction
+            )
         }
         if (errorMessage != null) {
             Spacer(Modifier.height(6.dp))
@@ -636,25 +639,38 @@ private fun ReorderableStandbyList(
 }
 
 @Composable
-private fun AdminStatusMenu(
+private fun StatusMenu(
     status: RsvpStatus,
     inFlight: Boolean,
-    onChangeStatus: (RsvpStatus) -> Unit,
+    rowActions: List<RosterAction>,
+    isFrozen: Boolean,
+    onAction: (RosterAction) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val hasAction = rowActions.isNotEmpty()
     Box(modifier = modifier) {
-        RsvpStatusBadge(status = status, isFrozen = false, chevron = true, onClick = { expanded = true })
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            RsvpStatus.entries.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(stringResource(option.label())) },
-                    onClick = { expanded = false; onChangeStatus(option) },
-                    enabled = !inFlight && option != status
-                )
+        RsvpStatusBadge(status = status, isFrozen = isFrozen, chevron = hasAction, onClick = { expanded = true })
+        if (hasAction) {
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                rowActions.forEach { action ->
+                    DropdownMenuItem(
+                        text = { Text(text = stringResource(action.label())) },
+                        onClick = { expanded = false; onAction(action) },
+                        enabled = !inFlight && !isFrozen
+                    )
+                }
             }
         }
     }
+}
+
+private fun RosterAction.label() = when (this) {
+    RosterAction.SetIn -> Res.string.events_status_in
+    RosterAction.SetOut -> Res.string.events_status_out
+    RosterAction.CancelInvite -> Res.string.event_action_cancel_invite
+    RosterAction.RemoveFromEvent -> Res.string.event_action_remove_from_event
+    RosterAction.RemoveFromList -> Res.string.event_action_remove_from_list
 }
 
 @Composable
@@ -751,7 +767,7 @@ private fun initials(name: String): String {
 private val PreviewActions = EventActions(
     onBack = {},
     onRsvp = {},
-    onChangeRowStatus = { _, _ -> },
+    onRosterAction = { _, _ -> },
     onReorderStandby = {},
     onRetry = {}
 )

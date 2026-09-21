@@ -99,6 +99,9 @@
     <string name="events_status_in">In</string>
     <string name="events_status_pending">Pending</string>
     <string name="events_status_out">Out</string>
+    <string name="event_action_cancel_invite">Cancel invite</string>
+    <string name="event_action_remove_from_event">Remove from event</string>
+    <string name="event_action_remove_from_list">Remove from list</string>
     <string name="events_slots">%1$d of %2$d slots · %3$d in, %4$d pending</string>
     <string name="events_empty_title">No upcoming events</string>
     <string name="events_empty_body">New events will show up here once one is scheduled.</string>

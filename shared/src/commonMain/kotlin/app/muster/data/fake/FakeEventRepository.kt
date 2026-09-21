@@ -5,6 +5,7 @@ import app.muster.domain.event.DataChange
 import app.muster.domain.event.DataChanges
 import app.muster.domain.model.Event
 import app.muster.domain.model.EventDetail
+import app.muster.domain.model.RosterEntry
 import app.muster.domain.model.RsvpStatus
 import app.muster.domain.repository.EventRepository
 import kotlinx.coroutines.delay
@@ -33,6 +34,7 @@ class FakeEventRepository(
     var getEventError: DomainError? = null,
     var setRsvpError: DomainError? = null,
     var reorderStandbyError: DomainError? = null,
+    var disinvitePlayerError: DomainError? = null,
     private val dataChanges: DataChanges? = null,
     private val latency: Long = FAKE_LATENCY_MS
 ) : EventRepository {
@@ -104,6 +106,34 @@ class FakeEventRepository(
         )
         dataChanges?.notify(DataChange.Roster(eventId))
         dataChanges?.notify(DataChange.Events(eventDetail.event.groupId))
+    }
+
+    override suspend fun disinvitePlayer(eventId: String, groupId: String, profileId: String) {
+        delay(latency.milliseconds)
+        disinvitePlayerError?.let { throw it }
+
+        val removed = eventDetail.roster.firstOrNull { it.profileId == profileId } ?: return
+        val updatedRoster = eventDetail.roster.filterNot { it.profileId == profileId }
+
+        // Mirrors the trigger: only a pending or in player held a slot. Removing
+        // someone who is out frees nothing, so nobody is promoted.
+        val freedSlot = removed.status != RsvpStatus.Out
+        val firstStandby = eventDetail.standby.firstOrNull()
+
+        eventDetail = if (freedSlot && firstStandby != null) {
+            eventDetail.copy(
+                roster = updatedRoster + RosterEntry(
+                    profileId = firstStandby.profileId,
+                    name = firstStandby.name,
+                    status = RsvpStatus.Pending
+                ),
+                standby = eventDetail.standby.drop(1)
+            )
+        } else {
+            eventDetail.copy(roster = updatedRoster)
+        }
+        dataChanges?.notify(DataChange.Roster(eventId))
+        dataChanges?.notify(DataChange.Events(groupId))
     }
 
     override suspend fun reorderStandby(eventId: String, orderedProfileIds: List<String>) {

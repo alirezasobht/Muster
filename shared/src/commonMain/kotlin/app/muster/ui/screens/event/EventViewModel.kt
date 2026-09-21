@@ -7,7 +7,9 @@ import app.muster.domain.event.DataChange
 import app.muster.domain.event.DataChanges
 import app.muster.domain.model.EventDetail
 import app.muster.domain.model.GroupRole
+import app.muster.domain.model.RosterEntry
 import app.muster.domain.model.RsvpStatus
+import app.muster.domain.usecase.DisinvitePlayerUseCase
 import app.muster.domain.usecase.GetEventUseCase
 import app.muster.domain.usecase.GetMyGroupRoleUseCase
 import app.muster.domain.usecase.GetMyProfileUseCase
@@ -30,6 +32,7 @@ class EventViewModel(
     private val getMyProfile: GetMyProfileUseCase,
     private val setRsvp: SetRsvpUseCase,
     private val reorderStandby: ReorderStandbyUseCase,
+    private val disinvitePlayer: DisinvitePlayerUseCase,
     dataChanges: DataChanges
 ) : ViewModel() {
 
@@ -52,7 +55,7 @@ class EventViewModel(
             dataChanges.changes
                 .filter {
                     (it is DataChange.Roster && it.eventId == eventId) ||
-                        (it is DataChange.Events && it.groupId == groupId)
+                            (it is DataChange.Events && it.groupId == groupId)
                 }
                 .collect { refresh(showIndicator = true) }
         }
@@ -89,13 +92,35 @@ class EventViewModel(
         }
     }
 
-    fun onChangeRowStatus(playerId: String, status: RsvpStatus) {
+    fun onRosterAction(playerId: String, action: RosterAction) = when (action) {
+        RosterAction.SetIn -> onChangeRowStatus(playerId, RsvpStatus.In)
+        RosterAction.SetOut -> onChangeRowStatus(playerId, RsvpStatus.Out)
+        RosterAction.CancelInvite,
+        RosterAction.RemoveFromEvent,
+        RosterAction.RemoveFromList -> onDisinvite(playerId)
+    }
+
+    private fun onChangeRowStatus(playerId: String, status: RsvpStatus) {
         val current = _state.value as? EventUiState.Success ?: return
         if (current.rowActionTargetId != null) return
         updateSuccess { it.copy(rowActionTargetId = playerId, rowActionError = null) }
         viewModelScope.launch {
             try {
                 setRsvp(eventId, playerId, status)
+                updateSuccess { it.copy(rowActionTargetId = null) }
+            } catch (e: DomainError) {
+                updateSuccess { it.copy(rowActionTargetId = null, rowActionError = e) }
+            }
+        }
+    }
+
+    private fun onDisinvite(playerId: String) {
+        val current = _state.value as? EventUiState.Success ?: return
+        if (current.rowActionTargetId != null) return
+        updateSuccess { it.copy(rowActionTargetId = playerId, rowActionError = null) }
+        viewModelScope.launch {
+            try {
+                disinvitePlayer(eventId = eventId, groupId = groupId, profileId = playerId)
                 updateSuccess { it.copy(rowActionTargetId = null) }
             } catch (e: DomainError) {
                 updateSuccess { it.copy(rowActionTargetId = null, rowActionError = e) }
@@ -164,7 +189,7 @@ class EventViewModel(
             ),
             isAdmin = isAdmin,
             myStatus = detail.event.myStatus,
-            roster = detail.toRosterRows(myId),
+            roster = detail.toRosterRows(myId, isAdmin),
             standby = detail.toStandbyRows(myId),
             isFrozen = isFrozen,
             startTime = detail.event.startsAt.toDisplayTime()
@@ -180,16 +205,22 @@ class EventViewModel(
 
 private val statusOrder = mapOf(RsvpStatus.In to 0, RsvpStatus.Pending to 1, RsvpStatus.Out to 2)
 
-private fun EventDetail.toRosterRows(myProfileId: String): List<RosterRow> = roster
-    .map { entry ->
-        RosterRow(
-            id = entry.profileId,
-            name = entry.name,
-            status = entry.status,
-            isSelf = entry.profileId == myProfileId
-        )
-    }
-    .sortedWith(compareBy({ statusOrder.getValue(it.status) }, { it.name.lowercase() }))
+private fun EventDetail.toRosterRows(myProfileId: String, isAdmin: Boolean): List<RosterRow> {
+    // Counts from this fetch, not the route's summary — that one is captured
+    // at navigation and would offer Out -> In on stale numbers.
+    val hasFreeSlot = event.capacity > event.inCount + event.pendingCount
+    return roster
+        .map { entry ->
+            RosterRow(
+                id = entry.profileId,
+                name = entry.name,
+                status = entry.status,
+                isSelf = entry.profileId == myProfileId,
+                actions = availableActions(entry, myProfileId, isAdmin, hasFreeSlot)
+            )
+        }
+        .sortedWith(compareBy({ statusOrder.getValue(it.status) }, { it.name.lowercase() }))
+}
 
 // Queue order, not alphabetical — this list's order is the position, per
 // set_standby_order's own contract of rewriting 1..n on every write.
@@ -201,3 +232,32 @@ private fun EventDetail.toStandbyRows(myProfileId: String): List<StandbyRow> = s
             isSelf = entry.profileId == myProfileId
         )
     }
+
+private fun availableActions(
+    entry: RosterEntry,
+    myProfileId: String,
+    isAdmin: Boolean,
+    hasFreeSlot: Boolean
+): List<RosterAction> = buildList {
+    if (isAdmin || entry.profileId == myProfileId) {
+        when (entry.status) {
+            RsvpStatus.Pending -> {
+                add(RosterAction.SetIn)
+                add(RosterAction.SetOut)
+            }
+            RsvpStatus.In -> add(RosterAction.SetOut)
+            RsvpStatus.Out -> if (hasFreeSlot) add(RosterAction.SetIn)
+        }
+    }
+    if (isAdmin) {
+        add(
+            when (entry.status) {
+                RsvpStatus.Pending -> RosterAction.CancelInvite
+                RsvpStatus.In -> RosterAction.RemoveFromEvent
+                RsvpStatus.Out -> RosterAction.RemoveFromList
+            }
+        )
+    }
+}
+
+

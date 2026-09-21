@@ -164,6 +164,18 @@ internal class EventRepositoryImpl(
         dataChanges.notify(DataChange.Events(groupId))
     }
 
+    override suspend fun disinvitePlayer(eventId: String, groupId: String, profileId: String): Unit = mapErrors {
+        client.postgrest.rpc(
+            DISINVITE_PLAYER_FUNCTION,
+            buildJsonObject {
+                put("event_id", eventId)
+                put("profile_id", profileId)
+            }
+        )
+        dataChanges.notify(DataChange.Roster(eventId))
+        dataChanges.notify(DataChange.Events(groupId))
+    }
+
     override suspend fun reorderStandby(eventId: String, orderedProfileIds: List<String>): Unit = mapErrors {
         client.postgrest.rpc(
             SET_STANDBY_ORDER_FUNCTION,
@@ -172,9 +184,6 @@ internal class EventRepositoryImpl(
                 putJsonArray("ordered_players") { orderedProfileIds.forEach { add(it) } }
             }
         )
-        // Reordering can promote — the trigger can move someone from the
-        // queue straight into the roster, so the roster listener needs to
-        // hear about this too, not just whoever renders the queue itself.
         dataChanges.notify(DataChange.Roster(eventId))
     }
 
@@ -189,5 +198,6 @@ internal class EventRepositoryImpl(
         const val IN_STATUS = "in"
         const val PENDING_STATUS = "pending"
         const val SET_STANDBY_ORDER_FUNCTION = "set_standby_order"
+        const val DISINVITE_PLAYER_FUNCTION = "disinvite_player"
     }
 }

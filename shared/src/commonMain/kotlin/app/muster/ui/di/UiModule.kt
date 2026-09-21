@@ -40,5 +40,5 @@ val uiModule = module {
     // Group id comes from the New event route, not the graph.
     viewModel { (groupId: String) -> NewEventViewModel(groupId, get()) }
     // The initial summary comes from the Event route, not the graph.
-    viewModel { (summary: EventSummary) -> EventViewModel(summary, get(), get(), get(), get(), get(), get()) }
+    viewModel { (summary: EventSummary) -> EventViewModel(summary, get(), get(), get(), get(), get(), get(), get()) }
 }
