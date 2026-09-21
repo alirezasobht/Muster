@@ -44,8 +44,13 @@ internal class MemberRepositoryImpl(
     }
 
     override suspend fun inviteByEmail(groupId: String, email: String): Unit = mapErrors {
+        val normalizedEmail = email.trim().lowercase()
         client.from(GROUP_INVITATIONS_TABLE).insert(
-            GroupInvitationInsertDto(groupId = groupId, email = email, invitedBy = myId())
+            GroupInvitationInsertDto(
+                groupId = groupId,
+                email = normalizedEmail,
+                invitedBy = myId()
+            )
         )
         dataChanges.notify(DataChange.Members(groupId))
     }
