@@ -163,3 +163,76 @@ memberships survive; only the invite lookup key moves.
 The app still builds no email-change screen, and the column grant on
 `profiles` allows only `name`. The trigger exists for changes made from
 the Supabase dashboard or the Auth API — both outside these tables.
+
+## The invite email goes through pg_net, not a database webhook
+
+The first design was a Database Webhook on `group_invitations` insert.
+Replaced with an explicit call: `invite_group_member_by_email` inserts,
+then calls `send_group_invitation_email`, which queues the request with
+`pg_net`.
+
+An explicit call makes the send visible in the code that causes it, and
+the same function can back a resend action later. A webhook fires on any
+insert however it happens — including from the dashboard or a future
+migration — and lives in dashboard configuration rather than the repo.
+
+`pg_net` sends only after the transaction commits, so a rolled-back
+invite sends nothing.
+
+Cost: the invite now depends on the email's configuration. With either
+Vault entry missing the function raises and takes the invitation with
+it. Accepted, and made a hard setup step rather than softened, because a
+silently skipped email is worse to debug than a failed invite.
+
+## Invitations are an RPC, not a direct insert
+
+The app used to insert into `group_invitations` directly, relying on RLS.
+`invite_group_member_by_email` replaced that: it checks the caller is an
+admin of a live group, normalises the address, sets `invited_by` itself,
+and queues the email in the same transaction.
+
+Part of a wider direction — moving writes behind RPCs one at a time, then
+revoking the broad table grants. SCHEMA.md → Grants has why that last
+step needs care.
+
+## Functions revoke PUBLIC themselves
+
+Postgres grants `EXECUTE` on every new function to `PUBLIC`, which
+`anon` inherits. A hardening migration revoked it everywhere, and every
+function since revokes it in its own migration.
+
+Revoking from `anon` alone looks right and isn't — the `PUBLIC` grant
+still reaches it.
+
+The six RLS helpers also moved to a `private` schema PostgREST doesn't
+expose, so they stop appearing as callable RPCs. `authenticated` keeps
+`EXECUTE` on them, since RLS evaluates them as the caller.
+
+The four existing `security definer` RPCs stay that way: each needs
+access ordinary RLS doesn't give, and each has reviewed checks of its
+own.
+
+## Two repos: Muster and Muster-env
+
+Everything non-secret is in Muster — migrations, Edge Function source,
+`config.toml`, setup docs, scripts. Real values are in a separate local
+repo, `Muster-env`, one folder per environment.
+
+Each environment has two files: `env` for the build and your own records,
+`edge.env` for Edge Function secrets only. Separate because `supabase
+secrets set --env-file` uploads every line it's given, and the database
+password has no business being a function secret.
+
+Every name carries its environment's prefix — `DEV_RESEND_API_KEY`,
+`PROD_RESEND_API_KEY`. The scripts refuse any line with the wrong one, so
+a prod value pasted into the dev file is caught before it's uploaded.
+
+The scripts take the project ref from the same folder as the values
+rather than as an argument. Typing the ref is where the mistake would
+happen — the dev file uploaded to the prod ref — and a check afterwards
+would catch it only once the damage was done. Removing the second input
+makes it impossible instead.
+
+A prefix-checking Edge Function was considered and rejected: secrets in
+two Supabase projects are already fully separate stores, so it would have
+added detection, not isolation, and left stray values behind.

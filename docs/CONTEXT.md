@@ -87,8 +87,14 @@ Two roles only: `admin` and `member`.
 
 It is a notification, nothing more: "you've been invited to <group>, sign
 in to the app with this email to accept." No link, no token, no accept
-button. Sending it is fire-and-forget — if it never arrives, the
-invitation still exists and the invitee still finds it on signing in.
+button. Delivery is fire-and-forget — if it never arrives, the invitation
+still exists and the invitee still finds it on signing in.
+
+The one thing it does depend on is **configuration**. Inviting and
+queueing the email happen in one transaction, so an environment missing
+its email secrets can't invite anyone at all. SCHEMA.md → Application
+logic has the detail; setting them is a hard step before any environment
+goes live.
 
 Accepting and declining both happen in the app, as RPC calls to
 `accept_group_invitation` / `decline_group_invitation`.
@@ -189,6 +195,18 @@ backfills cleanly: every existing row is Sydney by definition, so
 `default 'Australia/Sydney'` is correct history rather than a guess. On
 the group rather than the event, because a team plays where it plays;
 per-event would only matter for a tour.
+
+## Environments
+
+**Dev** is the current hosted Supabase project. **Production** will be a
+separate project, created later. No staging. Each has its own data,
+users, URLs, keys, Edge Function secrets and Vault entries.
+
+The Muster repo holds everything non-secret — migrations, Edge Function
+source, `config.toml`, setup docs and the scripts under
+`supabase/scripts/`. Real values live in a separate local repo,
+`Muster-env`, one folder per environment. Setup steps are in
+`supabase/docs/`.
 
 ## Working conventions
 

@@ -18,13 +18,14 @@ editing** — they change often, and other sessions edit them too.
 | `docs/DECISIONS.md` | Why closed choices were closed |
 | `docs/design/DESIGN.md` | Visual design of record, frames 1a–1t and 2a–2d |
 | `docs/design/muster-screens-v6.html` | The frames — open in a browser. v1–v5 superseded, kept as history |
+| `supabase/docs/environment_setup.md` | Bringing up an environment: Vault, secrets, Resend, Auth |
 
 Keep them updated when decisions change.
 
 ## Stack
 
 Compose Multiplatform (Android + iOS + Web/wasm), Supabase (Postgres,
-Auth, RLS, Edge Functions), Koin for DI, Gmail SMTP for email.
+Auth, RLS, Edge Functions), Koin for DI, Resend for email.
 Package `app.muster`. Sign-in is email codes, no passwords. Push
 notifications deferred past MVP.
 
@@ -40,6 +41,8 @@ notifications deferred past MVP.
 iOS builds from Xcode: open `iosApp/`.
 
 Migrations in `supabase/migrations/`, applied with the Supabase CLI.
+Edge Function secrets and deploys go through `supabase/scripts/`, never
+by hand — see `supabase/docs/environment_setup.md`.
 
 ## How to work
 
@@ -59,8 +62,12 @@ Migrations in `supabase/migrations/`, applied with the Supabase CLI.
   promotion, the last-admin invariant and the event freeze all live in
   Postgres. A second copy drifts and the client cannot enforce it anyway.
 - **Never commit secrets.** `local.properties` is gitignored and holds the
-  Supabase URL and publishable key. The service role key belongs nowhere
-  in this repo.
+  Supabase URL and publishable key. Everything else lives in the separate
+  `Muster-env` repo. The service role key belongs nowhere in this repo.
+- **Every new function revokes `EXECUTE` from `public` and `anon` in its
+  own migration.** Postgres grants it to `PUBLIC` by default, so one that
+  forgets is callable by anyone with the publishable key. SCHEMA.md →
+  Grants.
 
 ## Code style
 
@@ -77,21 +84,27 @@ Migrations in `supabase/migrations/`, applied with the Supabase CLI.
 Built: auth (email code, set-name gate), Home (1d/1e/1s/1t), Settings
 (1f), New group (1g), Group shell with tabs (1h), Members tab (1i/1j),
 app bar overflow — Leave group for everyone, Archive for admins (1j),
-Add by email, Events tab, New event. Eight migrations, all pushed.
+Add by email with the invitation email sent end to end, Events tab, New
+event, Event — roster with RSVP and per-row admin actions, standby
+queue with drag-to-reorder.
+
+Only **dev** exists; production is a separate project, not yet created.
 
 Not built:
-- **Event** — the screen itself: roster, standby queue, RSVP,
-  drag-to-reorder. New event lands on a placeholder.
 - **Edit group** — renaming a group. `groups_update` already grants
   `name`; no screen or entry point for it.
 - **Edit event** — title, time, location. Not capacity: it is set at
   creation and never editable, which is what keeps the capacity
   invariant to one entry point (SCHEMA.md rule 11).
+- **Add players** — Event part 3.
 - **The 2a–2d error treatment** — done on 1a, 1b, 1g and Add by email.
   Still outstanding on 1c and 1f, which carry a single `error` field and
   put everything in the field's slot, including errors that aren't about
   the field.
-- **The invitation email.** The invitation itself works — the invitee
-  finds it on signing in — but nothing tells them it exists.
+- **Resending an invitation.** `send_group_invitation_email` exists but is
+  not granted; it needs a throttle before it is.
+- **Revoking broad table grants** — only after writes move behind RPCs.
+  SCHEMA.md → Grants explains why a `security invoker` RPC breaks if the
+  grant goes first.
 
-Next: the Event screen.
+Next: Add players.

@@ -213,7 +213,10 @@ depends on positions being contiguous.
 9. **Group creation** — creator's `group_members` row with `role = 'admin'`
    is written in the same transaction as the group.
 10. **Profile creation** — trigger on `auth.users` insert writes the
-    matching `profiles` row.
+    matching `profiles` row. A second trigger, on sign-in, restores the
+    row if it has gone missing — same Auth UUID, so anything still
+    referencing it reconnects. It never overwrites an existing profile
+    and does not bring back deleted memberships or RSVPs.
 11. **Capacity invariant** — `pending` + `in` event_invitations <=
     `capacity`, per event. Spans rows, so a trigger, not a CHECK.
     `capacity` is not updatable, so inviting a player (or setting one to
@@ -250,9 +253,15 @@ depends on positions being contiguous.
 
 Everything callable or automatic, in one place.
 
-**Helpers** (migration 2 — the policies call them). All `security
-definer stable`. `security definer` is not optional: a policy on
-`group_members` that queried `group_members` would recurse infinitely.
+**Helpers** — the policies call them. All `security definer stable`.
+`security definer` is not optional: a policy on `group_members` that
+queried `group_members` would recurse infinitely.
+
+They live in the **`private`** schema, which PostgREST does not expose,
+so they can't be called as RPCs. `authenticated` keeps `USAGE` on the
+schema and `EXECUTE` on each, because RLS evaluates them as the caller.
+Moving them preserved every policy that references them; anything that
+calls one by name must qualify it, `private.is_group_admin(...)`.
 
 | Function | Returns |
 |---|---|
@@ -271,13 +280,14 @@ definer stable`. `security definer` is not optional: a policy on
 | `decline_group_invitation(id)` | mirrors accept; no update policy on `group_invitations` |
 | `set_standby_order(eid, uuid[])` | whole queue in one call; the only write path to `event_standby` |
 | `get_my_pending_invitations()` | Home shows who invited you (DESIGN.md 1d); `profiles_select` can't reach the inviter's row since the invitee has no membership yet. Read-only, so `security definer` instead of a new policy — see DECISIONS.md |
+| `invite_group_member_by_email(group_id, email)` | the only way to create an invitation. `security definer`: checks the caller is an admin of a live group, normalises the address, sets `invited_by`, inserts, then queues the email |
+| `disinvite_player(event_id, profile_id)` | removes a player from an event. `security invoker`, so the existing delete policy decides; returns whether a row went |
 
 Things that need **no** RPC: changing your own or (as admin) another
-player's RSVP is a plain update on `event_invitations`; removing a
-player from an event is a plain delete. Demoting an invited player to
-the queue is those two calls in sequence — the delete commits first, so
-promotion pulls the next queued player into the freed slot and the
-demoted player joins behind them.
+player's RSVP is a plain update on `event_invitations`. Demoting an
+invited player to the queue is a disinvite then `set_standby_order` —
+the delete commits first, so promotion pulls the next queued player into
+the freed slot and the demoted player joins behind them.
 
 `set_standby_order` runs `security definer`, so RLS checks nothing and
 its own guards are the entire security model: caller is a group admin,
@@ -289,6 +299,7 @@ already holds an invitation.
 | Trigger | Function | Fires on | Does |
 |---|---|---|---|
 | `on_auth_user_created` | `handle_new_user` | insert on `auth.users` | creates the `profiles` row |
+| `on_auth_user_sign_in_restore_profile` | `restore_profile_on_sign_in` | update of `last_sign_in_at` on `auth.users` | recreates a missing `profiles` row, never touches an existing one |
 | `on_auth_user_email_changed` | `sync_user_email` | update of email on `auth.users` | keeps `profiles.email` in step with Auth |
 | `on_group_created` | `handle_new_group` | insert on `groups` | creator's admin membership |
 | `group_invitations_not_member` | `reject_if_already_member` | insert on `group_invitations` | rejects inviting someone already in the group |
@@ -308,6 +319,7 @@ already holds an invitation.
 |---|---|
 | `promote_standby(eid)` | the promotion body itself |
 | `trigger_promote_standby()` | thin wrapper, passes the event id from the changed row |
+| `send_group_invitation_email(invitation_id)` | queues the invite email through `pg_net`. Called by the invite RPC. Kept for a future resend button, but not granted until resend has a throttle — otherwise any admin could email an address without limit |
 
 Every other function above is a trigger function and is likewise
 unreachable from the API.
@@ -350,6 +362,31 @@ The concurrency-sensitive parts rest on six details:
   They still fire once per affected row; `promote_standby` is idempotent,
   so the repeats are harmless rather than collapsed.
 
+### Grants
+
+Postgres gives `EXECUTE` to `PUBLIC` on **every new function** by
+default, and `anon` inherits it. So every function revokes it itself:
+
+```sql
+revoke execute on function public.f(...) from public, anon;
+grant execute on function public.f(...) to authenticated;  -- RPCs only
+```
+
+Revoking from `anon` alone is not enough — the `PUBLIC` grant still
+reaches it. Internal and trigger functions revoke from `authenticated`
+too. A new function that forgets this is callable by anyone with the
+publishable key.
+
+`create or replace` keeps existing grants; a fresh `create` does not.
+
+**Still open: table grants.** `authenticated` still has broad direct
+write access to the tables, narrowed only by RLS and the column grants
+in rule 5. The plan is to move writes behind RPCs one at a time, then
+revoke. The trap: a `security invoker` RPC like `disinvite_player` runs
+with the caller's own table permissions, so revoking the grant breaks
+it. Each RPC has to become `security definer` with its own checks, or
+keep a narrow grant, before the revoke.
+
 ### Known limits
 
 - **Lost update on the standby queue.** `set_standby_order` replaces the
@@ -367,10 +404,19 @@ The concurrency-sensitive parts rest on six details:
 
 ### Application logic
 
-- **Invite notification** — after the admin inserts a `group_invitations`
-  row, an Edge Function emails the person telling them to sign in with
-  that address. Fire-and-forget; no part of the flow depends on
-  delivery.
+- **Invite email** — `invite_group_member_by_email` calls
+  `send_group_invitation_email` in the same transaction. That reads the
+  project URL and a shared webhook secret from **Vault** and queues a
+  request with **`pg_net`**, which sends it only after the transaction
+  commits — a rolled-back invite sends nothing. The Edge Function
+  `send-group-invitation-email` checks the secret, re-reads the
+  invitation, and sends through Resend.
+
+  Delivery itself is fire-and-forget: a failed send never reaches the
+  app, and shows up only in `net._http_response`. But **the invite does
+  depend on configuration** — if either Vault entry is missing the
+  function raises, and the invitation rolls back with it. Both must exist
+  before an environment can invite anyone.
 
 Everything else is in the database. Standby promotion in particular
 cannot be client-side: one of its entry points is an `ON DELETE CASCADE`,

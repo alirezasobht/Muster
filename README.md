@@ -47,24 +47,12 @@ You need JDK 17+, Android Studio with the Kotlin Multiplatform plugin,
 and the [Supabase CLI](https://supabase.com/docs/guides/cli). Xcode as
 well, if you want to build for iOS.
 
-**1. Create a Supabase project.** Any region; pick one near your players.
+**1. Set up a Supabase environment.** Project, schema, email, Vault,
+Edge Function secrets and Auth — all in
+[supabase/docs/environment_setup.md](supabase/docs/environment_setup.md).
+Invitations won't work until every step there is done.
 
-**2. Apply the schema.**
-
-```
-supabase link --project-ref <your-project-ref>
-supabase db push
-```
-
-That creates every table, RLS policy and trigger from
-`supabase/migrations/`.
-
-**3. Configure email.** Auth → Emails → SMTP Settings. Without a custom
-SMTP provider, Supabase's built-in sender only delivers to your own
-address, so nobody else can sign in. Any provider works; this project
-uses a Gmail account with an app password.
-
-**4. Add your credentials** to `local.properties` (gitignored):
+**2. Add your credentials** to `local.properties` (gitignored):
 
 ```
 supabase.url=https://<project>.supabase.co
@@ -78,7 +66,7 @@ you which is missing.
 The publishable key ships in every build and is meant to — RLS is what
 protects the data. The service role key belongs nowhere near this repo.
 
-**5. Allow yourself to create groups.** Sign in once so your profile
+**3. Allow yourself to create groups.** Sign in once so your profile
 exists, then in the Supabase table editor set `can_create_groups` to true
 on your row in `profiles`. Without it you can accept invitations but not
 start a group, and the app will look empty.
@@ -103,7 +91,7 @@ shared/       Compose UI, domain, data — nearly all the code
 androidApp/   Android host, MainActivity only
 iosApp/       Xcode project, thin SwiftUI wrapper
 webApp/       web host
-supabase/     migrations
+supabase/     migrations, Edge Functions, setup scripts and docs
 buildSrc/     build-time Supabase config generation
 docs/         see below
 ```
