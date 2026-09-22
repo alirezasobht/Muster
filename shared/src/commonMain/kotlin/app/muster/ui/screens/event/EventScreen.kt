@@ -7,6 +7,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,9 +16,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -47,6 +50,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.muster.domain.error.DomainError
 import app.muster.domain.model.RsvpStatus
 import app.muster.ui.common.components.FormError
 import app.muster.ui.common.components.MessageState
@@ -240,7 +244,6 @@ private fun EventContent(
         HorizontalDivider(color = MusterColors.Hairline)
 
         var standbyDragging by remember { mutableStateOf(false) }
-        val scrollState = rememberScrollState()
         val refreshEnabled = !standbyDragging && !state.standbyReordering
 
         MusterPullToRefreshBox(
@@ -248,59 +251,65 @@ private fun EventContent(
             onRefresh = { if (refreshEnabled) actions.onRefresh() },
             modifier = Modifier.weight(1f).fillMaxWidth()
         ) {
-            Column(modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp).verticalScroll(state = scrollState, enabled = !standbyDragging)) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = 24.dp),
+                userScrollEnabled = !standbyDragging
+            ) {
 
-                Spacer(Modifier.height(16.dp))
-                EventDetails(summary = state.summary, isFrozen = state.isFrozen)
-                Spacer(Modifier.height(16.dp))
+                item { Spacer(Modifier.height(16.dp)) }
+                item { EventDetails(summary = state.summary, isFrozen = state.isFrozen) }
+                item { Spacer(Modifier.height(16.dp)) }
                 if (state.myStatus != null) {
-                    OwnRsvpBlock(state = state, onRsvp = actions.onRsvp)
-                    Spacer(Modifier.height(20.dp))
+                    item { OwnRsvpBlock(state = state, onRsvp = actions.onRsvp) }
+                    item { Spacer(Modifier.height(20.dp)) }
                 }
-                Text(
-                    text = stringResource(Res.string.event_roster_header, state.roster.size),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MusterColors.Muted
-                )
+                item {
+                    Text(
+                        text = stringResource(Res.string.event_roster_header, state.roster.size),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MusterColors.Muted
+                    )
+                }
 
                 if (state.isRosterEmpty) {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        MessageState(
-                            title = stringResource(Res.string.event_roster_empty_title),
-                            body = stringResource(Res.string.event_roster_empty_body)
-                        )
-                    }
-                } else {
-                    state.roster.forEach { row ->
-                        key(row.id) {
-                            RosterRowItem(
-                                row = row,
-                                isFrozen = state.isFrozen,
-                                inFlight = state.rowActionTargetId == row.id,
-                                errorMessage = state.rowActionError?.toMessage()
-                                    ?.takeIf { state.rowActionTargetId == row.id },
-                                onAction = { action -> actions.onRosterAction(row.id, action) },
-                                modifier = Modifier
+                    item {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            MessageState(
+                                title = stringResource(Res.string.event_roster_empty_title),
+                                body = stringResource(Res.string.event_roster_empty_body)
                             )
                         }
+                    }
+                } else {
+                    items(state.roster, key = { it.id }) { row ->
+                        RosterRowItem(
+                            row = row,
+                            isFrozen = state.isFrozen,
+                            inFlight = state.rowActionTargetId == row.id,
+                            errorMessage = state.rowActionError?.toMessage()
+                                ?.takeIf { state.rowActionTargetId == row.id },
+                            onAction = { action -> actions.onRosterAction(row.id, action) },
+                            modifier = Modifier.animateItem()
+                        )
                     }
                 }
 
                 if (state.standby.isNotEmpty()) {
-                    StandbySection(
+                    standbySection(
                         standby = state.standby,
                         isAdmin = state.isAdmin,
                         isFrozen = state.isFrozen,
                         reordering = state.standbyReordering,
-                        errorMessage = state.standbyError?.toMessage(),
+                        error = state.standbyError,
                         onDraggingChanged = { standbyDragging = it },
                         onReorder = actions.onReorderStandby
                     )
                 }
-                Spacer(Modifier.height(24.dp))
+                item { Spacer(Modifier.height(24.dp)) }
             }
         }
     }
@@ -482,55 +491,66 @@ private fun RosterRowItem(
 
 private val StandbyRowHeight = 48.dp
 
-@Composable
-private fun StandbySection(
+private fun LazyListScope.standbySection(
     standby: List<StandbyRow>,
     isAdmin: Boolean,
     isFrozen: Boolean,
     reordering: Boolean,
-    errorMessage: String?,
+    error: DomainError?,
     onDraggingChanged: (Boolean) -> Unit,
     onReorder: (List<String>) -> Unit
 ) {
     val reorderable = isAdmin && !isFrozen
-    Spacer(Modifier.height(20.dp))
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            text = if (isFrozen) {
-                stringResource(Res.string.event_standby_header_frozen)
-            } else {
-                stringResource(Res.string.event_standby_header, standby.size)
-            },
-            style = MaterialTheme.typography.labelMedium,
-            color = MusterColors.Muted,
-            modifier = Modifier.weight(1f)
-        )
-        if (reorderable) {
+    item { Spacer(Modifier.height(20.dp)) }
+    item {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = stringResource(Res.string.event_standby_drag_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = MusterColors.Muted
+                text = if (isFrozen) {
+                    stringResource(Res.string.event_standby_header_frozen)
+                } else {
+                    stringResource(Res.string.event_standby_header, standby.size)
+                },
+                style = MaterialTheme.typography.labelMedium,
+                color = MusterColors.Muted,
+                modifier = Modifier.weight(1f)
             )
-        }
-    }
-    Spacer(Modifier.height(8.dp))
-    if (reorderable) {
-        ReorderableStandbyList(
-            standby = standby,
-            enabled = !reordering,
-            onDraggingChanged = onDraggingChanged,
-            onReorder = onReorder
-        )
-    } else {
-        standby.forEachIndexed { index, row ->
-            key(row.id) {
-                StandbyRowItem(position = index + 1, row = row)
+            if (reorderable) {
+                Text(
+                    text = stringResource(Res.string.event_standby_drag_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MusterColors.Muted
+                )
             }
         }
     }
-    if (errorMessage != null) {
-        Spacer(Modifier.height(8.dp))
-        Text(text = errorMessage, style = MaterialTheme.typography.bodySmall, color = MusterColors.OutText)
+    item { Spacer(Modifier.height(8.dp)) }
+    if (reorderable) {
+        item {
+            ReorderableStandbyList(
+                standby = standby,
+                enabled = !reordering,
+                onDraggingChanged = onDraggingChanged,
+                onReorder = onReorder
+            )
+        }
+    } else {
+        itemsIndexed(standby, key = { _, row -> row.id }) { index, row ->
+            StandbyRowItem(
+                position = index + 1,
+                row = row,
+                modifier = Modifier.animateItem()
+            )
+        }
+    }
+    error?.let {
+        item {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = it.toMessage(),
+                style = MaterialTheme.typography.bodySmall,
+                color = MusterColors.OutText
+            )
+        }
     }
 }
 
