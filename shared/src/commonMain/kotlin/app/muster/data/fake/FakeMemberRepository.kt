@@ -98,7 +98,6 @@ class FakeMemberRepository(
         delay(latency.milliseconds)
         leaveError?.let { throw it }
         leftGroupIds = leftGroupIds + groupId
-        dataChanges?.notify(DataChange.Members(groupId))
         dataChanges?.notify(DataChange.MyGroups)
     }
 }

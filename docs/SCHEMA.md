@@ -282,6 +282,15 @@ calls one by name must qualify it, `private.is_group_admin(...)`.
 | `get_my_pending_invitations()` | Home shows who invited you (DESIGN.md 1d); `profiles_select` can't reach the inviter's row since the invitee has no membership yet. Read-only, so `security definer` instead of a new policy — see DECISIONS.md |
 | `invite_group_member_by_email(group_id, email)` | the only way to create an invitation. `security definer`: checks the caller is an admin of a live group, normalises the address, sets `invited_by`, inserts, then queues the email |
 | `disinvite_player(event_id, profile_id)` | removes a player from an event. `security invoker`, so the existing delete policy decides; returns whether a row went |
+| `set_group_member_role(group_id, profile_id, role)` | promote or demote. Admins only |
+| `remove_group_member(group_id, profile_id)` | admins only. Refuses the caller's own id — that's `leave_group` |
+| `revoke_group_invitation(group_id, invitation_id)` | admins only |
+| `leave_group(group_id)` | removes the caller's own membership |
+
+The four member RPCs are `security definer` with their own checks, and
+raise if nothing matched rather than succeeding silently. None of them
+checks for the last admin: `group_keeps_an_admin` still fires, since a
+definer function doesn't bypass triggers, and still raises at commit.
 
 Things that need **no** RPC: changing your own or (as admin) another
 player's RSVP is a plain update on `event_invitations`. Demoting an
@@ -386,6 +395,11 @@ revoke. The trap: a `security invoker` RPC like `disinvite_player` runs
 with the caller's own table permissions, so revoking the grant breaks
 it. Each RPC has to become `security definer` with its own checks, or
 keep a narrow grant, before the revoke.
+
+Done so far: every write to `group_members`, and invites and revokes on
+`group_invitations`, go through definer RPCs — so those grants can go.
+`events`, `event_invitations`, `groups` and `profiles` are still written
+directly.
 
 ### Known limits
 

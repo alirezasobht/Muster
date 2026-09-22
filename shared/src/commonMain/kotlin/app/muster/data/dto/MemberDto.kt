@@ -16,28 +16,37 @@ internal data class MemberProfileDto(
 )
 
 @Serializable
-internal data class GroupMemberRoleUpdateDto(
-    val role: String
-)
-
-@Serializable
 internal data class GroupInvitationRowDto(
     val id: String,
     val email: String
 )
 
 @Serializable
-internal data class GroupInvitationInsertDto(
+internal data class SetGroupMemberRoleDto(
     @SerialName("group_id") val groupId: String,
-    val email: String,
-    @SerialName("invited_by") val invitedBy: String,
-    val status: String = "pending"
+    @SerialName("profile_id") val profileId: String,
+    val role: String
 )
 
 @Serializable
-data class InviteGroupMemberDto(
-    @SerialName("group_id")
-    val groupId: String,
-
+internal data class InviteGroupMemberDto(
+    @SerialName("group_id") val groupId: String,
     val email: String
+)
+
+@Serializable
+internal data class RemoveGroupMemberDto(
+    @SerialName("group_id") val groupId: String,
+    @SerialName("profile_id") val profileId: String
+)
+
+@Serializable
+internal data class RevokeGroupInvitationDto(
+    @SerialName("group_id") val groupId: String,
+    @SerialName("invitation_id") val invitationId: String
+)
+
+@Serializable
+internal data class LeaveGroupDto(
+    @SerialName("group_id") val groupId: String
 )

@@ -206,8 +206,6 @@ class EventViewModel(
 private val statusOrder = mapOf(RsvpStatus.In to 0, RsvpStatus.Pending to 1, RsvpStatus.Out to 2)
 
 private fun EventDetail.toRosterRows(myProfileId: String, isAdmin: Boolean): List<RosterRow> {
-    // Counts from this fetch, not the route's summary — that one is captured
-    // at navigation and would offer Out -> In on stale numbers.
     val hasFreeSlot = event.capacity > event.inCount + event.pendingCount
     return roster
         .map { entry ->
