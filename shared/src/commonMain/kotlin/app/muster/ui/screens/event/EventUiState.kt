@@ -68,6 +68,7 @@ sealed interface EventUiState {
         val rsvpError: DomainError? = null,
         val rowActionTargetId: String? = null,
         val rowActionError: DomainError? = null,
+        val rowActionErrorId: String? = null,
         val standbyReordering: Boolean = false,
         val standbyError: DomainError? = null
     ) : EventUiState {

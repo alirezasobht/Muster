@@ -173,7 +173,7 @@
     <string name="error_already_invited">There’s already an open invitation for that address.</string>
     <string name="error_already_member">That address is already in the group.</string>
     <string name="error_event_starts_in_past">Pick a time that hasn’t passed yet.</string>
-    <string name="error_event_full">This event is full. Free a slot first.</string>
+    <string name="error_event_full">This event is full.</string>
     <string name="error_event_frozen">This event has already started.</string>
     <string name="error_standby_queue_stale">Someone was promoted while you were reordering. Refresh and try again.</string>
     <string name="error_network">Can’t connect. Check your connection and try again.</string>

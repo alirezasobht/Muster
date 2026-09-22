@@ -103,13 +103,13 @@ class EventViewModel(
     private fun onChangeRowStatus(playerId: String, status: RsvpStatus) {
         val current = _state.value as? EventUiState.Success ?: return
         if (current.rowActionTargetId != null) return
-        updateSuccess { it.copy(rowActionTargetId = playerId, rowActionError = null) }
+        updateSuccess { it.copy(rowActionTargetId = playerId, rowActionError = null, rowActionErrorId = null) }
         viewModelScope.launch {
             try {
                 setRsvp(eventId, playerId, status)
                 updateSuccess { it.copy(rowActionTargetId = null) }
             } catch (e: DomainError) {
-                updateSuccess { it.copy(rowActionTargetId = null, rowActionError = e) }
+                updateSuccess { it.copy(rowActionTargetId = null, rowActionError = e, rowActionErrorId = playerId) }
             }
         }
     }
@@ -117,13 +117,13 @@ class EventViewModel(
     private fun onDisinvite(playerId: String) {
         val current = _state.value as? EventUiState.Success ?: return
         if (current.rowActionTargetId != null) return
-        updateSuccess { it.copy(rowActionTargetId = playerId, rowActionError = null) }
+        updateSuccess { it.copy(rowActionTargetId = playerId, rowActionError = null, rowActionErrorId = null) }
         viewModelScope.launch {
             try {
                 disinvitePlayer(eventId = eventId, groupId = groupId, profileId = playerId)
                 updateSuccess { it.copy(rowActionTargetId = null) }
             } catch (e: DomainError) {
-                updateSuccess { it.copy(rowActionTargetId = null, rowActionError = e) }
+                updateSuccess { it.copy(rowActionTargetId = null, rowActionError = e, rowActionErrorId = playerId) }
             }
         }
     }

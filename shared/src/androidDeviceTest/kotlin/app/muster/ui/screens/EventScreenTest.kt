@@ -285,11 +285,23 @@ class EventScreenTest {
     fun aRowActionErrorIsShownUnderThatRow() {
         show(
             state = successState.copy(
-                rowActionTargetId = "p2",
+                rowActionErrorId = "p2",
                 rowActionError = DomainError.EventFull()
             )
         )
         composeRule.onNodeWithText("This event is full. Free a slot first.").assertIsDisplayed()
+    }
+
+    @Test
+    fun aRowActionErrorForAnotherRowIsNotShownHere() {
+        show(
+            state = successState.copy(
+                roster = listOf(RosterRow(id = "p1", name = "Alex Doyle", status = RsvpStatus.In)),
+                rowActionErrorId = "someone-else",
+                rowActionError = DomainError.EventFull()
+            )
+        )
+        composeRule.onNodeWithText("This event is full. Free a slot first.").assertDoesNotExist()
     }
 
     @Test

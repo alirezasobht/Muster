@@ -330,7 +330,24 @@ class EventViewModelTest {
 
         val state = assertIs<EventUiState.Success>(viewModel.state.value)
         assertIs<DomainError.EventFull>(state.rowActionError)
+        assertEquals("player-3", state.rowActionErrorId)
         assertNull(state.rowActionTargetId)
+    }
+
+    @Test
+    fun `a new row action clears the previous row's error`() = runTest {
+        val events = FakeEventRepository(eventDetail = detail(), setRsvpError = DomainError.EventFull())
+        val viewModel = viewModel(events = events)
+        advanceUntilIdle()
+        viewModel.onRosterAction("player-3", RosterAction.SetIn)
+        advanceUntilIdle()
+
+        events.setRsvpError = null
+        viewModel.onRosterAction("player-2", RosterAction.SetOut)
+
+        val state = assertIs<EventUiState.Success>(viewModel.state.value)
+        assertNull(state.rowActionError)
+        assertNull(state.rowActionErrorId)
     }
 
     @Test

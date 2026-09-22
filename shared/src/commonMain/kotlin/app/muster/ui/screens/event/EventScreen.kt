@@ -291,7 +291,7 @@ private fun EventContent(
                             isFrozen = state.isFrozen,
                             inFlight = state.rowActionTargetId == row.id,
                             errorMessage = state.rowActionError?.toMessage()
-                                ?.takeIf { state.rowActionTargetId == row.id },
+                                ?.takeIf { state.rowActionErrorId == row.id },
                             onAction = { action -> actions.onRosterAction(row.id, action) },
                             modifier = Modifier.animateItem()
                         )
@@ -862,6 +862,20 @@ private fun EventScreenEmptyRosterPreview() {
                 summary = PreviewSummary.copy(inCount = 0, pendingCount = 0),
                 roster = emptyList(),
                 myStatus = null
+            ),
+            actions = PreviewActions
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun EventScreenRowErrorPreview() {
+    MusterTheme {
+        EventScreen(
+            state = PreviewSuccess.copy(
+                rowActionError = DomainError.EventFull(),
+                rowActionErrorId = "3"
             ),
             actions = PreviewActions
         )
