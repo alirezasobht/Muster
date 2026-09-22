@@ -29,4 +29,9 @@ interface EventRepository {
 
     // The whole ordered queue, set_standby_order rewrites positions 1..n
     suspend fun reorderStandby(eventId: String, orderedProfileIds: List<String>)
+
+    // add_players_to_event invites while slots remain and queues the rest, in
+    // profileIds order. groupId only for the Events(groupId) notification —
+    // same reasoning as disinvitePlayer.
+    suspend fun addPlayers(eventId: String, groupId: String, profileIds: List<String>)
 }

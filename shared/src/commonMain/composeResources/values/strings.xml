@@ -110,6 +110,7 @@
 
     <!-- Event (1l, 1m, 1n) -->
     <string name="event_roster_header">Roster · %1$d</string>
+    <string name="event_add_players">+ Add players</string>
     <string name="event_slots">%1$d of %2$d slots · %3$d in, %4$d pending</string>
     <string name="event_slots_frozen">%1$d of %2$d slots · %3$d in, %4$d no reply</string>
     <string name="event_status_no_reply">No reply</string>
@@ -146,6 +147,17 @@
     <string name="new_event_increase_capacity">Increase capacity</string>
     <string name="new_event_picker_confirm">OK</string>
     <string name="new_event_picker_cancel">Cancel</string>
+
+    <!-- Add players (1o) -->
+    <string name="add_players_title">Add players</string>
+    <string name="add_players_stats">Capacity %1$d · Free %2$d · Inviting %3$d · Standby %4$d</string>
+    <string name="add_players_destination_invited">Invite</string>
+    <string name="add_players_destination_standby">Standby #%1$d</string>
+    <string name="add_players_confirm">Add %1$d players</string>
+    <string name="add_players_empty_title">Everyone’s already on this event</string>
+    <string name="add_players_empty_body">Every member of this group is already invited or on standby.</string>
+    <string name="add_players_failed_title">Couldn’t load members</string>
+    <string name="add_players_try_again">Try again</string>
 
     <!-- Shared -->
     <string name="action_continue">Continue</string>

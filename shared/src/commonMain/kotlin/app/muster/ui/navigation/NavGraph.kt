@@ -16,6 +16,7 @@ import app.muster.ui.common.util.LocalAnimatedVisibilityScope
 import app.muster.ui.common.util.LocalSharedTransitionScope
 import app.muster.ui.common.util.toDisplayDate
 import app.muster.ui.screens.addbyemail.AddMemberByEmailRoute
+import app.muster.ui.screens.addplayers.AddPlayersRoute
 import app.muster.ui.screens.event.EventRoute
 import app.muster.ui.screens.event.EventSummary
 import app.muster.ui.screens.group.GroupRoute
@@ -185,9 +186,20 @@ fun NavGraph(
                                 inCount = route.inCount,
                                 pendingCount = route.pendingCount
                             ),
-                            onBack = { navController.popBackStack() }
+                            onBack = { navController.popBackStack() },
+                            onAddPlayers = { eventId, groupId ->
+                                navController.navigate(AddPlayers(eventId, groupId))
+                            }
                         )
                     }
+                }
+                composable<AddPlayers> { entry ->
+                    val route = entry.toRoute<AddPlayers>()
+                    AddPlayersRoute(
+                        eventId = route.eventId,
+                        groupId = route.groupId,
+                        onBack = { navController.popBackStack() }
+                    )
                 }
             }
         }

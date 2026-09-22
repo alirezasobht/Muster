@@ -45,3 +45,6 @@ data class Event(
     val inCount: Int,
     val pendingCount: Int
 )
+
+@Serializable
+data class AddPlayers(val eventId: String, val groupId: String)

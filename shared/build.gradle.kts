@@ -99,6 +99,7 @@ kotlin {
                 implementation(libs.kotlin.testJunit)
                 implementation(libs.junit)
                 implementation(libs.kotlinx.coroutines.test)
+                implementation(libs.mockk)
             }
         }
         val androidDeviceTest by getting {

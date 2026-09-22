@@ -4,6 +4,7 @@ import app.muster.ui.common.components.MusterPullToRefreshBox
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -71,6 +72,7 @@ import muster.shared.generated.resources.content_description_back
 import muster.shared.generated.resources.event_action_cancel_invite
 import muster.shared.generated.resources.event_action_remove_from_event
 import muster.shared.generated.resources.event_action_remove_from_list
+import muster.shared.generated.resources.event_add_players
 import muster.shared.generated.resources.event_failed_title
 import muster.shared.generated.resources.event_frozen_strip
 import muster.shared.generated.resources.event_roster_empty_body
@@ -104,13 +106,15 @@ data class EventActions(
     // Send the whole ordered queue
     val onReorderStandby: (orderedIds: List<String>) -> Unit,
     val onRetry: () -> Unit,
-    val onRefresh: () -> Unit = {}
+    val onRefresh: () -> Unit = {},
+    val onAddPlayers: () -> Unit = {}
 )
 
 @Composable
 fun EventRoute(
     initialSummary: EventSummary,
     onBack: () -> Unit,
+    onAddPlayers: (eventId: String, groupId: String) -> Unit,
     viewModel: EventViewModel = koinViewModel { parametersOf(initialSummary) }
 ) {
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onResume() }
@@ -123,7 +127,8 @@ fun EventRoute(
             onRosterAction = viewModel::onRosterAction,
             onReorderStandby = viewModel::onReorderStandby,
             onRetry = viewModel::onRetry,
-            onRefresh = viewModel::onRefresh
+            onRefresh = viewModel::onRefresh,
+            onAddPlayers = { onAddPlayers(state.summary.eventId, state.summary.groupId) }
         )
     )
 }
@@ -265,11 +270,25 @@ private fun EventContent(
                     item { Spacer(Modifier.height(20.dp)) }
                 }
                 item {
-                    Text(
-                        text = stringResource(Res.string.event_roster_header, state.roster.size),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MusterColors.Muted
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.event_roster_header, state.roster.size),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MusterColors.Muted,
+                            modifier = Modifier.weight(1f)
+                        )
+                        if (state.isAdmin && !state.isFrozen) {
+                            Text(
+                                text = stringResource(Res.string.event_add_players),
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                                color = MusterColors.Ink,
+                                modifier = Modifier.clickable(onClick = actions.onAddPlayers)
+                            )
+                        }
+                    }
                 }
 
                 if (state.isRosterEmpty) {

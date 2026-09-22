@@ -7,6 +7,7 @@ import app.muster.domain.model.Event
 import app.muster.domain.model.EventDetail
 import app.muster.domain.model.RosterEntry
 import app.muster.domain.model.RsvpStatus
+import app.muster.domain.model.StandbyEntry
 import app.muster.domain.repository.EventRepository
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
@@ -35,6 +36,8 @@ class FakeEventRepository(
     var setRsvpError: DomainError? = null,
     var reorderStandbyError: DomainError? = null,
     var disinvitePlayerError: DomainError? = null,
+    var addPlayersError: DomainError? = null,
+    var profileNames: Map<String, String> = emptyMap(),
     private val dataChanges: DataChanges? = null,
     private val latency: Long = FAKE_LATENCY_MS
 ) : EventRepository {
@@ -46,6 +49,9 @@ class FakeEventRepository(
         private set
 
     var reorderCalls = listOf<List<String>>()
+        private set
+
+    var addPlayersCalls = listOf<List<String>>()
         private set
 
     override suspend fun listUpcomingEvents(groupId: String): List<Event> {
@@ -143,5 +149,33 @@ class FakeEventRepository(
         val byId = eventDetail.standby.associateBy { it.profileId }
         eventDetail = eventDetail.copy(standby = orderedProfileIds.mapNotNull { byId[it] })
         dataChanges?.notify(DataChange.Roster(eventId))
+    }
+
+    override suspend fun addPlayers(eventId: String, groupId: String, profileIds: List<String>) {
+        delay(latency.milliseconds)
+        addPlayersError?.let { throw it }
+        addPlayersCalls = addPlayersCalls + listOf(profileIds)
+
+        val onEvent = (eventDetail.roster.map { it.profileId } + eventDetail.standby.map { it.profileId }).toMutableSet()
+        var occupied = eventDetail.roster.count { it.status == RsvpStatus.In || it.status == RsvpStatus.Pending }
+        val capacity = eventDetail.event.capacity
+
+        var roster = eventDetail.roster
+        var standby = eventDetail.standby
+
+        profileIds.forEach { profileId ->
+            if (!onEvent.add(profileId)) return@forEach
+            val name = profileNames[profileId].orEmpty()
+            if (occupied < capacity) {
+                roster = roster + RosterEntry(profileId = profileId, name = name, status = RsvpStatus.Pending)
+                occupied++
+            } else {
+                standby = standby + StandbyEntry(profileId = profileId, name = name)
+            }
+        }
+
+        eventDetail = eventDetail.copy(roster = roster, standby = standby)
+        dataChanges?.notify(DataChange.Roster(eventId))
+        dataChanges?.notify(DataChange.Events(groupId))
     }
 }

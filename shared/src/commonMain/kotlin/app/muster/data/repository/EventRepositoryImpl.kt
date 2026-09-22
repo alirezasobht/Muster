@@ -187,6 +187,18 @@ internal class EventRepositoryImpl(
         dataChanges.notify(DataChange.Roster(eventId))
     }
 
+    override suspend fun addPlayers(eventId: String, groupId: String, profileIds: List<String>): Unit = mapErrors {
+        client.postgrest.rpc(
+            ADD_PLAYERS_TO_EVENT_FUNCTION,
+            buildJsonObject {
+                put("event_id", eventId)
+                putJsonArray("profile_ids") { profileIds.forEach { add(it) } }
+            }
+        )
+        dataChanges.notify(DataChange.Roster(eventId))
+        dataChanges.notify(DataChange.Events(groupId))
+    }
+
     private fun myId(): String =
         client.auth.currentUserOrNull()?.id ?: throw DomainError.NotSignedIn()
 
@@ -199,5 +211,6 @@ internal class EventRepositoryImpl(
         const val PENDING_STATUS = "pending"
         const val SET_STANDBY_ORDER_FUNCTION = "set_standby_order"
         const val DISINVITE_PLAYER_FUNCTION = "disinvite_player"
+        const val ADD_PLAYERS_TO_EVENT_FUNCTION = "add_players_to_event"
     }
 }

@@ -141,12 +141,13 @@ The ordered queue. A standby player has **no** `event_invitations` row.
 - Same two composite FKs as `event_invitations`, so group removal drops
   the player from queues too
 
-No write policies. Every change goes through `set_standby_order()`,
-which takes the whole queue as an ordered array and rewrites positions
-1..n. Adding, removing and reordering are the same operation, so the
-client never computes a position and the queue cannot half-apply.
+No write policies. Reordering goes through `set_standby_order()`, which
+takes the whole queue as an ordered array and rewrites positions 1..n, so
+the client never computes a position and the queue cannot half-apply.
 Gaps are impossible after a rewrite, but promotion leaves them; nothing
-depends on positions being contiguous.
+depends on positions being contiguous. `add_players_to_event()` is the
+other writer — it only appends, past whatever `position` is highest, so
+it never needs to renumber anything.
 
 ### Deferred
 
@@ -278,10 +279,11 @@ calls one by name must qualify it, `private.is_group_admin(...)`.
 |---|---|
 | `accept_group_invitation(id)` | two writes that must be atomic; invitee has no membership yet, so no RLS route to insert one |
 | `decline_group_invitation(id)` | mirrors accept; no update policy on `group_invitations` |
-| `set_standby_order(eid, uuid[])` | whole queue in one call; the only write path to `event_standby` |
+| `set_standby_order(eid, uuid[])` | whole queue in one call; reorders (and can add or remove) `event_standby` rows |
 | `get_my_pending_invitations()` | Home shows who invited you (DESIGN.md 1d); `profiles_select` can't reach the inviter's row since the invitee has no membership yet. Read-only, so `security definer` instead of a new policy — see DECISIONS.md |
 | `invite_group_member_by_email(group_id, email)` | the only way to create an invitation. `security definer`: checks the caller is an admin of a live group, normalises the address, sets `invited_by`, inserts, then queues the email |
 | `disinvite_player(event_id, profile_id)` | removes a player from an event. `security invoker`, so the existing delete policy decides; returns whether a row went |
+| `add_players_to_event(event_id, uuid[])` | invites while slots remain, queues the rest, in the given order, one transaction. `security definer`: checks the caller is an admin of a live group, the event hasn't started, and every id is a current member — skips (doesn't error on) anyone already invited or queued |
 | `set_group_member_role(group_id, profile_id, role)` | promote or demote. Admins only |
 | `remove_group_member(group_id, profile_id)` | admins only. Refuses the caller's own id — that's `leave_group` |
 | `revoke_group_invitation(group_id, invitation_id)` | admins only |
@@ -340,7 +342,8 @@ invitation. Deletion comes first or mutual exclusion rejects the insert.
 The concurrency-sensitive parts rest on six details:
 
 - **`select ... for update` on the event row**, taken by `enforce_capacity`
-  on every insert before any early return, and by `promote_standby`.
+  on every insert before any early return, and by `promote_standby`,
+  `set_standby_order` and `add_players_to_event`.
   It carries mutual exclusion too, which has no lock of its own. Without
   it two simultaneous declines both see a free slot and promote the same
   player; two simultaneous invites both fit into the last space; and an
@@ -351,15 +354,16 @@ The concurrency-sensitive parts rest on six details:
   not serialise transactions. Two concurrent demotions would each still
   see the other's uncommitted admin row.
 - **`select ... for share` on the group row** in the two invitation
-  RPCs, in `set_standby_order`, and in `promote_standby`. Checking
-  `archived_at is null` reads a snapshot; without the lock an archive
-  committing in between would still let the operation write into an
-  archived group.
+  RPCs, in `set_standby_order`, in `promote_standby`, and in
+  `add_players_to_event`. Checking `archived_at is null` reads a
+  snapshot; without the lock an archive committing in between would
+  still let the operation write into an archived group.
 - **Lock order is group before event**, everywhere both are taken.
   `ensure_admin_remains` locks the group and its cascade reaches
-  `promote_standby`, which locks the event — so the queue paths must
-  follow the same order or deadlock. The invitation RPCs take
-  invitation then group, and never touch an event.
+  `promote_standby`, which locks the event — so the queue paths
+  (`set_standby_order`, `add_players_to_event`) must follow the same
+  order or deadlock. The invitation RPCs take invitation then group, and
+  never touch an event.
 - **`clock_timestamp()` rather than `now()`** for every `starts_at`
   cutoff. `now()` is fixed at transaction start, so a request that
   began before kickoff and waited on a lock would pass the cutoff after

@@ -1,6 +1,7 @@
 package app.muster.domain.di
 
 import app.muster.domain.usecase.AcceptGroupInvitationUseCase
+import app.muster.domain.usecase.AddPlayersUseCase
 import app.muster.domain.usecase.ArchiveGroupUseCase
 import app.muster.domain.usecase.CreateEventUseCase
 import app.muster.domain.usecase.CreateGroupUseCase
@@ -9,6 +10,7 @@ import app.muster.domain.usecase.DemoteMemberUseCase
 import app.muster.domain.usecase.DisinvitePlayerUseCase
 import app.muster.domain.usecase.GetEventUseCase
 import app.muster.domain.usecase.GetGroupUseCase
+import app.muster.domain.usecase.GetInviteeCandidatesUseCase
 import app.muster.domain.usecase.GetMyGroupRoleUseCase
 import app.muster.domain.usecase.GetMyProfileUseCase
 import app.muster.domain.usecase.InviteByEmailUseCase
@@ -50,6 +52,7 @@ val domainModule = module {
     factoryOf(::ListUpcomingEventsUseCase)
     factoryOf(::CreateEventUseCase)
     factoryOf(::GetEventUseCase)
+    factoryOf(::GetInviteeCandidatesUseCase)
     factoryOf(::SetRsvpUseCase)
     factoryOf(::ReorderStandbyUseCase)
     factoryOf(::InviteByEmailUseCase)
@@ -60,4 +63,5 @@ val domainModule = module {
     factoryOf(::LeaveGroupUseCase)
     factoryOf(::ArchiveGroupUseCase)
     factoryOf(::DisinvitePlayerUseCase)
+    factoryOf(::AddPlayersUseCase)
 }
