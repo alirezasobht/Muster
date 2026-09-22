@@ -14,6 +14,7 @@ import app.muster.ui.screens.event.EventActions
 import app.muster.ui.screens.event.EventScreen
 import app.muster.ui.screens.event.EventSummary
 import app.muster.ui.screens.event.EventUiState
+import app.muster.ui.screens.event.RosterAction
 import app.muster.ui.screens.event.RosterRow
 import app.muster.ui.screens.event.StandbyRow
 import app.muster.ui.theme.MusterTheme
@@ -54,7 +55,7 @@ class EventScreenTest {
         state: EventUiState,
         onBack: () -> Unit = {},
         onRsvp: (RsvpStatus) -> Unit = {},
-        onChangeRowStatus: (String, RsvpStatus) -> Unit = { _, _ -> },
+        onRosterAction: (String, RosterAction) -> Unit = { _, _ -> },
         onReorderStandby: (List<String>) -> Unit = {},
         onRetry: () -> Unit = {}
     ) {
@@ -65,7 +66,7 @@ class EventScreenTest {
                     actions = EventActions(
                         onBack = onBack,
                         onRsvp = onRsvp,
-                        onChangeRowStatus = onChangeRowStatus,
+                        onRosterAction = onRosterAction,
                         onReorderStandby = onReorderStandby,
                         onRetry = onRetry
                     ),
@@ -230,25 +231,54 @@ class EventScreenTest {
     }
 
     @Test
-    fun membersSeeNoChevronOnRosterBadges() {
-        show(state = successState.copy(isAdmin = false))
+    fun aRowWithNoActionsShowsNoChevron() {
+        show(state = successState)
         composeRule.onNodeWithText("›").assertDoesNotExist()
     }
 
+    private fun pendingRow(actions: List<RosterAction>) =
+        RosterRow(id = "p2", name = "Tomás Neale", status = RsvpStatus.Pending, actions = actions)
+
     @Test
-    fun adminSelectingAStatusFromTheMenuReachesTheCallback() {
-        var changed: Pair<String, RsvpStatus>? = null
+    fun selectingAStatusFromTheMenuReachesTheCallback() {
+        var picked: Pair<String, RosterAction>? = null
         show(
             state = successState.copy(
-                isAdmin = true,
-                roster = listOf(RosterRow(id = "p2", name = "Tomás Neale", status = RsvpStatus.Pending))
+                roster = listOf(pendingRow(listOf(RosterAction.SetIn, RosterAction.SetOut)))
             ),
-            onChangeRowStatus = { id, status -> changed = id to status }
+            onRosterAction = { id, action -> picked = id to action }
         )
         // Opens the menu: the row's own badge is the only "Pending" node here.
         composeRule.onNodeWithText("Pending").performClick()
         composeRule.onNodeWithText("Out").performClick()
-        assert(changed == "p2" to RsvpStatus.Out)
+        assert(picked == "p2" to RosterAction.SetOut)
+    }
+
+    @Test
+    fun eachRemovalActionShowsItsOwnLabel() {
+        show(
+            state = successState.copy(
+                roster = listOf(
+                    pendingRow(listOf(RosterAction.CancelInvite)),
+                    RosterRow(id = "p1", name = "Alex Doyle", status = RsvpStatus.In, actions = listOf(RosterAction.RemoveFromEvent)),
+                    RosterRow(id = "p3", name = "Marcus Keane", status = RsvpStatus.Out, actions = listOf(RosterAction.RemoveFromList))
+                )
+            )
+        )
+        composeRule.onNodeWithText("Pending").performClick()
+        composeRule.onNodeWithText("Cancel invite").assertIsDisplayed()
+    }
+
+    @Test
+    fun aRemovalActionReachesTheCallback() {
+        var picked: Pair<String, RosterAction>? = null
+        show(
+            state = successState.copy(roster = listOf(pendingRow(listOf(RosterAction.CancelInvite)))),
+            onRosterAction = { id, action -> picked = id to action }
+        )
+        composeRule.onNodeWithText("Pending").performClick()
+        composeRule.onNodeWithText("Cancel invite").performClick()
+        assert(picked == "p2" to RosterAction.CancelInvite)
     }
 
     @Test
@@ -263,8 +293,15 @@ class EventScreenTest {
     }
 
     @Test
-    fun frozenHidesTheAdminMenuEvenForAdmins() {
-        show(state = successState.copy(isAdmin = true, isFrozen = true, startTime = "7:00 pm"))
+    fun frozenHidesTheMenuEvenWhenTheRowHasActions() {
+        show(
+            state = successState.copy(
+                isAdmin = true,
+                isFrozen = true,
+                startTime = "7:00 pm",
+                roster = listOf(pendingRow(listOf(RosterAction.SetIn, RosterAction.CancelInvite)))
+            )
+        )
         composeRule.onNodeWithText("›").assertDoesNotExist()
     }
 

@@ -668,7 +668,7 @@ private fun StatusMenu(
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val hasAction = rowActions.isNotEmpty()
+    val hasAction = rowActions.isNotEmpty() && !isFrozen
     Box(modifier = modifier) {
         RsvpStatusBadge(status = status, isFrozen = isFrozen, chevron = hasAction, onClick = { expanded = true })
         if (hasAction) {

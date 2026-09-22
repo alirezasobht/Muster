@@ -66,7 +66,8 @@ class EventViewModelTest {
     private fun detail(
         startsAt: Instant = futureStart,
         roster: List<RosterEntry> = defaultRoster,
-        standby: List<StandbyEntry> = emptyList()
+        standby: List<StandbyEntry> = emptyList(),
+        capacity: Int = 10
     ) = EventDetail(
         event = Event(
             id = eventId,
@@ -74,7 +75,7 @@ class EventViewModelTest {
             title = "Weekly 7-a-side",
             startsAt = startsAt,
             location = "Westgate Pitch 2",
-            capacity = 10,
+            capacity = capacity,
             inCount = roster.count { it.status == RsvpStatus.In },
             pendingCount = roster.count { it.status == RsvpStatus.Pending },
             myStatus = roster.firstOrNull { it.profileId == FAKE_USER_ID }?.status
@@ -305,13 +306,13 @@ class EventViewModelTest {
     }
 
     @Test
-    fun `onChangeRowStatus targets the given player, not the viewer`() = runTest {
+    fun `a status action targets the given player, not the viewer`() = runTest {
         val changes = DataChanges()
         val events = FakeEventRepository(eventDetail = detail(), dataChanges = changes)
         val viewModel = viewModel(dataChanges = changes, events = events)
         advanceUntilIdle()
 
-        viewModel.onChangeRowStatus("player-2", RsvpStatus.Out)
+        viewModel.onRosterAction("player-2", RosterAction.SetOut)
         advanceUntilIdle()
 
         assertEquals(listOf(Triple(eventId, "player-2", RsvpStatus.Out)), events.rsvpUpdates)
@@ -319,12 +320,12 @@ class EventViewModelTest {
     }
 
     @Test
-    fun `a failed onChangeRowStatus surfaces rowActionError for that row`() = runTest {
+    fun `a failed status action surfaces rowActionError for that row`() = runTest {
         val events = FakeEventRepository(eventDetail = detail(), setRsvpError = DomainError.EventFull())
         val viewModel = viewModel(events = events)
         advanceUntilIdle()
 
-        viewModel.onChangeRowStatus("player-3", RsvpStatus.In)
+        viewModel.onRosterAction("player-3", RosterAction.SetIn)
         advanceUntilIdle()
 
         val state = assertIs<EventUiState.Success>(viewModel.state.value)
@@ -338,11 +339,113 @@ class EventViewModelTest {
         val viewModel = viewModel(events = events)
         advanceUntilIdle()
 
-        viewModel.onChangeRowStatus("player-2", RsvpStatus.Out)
-        viewModel.onChangeRowStatus("player-3", RsvpStatus.In)
+        viewModel.onRosterAction("player-2", RosterAction.SetOut)
+        viewModel.onRosterAction("player-3", RosterAction.SetIn)
         advanceUntilIdle()
 
         assertEquals(1, events.rsvpUpdates.size)
+    }
+
+    private fun EventUiState.actionsFor(id: String) =
+        assertIs<EventUiState.Success>(this).roster.single { it.id == id }.actions
+
+    @Test
+    fun `an admin gets status and removal actions per status`() = runTest {
+        val viewModel = viewModel()
+        advanceUntilIdle()
+        val state = viewModel.state.value
+
+        assertEquals(
+            listOf(RosterAction.SetIn, RosterAction.SetOut, RosterAction.CancelInvite),
+            state.actionsFor(FAKE_USER_ID)
+        )
+        assertEquals(
+            listOf(RosterAction.SetOut, RosterAction.RemoveFromEvent),
+            state.actionsFor("player-2")
+        )
+        assertEquals(
+            listOf(RosterAction.SetIn, RosterAction.RemoveFromList),
+            state.actionsFor("player-3")
+        )
+    }
+
+    @Test
+    fun `a member can change only their own status and remove nobody`() = runTest {
+        val viewModel = viewModel(groups = FakeGroupRepository(myRole = GroupRole.Member))
+        advanceUntilIdle()
+        val state = viewModel.state.value
+
+        assertEquals(listOf(RosterAction.SetIn, RosterAction.SetOut), state.actionsFor(FAKE_USER_ID))
+        assertEquals(emptyList(), state.actionsFor("player-2"))
+        assertEquals(emptyList(), state.actionsFor("player-3"))
+    }
+
+    @Test
+    fun `out to in is not offered on a full event`() = runTest {
+        // 1 in + 1 pending fills a capacity of 2.
+        val events = FakeEventRepository(eventDetail = detail(capacity = 2))
+        val viewModel = viewModel(events = events)
+        advanceUntilIdle()
+
+        assertEquals(listOf(RosterAction.RemoveFromList), viewModel.state.value.actionsFor("player-3"))
+    }
+
+    @Test
+    fun `out to in reappears once a slot frees, using fresh counts`() = runTest {
+        val changes = DataChanges()
+        val events = FakeEventRepository(eventDetail = detail(capacity = 2), dataChanges = changes)
+        val viewModel = viewModel(dataChanges = changes, events = events)
+        advanceUntilIdle()
+
+        viewModel.onRosterAction("player-2", RosterAction.RemoveFromEvent)
+        advanceUntilIdle()
+
+        assertTrue(RosterAction.SetIn in viewModel.state.value.actionsFor("player-3"))
+    }
+
+    @Test
+    fun `removing a player who held a slot promotes the front of the queue`() = runTest {
+        val changes = DataChanges()
+        val events = FakeEventRepository(eventDetail = detail(standby = defaultStandby), dataChanges = changes)
+        val viewModel = viewModel(dataChanges = changes, events = events)
+        advanceUntilIdle()
+
+        viewModel.onRosterAction("player-2", RosterAction.RemoveFromEvent)
+        advanceUntilIdle()
+
+        val state = assertIs<EventUiState.Success>(viewModel.state.value)
+        assertTrue(state.roster.none { it.id == "player-2" })
+        assertEquals(RsvpStatus.Pending, state.roster.single { it.id == "player-4" }.status)
+        assertEquals(listOf("player-5"), state.standby.map { it.id })
+    }
+
+    @Test
+    fun `removing an out player promotes nobody`() = runTest {
+        val changes = DataChanges()
+        val events = FakeEventRepository(eventDetail = detail(standby = defaultStandby), dataChanges = changes)
+        val viewModel = viewModel(dataChanges = changes, events = events)
+        advanceUntilIdle()
+
+        viewModel.onRosterAction("player-3", RosterAction.RemoveFromList)
+        advanceUntilIdle()
+
+        val state = assertIs<EventUiState.Success>(viewModel.state.value)
+        assertTrue(state.roster.none { it.id == "player-3" })
+        assertEquals(listOf("player-4", "player-5"), state.standby.map { it.id })
+    }
+
+    @Test
+    fun `a failed removal surfaces rowActionError for that row`() = runTest {
+        val events = FakeEventRepository(eventDetail = detail(), disinvitePlayerError = DomainError.Network())
+        val viewModel = viewModel(events = events)
+        advanceUntilIdle()
+
+        viewModel.onRosterAction("player-2", RosterAction.RemoveFromEvent)
+        advanceUntilIdle()
+
+        val state = assertIs<EventUiState.Success>(viewModel.state.value)
+        assertIs<DomainError.Network>(state.rowActionError)
+        assertNull(state.rowActionTargetId)
     }
 
     @Test
