@@ -27,8 +27,9 @@ on `auth.users` to enforce it.
 
 Signup is open to anyone; **creating a group is allowlisted**. Without
 the flag an account can accept invitations and play, nothing more.
-Column privileges leave `name` as the only self-editable field, so
-`can_create_groups` cannot be granted by its owner. `email` is not
+`set_profile_name` leaves `name` as the only self-editable field, with
+no direct client write grants on `profiles`, so `can_create_groups`
+cannot be granted by its owner. `email` is not
 editable here either, but that is not the whole story: Supabase Auth has
 its own email-change flow outside these tables, and a trigger syncs any
 such change back into `profiles`. See CONTEXT.md → Identity.
@@ -185,12 +186,14 @@ it never needs to renumber anything.
    granting themselves `can_create_groups`, which sits on their own
    profile row; or, as an admin, rewriting a `group_members.profile_id`
    to add someone who never accepted an invitation). `authenticated` may
-   update only `event_invitations (status)`, `profiles (name)`,
+   update only `event_invitations (status)`,
    `group_members (role)` and
    `events (title, starts_at, location)` — the last of which is what
    makes `capacity` immutable and pins an event to its group. `groups`
    has no client write grants, including column grants; creation and
    archiving go through RPCs, and renaming is not exposed.
+   `profiles` also has no client write grants; `set_profile_name` updates
+   only the caller's name. Auth triggers own profile creation and email sync.
 
    Worth generalising: **any column on a row a user can update is a
    column that user can set.** Permission flags and roles either need an
@@ -281,6 +284,7 @@ calls one by name must qualify it, `private.is_group_admin(...)`.
 
 | Function | Why it exists |
 |---|---|
+| `set_profile_name(name)` | `security definer`: requires a signed-in caller, updates only their name, and returns their profile; raises if the profile is missing. No group membership is required |
 | `create_group(name)` | `security definer`: requires a signed-in, allowlisted caller, sets the creator, and returns the created group. The existing trigger creates its admin membership |
 | `archive_group(group_id)` | `security definer`: locks a live group, requires its admin, and sets the archive timestamp on the server; raises for a missing or already archived group |
 | `accept_group_invitation(id)` | two writes that must be atomic; invitee has no membership yet, so no RLS route to insert one |
@@ -408,6 +412,13 @@ the separate `UPDATE (name, archived_at)` grants. Read grants and RLS
 policies remain. Apply the RPC migration and switch the app before
 applying the revoke migration; older clients still use direct writes.
 
+**Profiles converted:** `set_profile_name` owns the app's name update.
+A separate migration revokes `INSERT`, `UPDATE`, `DELETE` and `TRUNCATE`
+on `profiles` from `PUBLIC`, `anon` and `authenticated`, plus the
+separate `UPDATE (name)` grants. Read grants and RLS policies remain;
+Auth's definer triggers still create/restore profiles and sync email.
+Apply the RPC migration and switch the app before the revoke migration.
+
 **Still open: other table grants.** `authenticated` still has broad direct
 write access to the remaining tables, narrowed only by RLS and the column grants
 in rule 5. The plan is to move writes behind RPCs one at a time, then
@@ -418,8 +429,7 @@ keep a narrow grant, before the revoke.
 
 Done so far: every write to `group_members`, and invites and revokes on
 `group_invitations`, go through definer RPCs — so those grants can go.
-`events`, `event_invitations` and `profiles` are still written
-directly.
+`events` and `event_invitations` are still written directly.
 
 ### Known limits
 

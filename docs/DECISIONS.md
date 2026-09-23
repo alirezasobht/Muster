@@ -160,8 +160,8 @@ matching at an address the user no longer owns.
 So a trigger copies any Auth-side change into `profiles`. Identity and
 memberships survive; only the invite lookup key moves.
 
-The app still builds no email-change screen, and the column grant on
-`profiles` allows only `name`. The trigger exists for changes made from
+The app still builds no email-change screen, and `set_profile_name`
+allows only name changes. The trigger exists for changes made from
 the Supabase dashboard or the Auth API — both outside these tables.
 
 ## The invite email goes through pg_net, not a database webhook

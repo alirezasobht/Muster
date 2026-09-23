@@ -11,9 +11,8 @@ internal data class ProfileDto(
     @SerialName("can_create_groups") val canCreateGroups: Boolean = false
 )
 
-
 @Serializable
-internal data class ProfileNameUpdateDto(
+internal data class SetProfileNameDto(
     val name: String
 )
 

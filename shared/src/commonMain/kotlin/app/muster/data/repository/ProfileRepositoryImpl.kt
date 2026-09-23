@@ -1,7 +1,7 @@
 package app.muster.data.repository
 
 import app.muster.data.dto.ProfileDto
-import app.muster.data.dto.ProfileNameUpdateDto
+import app.muster.data.dto.SetProfileNameDto
 import app.muster.data.mapper.mapErrors
 import app.muster.data.mapper.toProfile
 import app.muster.domain.error.DomainError
@@ -10,6 +10,8 @@ import app.muster.domain.repository.ProfileRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.rpc
 
 internal class ProfileRepositoryImpl(private val client: SupabaseClient) : ProfileRepository {
 
@@ -21,11 +23,7 @@ internal class ProfileRepositoryImpl(private val client: SupabaseClient) : Profi
     }
 
     override suspend fun updateName(name: String): Profile = mapErrors {
-        client.from(TABLE)
-            .update(ProfileNameUpdateDto(name)) {
-                select()
-                filter { eq("id", myId()) }
-            }
+        client.postgrest.rpc(SET_PROFILE_NAME_FUNCTION, SetProfileNameDto(name))
             .decodeSingle<ProfileDto>()
             .toProfile()
     }
@@ -36,5 +34,6 @@ internal class ProfileRepositoryImpl(private val client: SupabaseClient) : Profi
 
     private companion object {
         const val TABLE = "profiles"
+        const val SET_PROFILE_NAME_FUNCTION = "set_profile_name"
     }
 }
