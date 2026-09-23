@@ -19,7 +19,7 @@ sealed class DomainError(message: String, cause: Throwable? = null) : Exception(
     // answered, or not the caller's.
     class InvitationNotPending : DomainError("invitation is no longer available")
 
-    // groups insert policy requires profiles.can_create_groups. The entry
+    // create_group requires profiles.can_create_groups. The entry
     // point is gated on it too, but the flag can change between screens.
     class NotAllowedToCreateGroups : DomainError("not allowed to create groups")
 

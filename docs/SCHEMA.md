@@ -161,22 +161,24 @@ it never needs to renumber anything.
    `group_members` row exists for them and that group. The same predicate
    cascades to `events`, `event_invitations`, and `event_standby`. A
    creator also sees their own group directly (`created_by = auth.uid()
-   and archived_at is null`), needed so `insert ... returning` can hand
+   and archived_at is null`), originally needed so `insert ... returning` could hand
    the new row back before `on_group_created` (an `after insert` trigger)
    has written their membership row — see migration 7. The check is a
    plain column reference rather than `group_is_live(id)`: that helper is
    `stable` and looks the row up by id, which runs against the
    statement's own snapshot and never sees the row that same statement is
-   still inserting.
+   still inserting. Creation now uses the definer `create_group` RPC;
+   the read policy remains in place.
 2. **At least one admin** — trigger on `group_members` delete and update
    rejecting any operation that would leave a group with zero admins.
    Covers: last admin leaving, last admin demoting themselves, an admin
    demoting the only other admin.
-3. **Admin-only actions** — RLS policies checking `role = 'admin'` for:
+3. **Admin-only actions** — RPC guards or RLS policies checking `role = 'admin'` for:
    create event, invite member, promote/demote, remove member, archive
    group, reorder standby, change another player's RSVP.
-4. **Group creation allowlist** — insert on `groups` additionally
-   requires `profiles.can_create_groups`. Off by default.
+4. **Group creation allowlist** — `create_group` requires
+   `profiles.can_create_groups`. Off by default. The RPC sets
+   `created_by = auth.uid()` itself; clients cannot supply it.
 5. **Column privileges** — RLS filters rows, not columns, so a member
    passing a row policy could otherwise rewrite any field on it (moving
    an RSVP to another event, say, skipping capacity and the queue; or
@@ -184,9 +186,11 @@ it never needs to renumber anything.
    profile row; or, as an admin, rewriting a `group_members.profile_id`
    to add someone who never accepted an invitation). `authenticated` may
    update only `event_invitations (status)`, `profiles (name)`,
-   `groups (name, archived_at)`, `group_members (role)` and
+   `group_members (role)` and
    `events (title, starts_at, location)` — the last of which is what
-   makes `capacity` immutable and pins an event to its group.
+   makes `capacity` immutable and pins an event to its group. `groups`
+   has no client write grants, including column grants; creation and
+   archiving go through RPCs, and renaming is not exposed.
 
    Worth generalising: **any column on a row a user can update is a
    column that user can set.** Permission flags and roles either need an
@@ -277,6 +281,8 @@ calls one by name must qualify it, `private.is_group_admin(...)`.
 
 | Function | Why it exists |
 |---|---|
+| `create_group(name)` | `security definer`: requires a signed-in, allowlisted caller, sets the creator, and returns the created group. The existing trigger creates its admin membership |
+| `archive_group(group_id)` | `security definer`: locks a live group, requires its admin, and sets the archive timestamp on the server; raises for a missing or already archived group |
 | `accept_group_invitation(id)` | two writes that must be atomic; invitee has no membership yet, so no RLS route to insert one |
 | `decline_group_invitation(id)` | mirrors accept; no update policy on `group_invitations` |
 | `set_standby_order(eid, uuid[])` | whole queue in one call; reorders (and can add or remove) `event_standby` rows |
@@ -349,7 +355,10 @@ The concurrency-sensitive parts rest on six details:
   player; two simultaneous invites both fit into the last space; and an
   `out` invite races a standby insert for the same player, each blind to
   the other's uncommitted row.
-- **`select ... for update` on the group row** in `ensure_admin_remains`.
+- **`select ... for update` on the group row** in `ensure_admin_remains`
+  and `archive_group`. Archiving takes this lock before checking admin
+  authority, conflicts with the live-group share locks, and touches no
+  event rows.
   Deferring a check to commit makes multi-step changes possible; it does
   not serialise transactions. Two concurrent demotions would each still
   see the other's uncommitted admin row.
@@ -392,8 +401,15 @@ publishable key.
 
 `create or replace` keeps existing grants; a fresh `create` does not.
 
-**Still open: table grants.** `authenticated` still has broad direct
-write access to the tables, narrowed only by RLS and the column grants
+**Groups converted:** `create_group` and `archive_group` own all app
+writes. A separate migration revokes `INSERT`, `UPDATE`, `DELETE` and
+`TRUNCATE` on `groups` from `PUBLIC`, `anon` and `authenticated`, plus
+the separate `UPDATE (name, archived_at)` grants. Read grants and RLS
+policies remain. Apply the RPC migration and switch the app before
+applying the revoke migration; older clients still use direct writes.
+
+**Still open: other table grants.** `authenticated` still has broad direct
+write access to the remaining tables, narrowed only by RLS and the column grants
 in rule 5. The plan is to move writes behind RPCs one at a time, then
 revoke. The trap: a `security invoker` RPC like `disinvite_player` runs
 with the caller's own table permissions, so revoking the grant breaks
@@ -402,7 +418,7 @@ keep a narrow grant, before the revoke.
 
 Done so far: every write to `group_members`, and invites and revokes on
 `group_invitations`, go through definer RPCs — so those grants can go.
-`events`, `event_invitations`, `groups` and `profiles` are still written
+`events`, `event_invitations` and `profiles` are still written
 directly.
 
 ### Known limits

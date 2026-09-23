@@ -55,6 +55,7 @@ private fun PostgrestRestException.toDomainError(): DomainError = when (code) {
     // enforce_capacity rejecting an invite/RSVP over capacity, or
     // reject_if_event_started(_self) rejecting a write past starts_at.
     "P0001" -> when {
+        "not signed in" in error -> DomainError.NotSignedIn()
         "no pending invitation for you" in error -> DomainError.InvitationNotPending()
         "a group must keep at least one admin" in error -> DomainError.LastAdmin()
         "already a member of this group" in error -> DomainError.AlreadyMember()
@@ -62,8 +63,7 @@ private fun PostgrestRestException.toDomainError(): DomainError = when (code) {
         "event has already started" in error -> DomainError.EventFrozen()
         else -> DomainError.Unknown(this)
     }
-    // groups_insert's WITH CHECK: no can_create_groups, or the trigger race
-    // where the flag was revoked after the entry point let them through.
+    // create_group's allowlist guard preserves groups_insert's permission error.
     "42501" -> if ("\"groups\"" in error) DomainError.NotAllowedToCreateGroups() else DomainError.Unknown(this)
     else -> if (statusCode == 401) DomainError.NotSignedIn() else DomainError.Unknown(this)
 }

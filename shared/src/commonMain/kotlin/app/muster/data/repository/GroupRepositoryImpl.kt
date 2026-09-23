@@ -1,8 +1,8 @@
 package app.muster.data.repository
 
-import app.muster.data.dto.GroupArchiveUpdateDto
+import app.muster.data.dto.ArchiveGroupDto
+import app.muster.data.dto.CreateGroupDto
 import app.muster.data.dto.GroupDto
-import app.muster.data.dto.GroupInsertDto
 import app.muster.data.dto.GroupMemberRoleDto
 import app.muster.data.dto.GroupMembershipDto
 import app.muster.data.dto.PendingInvitationDto
@@ -22,9 +22,9 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
+import io.github.jan.supabase.postgrest.rpc
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import kotlin.time.Clock
 
 internal class GroupRepositoryImpl(
     private val client: SupabaseClient,
@@ -39,8 +39,7 @@ internal class GroupRepositoryImpl(
     }
 
     override suspend fun createGroup(name: String): Group = mapErrors {
-        client.from(GROUPS_TABLE)
-            .insert(GroupInsertDto(name = name, createdBy = myId())) { select() }
+        client.postgrest.rpc(CREATE_GROUP_FUNCTION, CreateGroupDto(name))
             .decodeSingle<GroupDto>()
             .toGroup()
             .also { dataChanges.notify(DataChange.MyGroups) }
@@ -81,9 +80,7 @@ internal class GroupRepositoryImpl(
     }
 
     override suspend fun archive(groupId: String): Unit = mapErrors {
-        client.from(GROUPS_TABLE).update(GroupArchiveUpdateDto(archivedAt = Clock.System.now().toString())) {
-            filter { eq("id", groupId) }
-        }
+        client.postgrest.rpc(ARCHIVE_GROUP_FUNCTION, ArchiveGroupDto(groupId))
         dataChanges.notify(DataChange.MyGroups)
     }
 
@@ -97,6 +94,8 @@ internal class GroupRepositoryImpl(
     private companion object {
         const val GROUPS_TABLE = "groups"
         const val GROUP_MEMBERS_TABLE = "group_members"
+        const val CREATE_GROUP_FUNCTION = "create_group"
+        const val ARCHIVE_GROUP_FUNCTION = "archive_group"
         const val GET_MY_PENDING_INVITATIONS_FUNCTION = "get_my_pending_invitations"
         const val ACCEPT_INVITATION_FUNCTION = "accept_group_invitation"
         const val DECLINE_INVITATION_FUNCTION = "decline_group_invitation"
