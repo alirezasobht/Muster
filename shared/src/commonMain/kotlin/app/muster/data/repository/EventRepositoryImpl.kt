@@ -4,9 +4,9 @@ import app.muster.data.dto.CreateEventDto
 import app.muster.data.dto.EventDto
 import app.muster.data.dto.EventInvitationGroupIdDto
 import app.muster.data.dto.EventInvitationRowDto
-import app.muster.data.dto.EventRsvpUpdateDto
 import app.muster.data.dto.EventStandbyRowDto
 import app.muster.data.dto.ProfileNameRowDto
+import app.muster.data.dto.SetEventRsvpDto
 import app.muster.data.mapper.mapErrors
 import app.muster.data.mapper.toDbValue
 import app.muster.data.mapper.toEvent
@@ -146,17 +146,10 @@ internal class EventRepositoryImpl(
     }
 
     override suspend fun setRsvp(eventId: String, profileId: String, status: RsvpStatus): Unit = mapErrors {
-        // group_id is denormalised onto event_invitations (SCHEMA.md), so
-        // reading it back off this same update avoids a second round trip
-        // just to know who else to notify.
-        val groupId = client.from(EVENT_INVITATIONS_TABLE)
-            .update(EventRsvpUpdateDto(status = status.toDbValue())) {
-                filter {
-                    eq("event_id", eventId)
-                    eq("profile_id", profileId)
-                }
-                select()
-            }
+        val groupId = client.postgrest.rpc(
+            SET_EVENT_RSVP_FUNCTION,
+            SetEventRsvpDto(eventId = eventId, profileId = profileId, status = status.toDbValue())
+        )
             .decodeSingle<EventInvitationGroupIdDto>()
             .groupId
 
@@ -210,6 +203,7 @@ internal class EventRepositoryImpl(
         const val IN_STATUS = "in"
         const val PENDING_STATUS = "pending"
         const val CREATE_EVENT_FUNCTION = "create_event"
+        const val SET_EVENT_RSVP_FUNCTION = "set_event_rsvp"
         const val SET_STANDBY_ORDER_FUNCTION = "set_standby_order"
         const val DISINVITE_PLAYER_FUNCTION = "disinvite_player"
         const val ADD_PLAYERS_TO_EVENT_FUNCTION = "add_players_to_event"

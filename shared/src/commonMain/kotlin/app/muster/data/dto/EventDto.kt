@@ -30,7 +30,9 @@ internal data class EventInvitationRowDto(
 )
 
 @Serializable
-internal data class EventRsvpUpdateDto(
+internal data class SetEventRsvpDto(
+    @SerialName("event_id") val eventId: String,
+    @SerialName("profile_id") val profileId: String,
     val status: String
 )
 

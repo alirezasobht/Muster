@@ -20,7 +20,7 @@ interface EventRepository {
     suspend fun getEvent(eventId: String): EventDetail
 
     // profileId is the caller for a self-RSVP, or the target player when an
-    // admin changes someone else's — RLS is what actually tells them apart.
+    // admin changes someone else's — the RPC checks the caller's authority.
     suspend fun setRsvp(eventId: String, profileId: String, status: RsvpStatus)
 
     // groupId only for the Events(groupId) notification; the RPC takes the

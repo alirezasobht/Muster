@@ -191,7 +191,9 @@ it never needs to renumber anything.
    granting themselves `can_create_groups`, which sits on their own
    profile row; or, as an admin, rewriting a `group_members.profile_id`
    to add someone who never accepted an invitation). `authenticated` may
-   update only `event_invitations (status)` and `group_members (role)`.
+   directly update only `group_members (role)`; that remaining grant is
+   pending revocation. `event_invitations` has no client write grants;
+   RSVP changes go through `set_event_rsvp`, which updates only status.
    `events` has no client write grants; `create_event` exposes creation
    only, keeping `capacity` and the event's group immutable. `groups`
    has no client write grants, including column grants; creation and
@@ -202,8 +204,9 @@ it never needs to renumber anything.
    Worth generalising: **any column on a row a user can update is a
    column that user can set.** Permission flags and roles either need an
    explicit column grant, or must live on a table the user cannot write.
-6. **Own RSVP** — a member may update `event_invitations` where
-   `profile_id = auth.uid()`. Everyone in the group may read all of them.
+6. **Own RSVP** — `set_event_rsvp` lets a member of a live group change
+   their own invitation's status; admins may change another player's.
+   Everyone in the group may read all invitations.
 7. **Seeing your own invitations** — select on `group_invitations` where
    the row's email matches the caller's and the group is live. The only
    policy in the schema not keyed off group membership, and necessarily
@@ -297,7 +300,8 @@ calls one by name must qualify it, `private.is_group_admin(...)`.
 | `set_standby_order(eid, uuid[])` | whole queue in one call; reorders (and can add or remove) `event_standby` rows |
 | `get_my_pending_invitations()` | Home shows who invited you (DESIGN.md 1d); `profiles_select` can't reach the inviter's row since the invitee has no membership yet. Read-only, so `security definer` instead of a new policy — see DECISIONS.md |
 | `invite_group_member_by_email(group_id, email)` | the only way to create an invitation. `security definer`: checks the caller is an admin of a live group, normalises the address, sets `invited_by`, inserts, then queues the email |
-| `disinvite_player(event_id, profile_id)` | removes a player from an event. `security invoker`, so the existing delete policy decides; returns whether a row went |
+| `set_event_rsvp(event_id, profile_id, status)` | `security definer`: live-group members may change their own RSVP, admins anyone's; locks group then event and returns the invitation's group ID for app notifications. Raises if no invitation matched |
+| `disinvite_player(event_id, profile_id)` | `security definer`: requires an admin of a live group, locks group then event, and deletes the invitation. Returns true on success; raises if nothing matched. Deletes remain exempt from the event freeze |
 | `add_players_to_event(event_id, uuid[])` | invites while slots remain, queues the rest, in the given order, one transaction. `security definer`: checks the caller is an admin of a live group and the event hasn't started. **Skips** anyone whose row went stale between the picker loading and the admin confirming — already invited or queued, or since removed from the group. Raising on one player would roll back the batch and add nobody |
 | `set_group_member_role(group_id, profile_id, role)` | promote or demote. Admins only |
 | `remove_group_member(group_id, profile_id)` | admins only. Refuses the caller's own id — that's `leave_group` |
@@ -309,9 +313,9 @@ raise if nothing matched rather than succeeding silently. None of them
 checks for the last admin: `group_keeps_an_admin` still fires, since a
 definer function doesn't bypass triggers, and still raises at commit.
 
-Things that need **no** RPC: changing your own or (as admin) another
-player's RSVP is a plain update on `event_invitations`. Demoting an
-invited player to the queue is a disinvite then `set_standby_order` —
+RSVP updates use `set_event_rsvp`; the existing triggers still enforce
+capacity, the freeze and deferred promotion. Demoting an invited player
+to the queue is a disinvite then `set_standby_order` —
 the delete commits first, so promotion pulls the next queued player into
 the freed slot and the demoted player joins behind them.
 
@@ -358,7 +362,9 @@ The concurrency-sensitive parts rest on six details:
 
 - **`select ... for update` on the event row**, taken by `enforce_capacity`
   on every insert before any early return, and by `promote_standby`,
-  `set_standby_order` and `add_players_to_event`.
+  `set_standby_order`, `add_players_to_event`, `set_event_rsvp` and
+  `disinvite_player`. The latter two lock the event before changing an
+  invitation, so they cannot hold an invitation while waiting for its event.
   It carries mutual exclusion too, which has no lock of its own. Without
   it two simultaneous declines both see a free slot and promote the same
   player; two simultaneous invites both fit into the last space; and an
@@ -373,16 +379,18 @@ The concurrency-sensitive parts rest on six details:
   see the other's uncommitted admin row.
 - **`select ... for share` on the group row** in the two invitation
   RPCs, in `set_standby_order`, in `promote_standby`, and in
-  `add_players_to_event` and `create_event`. Creation holds the group
+  `add_players_to_event`, `create_event`, `set_event_rsvp` and
+  `disinvite_player`. Creation holds the group
   lock before inserting its new event. Checking `archived_at is null` reads a
   snapshot; without the lock an archive committing in between would
   still let the operation write into an archived group.
 - **Lock order is group before event**, everywhere both are taken.
   `ensure_admin_remains` locks the group and its cascade reaches
   `promote_standby`, which locks the event — so the queue paths
-  (`set_standby_order`, `add_players_to_event`) must follow the same
-  order or deadlock. The invitation RPCs take invitation then group, and
-  never touch an event.
+  (`set_standby_order`, `add_players_to_event`) and invitation writes
+  (`set_event_rsvp`, `disinvite_player`) must follow the same order or
+  deadlock. The group-invitation accept/decline RPCs take invitation then
+  group, and never touch an event.
 - **`clock_timestamp()` rather than `now()`** for every `starts_at`
   cutoff. `now()` is fixed at transaction start, so a request that
   began before kickoff and waited on a lock would pass the cutoff after
@@ -433,17 +441,23 @@ remain. Existing definer RPCs and triggers still lock events for roster
 operations; `disinvite_player` needs no write grant on `events`.
 Apply the RPC migration and switch the app before the revoke migration.
 
-**Still open: other table grants.** `authenticated` still has broad direct
-write access to the remaining tables, narrowed only by RLS and the column grants
-in rule 5. The plan is to move writes behind RPCs one at a time, then
-revoke. The trap: a `security invoker` RPC like `disinvite_player` runs
-with the caller's own table permissions, so revoking the grant breaks
-it. Each RPC has to become `security definer` with its own checks, or
-keep a narrow grant, before the revoke.
+**Event invitations converted:** creation uses `add_players_to_event`
+or standby promotion, RSVP changes use `set_event_rsvp`, and disinviting
+uses the now-definer `disinvite_player`. A separate migration revokes
+`INSERT`, `UPDATE`, `DELETE` and `TRUNCATE` on `event_invitations` from
+`PUBLIC`, `anon` and `authenticated`, plus `UPDATE (status)`. Read grants
+and RLS policies remain. Apply the RPC migration and switch the app
+before the revoke migration. A missing invitation now raises on disinvite
+instead of returning false and letting the app report success.
 
-Done so far: every write to `group_members`, and invites and revokes on
-`group_invitations`, go through definer RPCs — so those grants can go.
-`event_invitations` is still written directly for RSVP changes.
+**Still open: other table grants.** `group_members` and
+`group_invitations` writes already use definer RPCs, but their remaining
+write grants still need separate revocation migrations. `event_standby`
+already has its authenticated insert/update/delete grants revoked.
+Any future invoker RPC must retain the table privileges it needs or
+become a definer with its own guards before those privileges are revoked.
+
+The app no longer writes directly to these tables.
 
 ### Known limits
 
