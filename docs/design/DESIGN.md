@@ -1,9 +1,10 @@
-# Muster — Screen Design (v6)
+# Muster — Screen Design (v7)
 
-Design of record for the app's screens. Open `muster-screens-v6.html`
+Design of record for the app's screens. Open `muster-screens-v7.html`
 in a browser: one canvas, pan and zoom. Turn 1 holds the twenty screens
-(1a–1t); turn 2 the form-level error treatment (2a–2d); turn 3, at the
-top, the wide-viewport treatment (3a–3c). Frame ids are the reference
+(1a–1t); turn 2 the form-level error treatment (2a–2d); turn 3 the
+wide-viewport treatment (3a–3c); turn 4, at the top, the event screen
+re-layout (4a–4c), which supersedes 1l's layout. Frame ids are the reference
 names — use them in issues and commits. (`muster-screens-v1.html`
 through `-v5.html` are earlier snapshots, kept for reference.)
 
@@ -80,6 +81,9 @@ Members see the same badges, read-only.
 | 3a | Home, wide viewport |
 | 3b | Home empty, wide viewport |
 | 3c | Request code, wide viewport (green, no tint) |
+| 4a | Event — admin, answered (supersedes 1l layout) |
+| 4b | Event — admin, no one invited |
+| 4c | Event — scrolled to standby |
 
 ## Wide viewports
 
@@ -168,6 +172,31 @@ The rules:
 - **Applies to** 1a, 1b, 1c, 1f and 1g — every screen whose primary action
   is a write. Screens whose *load* fails use the 1t empty-state frame
   instead; the form block is for a failed write, 1t for a failed read.
+
+## Event screen layout (4a–4c)
+
+Same content and behaviour as 1l; the layout changes so each band reads as
+a different kind of thing.
+
+- **App bar**: group name as a small uppercase overline, event title below
+  at 19px bold, ⋮ at right. A hairline appears only once content scrolls
+  under it.
+- **When / where**: date and time at 18px semibold, place muted beneath.
+- **Slots panel**: the only filled surface (`#F5F7F5`, 14px radius). Large
+  "6 of 10 slots" numerals, "4 open" at right, a proportional bar (in →
+  pending → grey track), and a legend: in, pending, out (hollow dot —
+  out holds no slot so it has no bar fill). The bar is continuous, never
+  one segment per slot, so it holds up at 30+ slots; the numerals carry
+  the exact figure. Empty event: grey track, no legend.
+- **RSVP card**: the only outlined surface — "You're in", when answered,
+  and Change. Absent when the viewer isn't on the roster.
+- **Players**: section header "Players" + count, with a tonal "+ Add"
+  button (36dp drawn, 48dp touch target, admins only). Rows are 56dp with
+  hairline dividers and no per-row boxes; status is a tinted chip.
+- **Empty roster**: the header Add disappears and the empty state carries
+  the single filled "Add players" button — never two Adds on screen.
+- **Standby**: sits on the same tint as the slots panel (it is that panel's
+  overflow); numbered discs for queue position; drag handles as before.
 
 ## Decisions this design fixes
 

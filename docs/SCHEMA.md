@@ -298,7 +298,7 @@ calls one by name must qualify it, `private.is_group_admin(...)`.
 | `get_my_pending_invitations()` | Home shows who invited you (DESIGN.md 1d); `profiles_select` can't reach the inviter's row since the invitee has no membership yet. Read-only, so `security definer` instead of a new policy — see DECISIONS.md |
 | `invite_group_member_by_email(group_id, email)` | the only way to create an invitation. `security definer`: checks the caller is an admin of a live group, normalises the address, sets `invited_by`, inserts, then queues the email |
 | `disinvite_player(event_id, profile_id)` | removes a player from an event. `security invoker`, so the existing delete policy decides; returns whether a row went |
-| `add_players_to_event(event_id, uuid[])` | invites while slots remain, queues the rest, in the given order, one transaction. `security definer`: checks the caller is an admin of a live group, the event hasn't started, and every id is a current member — skips (doesn't error on) anyone already invited or queued |
+| `add_players_to_event(event_id, uuid[])` | invites while slots remain, queues the rest, in the given order, one transaction. `security definer`: checks the caller is an admin of a live group and the event hasn't started. **Skips** anyone whose row went stale between the picker loading and the admin confirming — already invited or queued, or since removed from the group. Raising on one player would roll back the batch and add nobody |
 | `set_group_member_role(group_id, profile_id, role)` | promote or demote. Admins only |
 | `remove_group_member(group_id, profile_id)` | admins only. Refuses the caller's own id — that's `leave_group` |
 | `revoke_group_invitation(group_id, invitation_id)` | admins only |

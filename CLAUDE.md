@@ -86,25 +86,29 @@ Built: auth (email code, set-name gate), Home (1d/1e/1s/1t), Settings
 app bar overflow — Leave group for everyone, Archive for admins (1j),
 Add by email with the invitation email sent end to end, Events tab, New
 event, Event — roster with RSVP and per-row admin actions, standby
-queue with drag-to-reorder.
+queue with drag-to-reorder, Add players.
 
 Only **dev** exists; production is a separate project, not yet created.
 
+Writes to `groups`, `profiles`, `events`, `group_members` and
+`group_invitations` go through definer RPCs, and those tables' write
+grants are revoked. `event_invitations` and `event_standby` are not done
+— SCHEMA.md → Grants.
+
 Not built:
-- **Edit group** — renaming a group. `groups_update` already grants
-  `name`; no screen or entry point for it.
+- **Edit group** — renaming a group. No screen or entry point, and
+  `create_group`'s RPC has no rename counterpart.
 - **Edit event** — title, time, location. Not capacity: it is set at
   creation and never editable, which is what keeps the capacity
   invariant to one entry point (SCHEMA.md rule 11).
-- **Add players** — Event part 3.
 - **The 2a–2d error treatment** — done on 1a, 1b, 1g and Add by email.
   Still outstanding on 1c and 1f, which carry a single `error` field and
   put everything in the field's slot, including errors that aren't about
   the field.
 - **Resending an invitation.** `send_group_invitation_email` exists but is
   not granted; it needs a throttle before it is.
-- **Revoking broad table grants** — only after writes move behind RPCs.
-  SCHEMA.md → Grants explains why a `security invoker` RPC breaks if the
-  grant goes first.
+- **Finishing the grant revocation** — `event_invitations` and
+  `event_standby`. `disinvite_player` is `security invoker`, so it must
+  become definer first or revoking breaks it. SCHEMA.md → Grants.
 
-Next: Add players.
+Next: Edit group and Edit event, then the invitation throttle.
