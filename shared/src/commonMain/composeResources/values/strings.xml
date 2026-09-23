@@ -108,11 +108,16 @@
     <string name="events_failed_title">Couldn’t load events</string>
     <string name="events_try_again">Try again</string>
 
-    <!-- Event (1l, 1m, 1n) -->
-    <string name="event_roster_header">Roster · %1$d</string>
+    <!-- Event (4a, 4b, 4c) -->
+    <string name="event_players_header">Players %1$d</string>
+    <string name="event_add">+ Add</string>
     <string name="event_add_players">+ Add players</string>
-    <string name="event_slots">%1$d of %2$d slots · %3$d in, %4$d pending</string>
-    <string name="event_slots_frozen">%1$d of %2$d slots · %3$d in, %4$d no reply</string>
+    <string name="event_slots_of">of %1$d slots</string>
+    <string name="event_slots_open">%1$d open</string>
+    <string name="event_slots_legend_in">%1$d in</string>
+    <string name="event_slots_legend_pending">%1$d pending</string>
+    <string name="event_slots_legend_no_reply">%1$d no reply</string>
+    <string name="event_slots_legend_out">%1$d out</string>
     <string name="event_status_no_reply">No reply</string>
     <string name="event_frozen_strip">Started at %1$s · no more changes</string>
     <string name="event_rsvp_question">Can you play?</string>
@@ -125,7 +130,7 @@
     <string name="event_rsvp_frozen_out">You didn’t play</string>
     <string name="event_rsvp_frozen_pending">You didn’t respond</string>
     <string name="event_roster_empty_title">No one invited yet</string>
-    <string name="event_roster_empty_body">Invited players will show up here.</string>
+    <string name="event_roster_empty_body">Add players from your group. Each gets an invite to answer In or Out.</string>
     <string name="event_failed_title">Couldn’t load this event</string>
     <string name="event_try_again">Try again</string>
     <string name="event_standby_header">Standby · %1$d</string>

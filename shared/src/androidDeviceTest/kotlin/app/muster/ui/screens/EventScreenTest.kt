@@ -6,8 +6,11 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import app.muster.domain.error.DomainError
 import app.muster.domain.model.RsvpStatus
 import app.muster.ui.screens.event.EventActions
@@ -92,17 +95,30 @@ class EventScreenTest {
     }
 
     @Test
+    fun theAppBarShowsThePlaceholderMoreOptionsIcon() {
+        show(state = successState)
+        composeRule.onNodeWithContentDescription("More options").assertIsDisplayed()
+    }
+
+    @Test
     fun loadingShowsTheCarriedOverDetailsImmediately() {
         show(state = EventUiState.Loading(summary))
         composeRule.onNodeWithText("Wed 17 Sep · 7:00 pm").assertIsDisplayed()
         composeRule.onNodeWithText("Westgate Pitch 2").assertIsDisplayed()
-        composeRule.onNodeWithText("4 of 10 slots · 3 in, 1 pending").assertIsDisplayed()
+        composeRule.onNodeWithText("of 10 slots").assertIsDisplayed()
+        composeRule.onNodeWithText("6 open").assertIsDisplayed()
+    }
+
+    @Test
+    fun loadingHasNoLegendYet() {
+        show(state = EventUiState.Loading(summary))
+        composeRule.onNodeWithText("3 in").assertDoesNotExist()
     }
 
     @Test
     fun loadingHasNoRosterYet() {
         show(state = EventUiState.Loading(summary))
-        composeRule.onNodeWithText("Roster · 3").assertDoesNotExist()
+        composeRule.onNodeWithText("Players 3").assertDoesNotExist()
     }
 
     @Test
@@ -169,7 +185,9 @@ class EventScreenTest {
     @Test
     fun aRsvpErrorIsShownInTheBlock() {
         show(state = successState.copy(myStatus = RsvpStatus.In, rsvpError = DomainError.EventFull()))
-        composeRule.onNodeWithText("This event is full. Free a slot first.").assertIsDisplayed()
+        val message = "This event is full."
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText(message))
+        composeRule.onNodeWithText(message).assertIsDisplayed()
     }
 
     @Test
@@ -188,7 +206,12 @@ class EventScreenTest {
     @Test
     fun frozenSlotsLineReadsNoReplyInsteadOfPending() {
         show(state = successState.copy(isFrozen = true, startTime = "7:00 pm"))
-        composeRule.onNodeWithText("4 of 10 slots · 3 in, 1 no reply").assertIsDisplayed()
+        composeRule.onNodeWithText("of 10 slots").assertIsDisplayed()
+        composeRule.onNodeWithText("6 open").assertIsDisplayed()
+        composeRule.onNodeWithText("3 in").assertIsDisplayed()
+        composeRule.onNodeWithText("1 no reply").assertIsDisplayed()
+        composeRule.onNodeWithText("1 out").assertIsDisplayed()
+        composeRule.onNodeWithText("1 pending").assertDoesNotExist()
     }
 
     @Test
@@ -221,13 +244,33 @@ class EventScreenTest {
     @Test
     fun rosterHeaderShowsTheCount() {
         show(state = successState)
-        composeRule.onNodeWithText("Roster · 3").assertIsDisplayed()
+        composeRule.onNodeWithText("Players 3").assertIsDisplayed()
     }
 
     @Test
-    fun emptyRosterShowsTheEmptyState() {
-        show(state = successState.copy(roster = emptyList(), myStatus = null))
+    fun emptyRosterShowsTheEmptyStateWithAnAddButtonForAdmins() {
+        show(state = successState.copy(isAdmin = true, roster = emptyList(), myStatus = null))
         composeRule.onNodeWithText("No one invited yet").assertIsDisplayed()
+        composeRule.onAllNodesWithText("+ Add players").assertCountEquals(1)
+    }
+
+    @Test
+    fun emptyRosterHasNoHeaderAddPillEvenForAdmins() {
+        show(state = successState.copy(isAdmin = true, roster = emptyList(), myStatus = null))
+        composeRule.onNodeWithText("+ Add").assertDoesNotExist()
+    }
+
+    @Test
+    fun emptyRosterShowsNoAddButtonForMembers() {
+        show(state = successState.copy(isAdmin = false, roster = emptyList(), myStatus = null))
+        composeRule.onNodeWithText("No one invited yet").assertIsDisplayed()
+        composeRule.onNodeWithText("+ Add players").assertDoesNotExist()
+    }
+
+    @Test
+    fun nonEmptyRosterShowsTheHeaderAddPillForAdmins() {
+        show(state = successState.copy(isAdmin = true))
+        composeRule.onNodeWithText("+ Add").assertIsDisplayed()
     }
 
     @Test
@@ -289,7 +332,9 @@ class EventScreenTest {
                 rowActionError = DomainError.EventFull()
             )
         )
-        composeRule.onNodeWithText("This event is full. Free a slot first.").assertIsDisplayed()
+        val message = "This event is full."
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText(message))
+        composeRule.onNodeWithText(message).assertIsDisplayed()
     }
 
     @Test
@@ -301,7 +346,7 @@ class EventScreenTest {
                 rowActionError = DomainError.EventFull()
             )
         )
-        composeRule.onNodeWithText("This event is full. Free a slot first.").assertDoesNotExist()
+        composeRule.onNodeWithText("This event is full.").assertDoesNotExist()
     }
 
     @Test
