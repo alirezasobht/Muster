@@ -256,3 +256,41 @@ makes it impossible instead.
 A prefix-checking Edge Function was considered and rejected: secrets in
 two Supabase projects are already fully separate stores, so it would have
 added detection, not isolation, and left stray values behind.
+
+## Account deletion: cascade, not a tombstone profile
+
+Play requires apps with sign-up to offer account deletion, in the app and
+via a web link. The web app's Settings screen is the web link.
+
+Deleting removes the `auth.users` row and lets cascades clear the
+profile, memberships and RSVPs. `groups.created_by`, `events.created_by`
+and `group_invitations.invited_by` become nullable with `ON DELETE SET
+NULL`, so authorship doesn't block deletion.
+
+A tombstone — dropping the `profiles` → `auth.users` key and keeping an
+anonymised profile — was rejected. It needs explicit cleanup the
+cascades already do, a placeholder email to satisfy the unique
+constraint, and it disguises data rather than removing it. Nothing reads
+authorship: there is no history (CONTEXT.md), and the one inviter name
+shown already has a fallback.
+
+Groups where the user is the only admin are archived, not orphaned. The
+app lists them and asks to continue or cancel first.
+`ensure_admin_remains` skips archived groups so the membership cascade
+can pass; a group restored from the dashboard then needs an admin set by
+hand.
+
+Planned, one step at a time:
+
+1. Migration: the three nullable `SET NULL` columns;
+   `ensure_admin_remains` skips archived groups;
+   `get_my_pending_invitations` left-joins the inviter so an invitation
+   from a deleted admin still shows.
+2. Migration: `list_sole_admin_groups()` for the confirmation, and
+   `delete_account()` — archive those groups, delete pending invitations
+   to the user's email, delete the `auth.users` row, in one transaction.
+   Verify first that a definer function may delete from `auth.users`;
+   if not, deletion moves to an Edge Function.
+3. App: Delete account in Settings, the confirmation listing the groups,
+   then sign-out.
+4. Docs: SCHEMA.md, CONTEXT.md, SCREENS.md.
