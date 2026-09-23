@@ -362,6 +362,7 @@ is stale. These existing whole-queue and batch semantics are preserved.
 | `promote_standby(eid)` | the promotion body itself |
 | `trigger_promote_standby()` | thin wrapper, passes the event id from the changed row |
 | `send_group_invitation_email(invitation_id)` | queues the invite email through `pg_net`. Called by the invite RPC. Kept for a future resend button, but not granted until resend has a throttle — otherwise any admin could email an address without limit |
+| `private.send_event_invitation_email(uuid[])` | queues one request for a batch of event invitations. Called by `add_players_to_event` and `promote_standby`. No caller check — promotion runs inside whoever freed the slot, often a member — so no grants at all, `authenticated` included |
 
 Every other function above is a trigger function and is likewise
 unreachable from the API.
@@ -536,6 +537,19 @@ The app no longer writes directly to these tables.
   depend on configuration** — if either Vault entry is missing the
   function raises, and the invitation rolls back with it. Both must exist
   before an environment can invite anyone.
+- **Event invite email** — `add_players_to_event` collects the ids of
+  the invitations it creates (not standby rows) and calls
+  `send_event_invitation_email` once at the end; `promote_standby` does
+  the same for the players it promotes. One request per call, not per
+  player: Resend rate-limits requests, and a 20-player add would be
+  throttled. The Edge Function `send-event-invitation-email` re-reads
+  the invitations, sends only those still `pending`, and uses Resend's
+  batch endpoint.
+
+  Unlike the group invite, **a missing Vault entry never fails the
+  write** — it logs a warning and skips the email. Promotion runs inside
+  a member's own RSVP change, and a missing secret must not stop anyone
+  dropping out. See DECISIONS.md.
 
 Everything else is in the database. Standby promotion in particular
 cannot be client-side: one of its entry points is an `ON DELETE CASCADE`,

@@ -416,3 +416,6 @@ enabled = true
 
 [functions.send-group-invitation-email]
 verify_jwt = false
+
+[functions.send-event-invitation-email]
+verify_jwt = false

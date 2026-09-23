@@ -184,6 +184,26 @@ Vault entry missing the function raises and takes the invitation with
 it. Accepted, and made a hard setup step rather than softened, because a
 silently skipped email is worse to debug than a failed invite.
 
+## The event invite email skips on missing config
+
+The opposite of the group invite, on purpose. Event invitations are also
+created by standby promotion, and promotion runs inside whoever freed
+the slot — often a member setting their own RSVP to `out`. Raising there
+would mean a missing Vault entry stops members dropping out, which is
+far worse than a missing email.
+
+So `send_event_invitation_email` warns in the database log and returns.
+The config is still a setup step, not optional; this only chooses which
+failure a mistake produces.
+
+The same reason rules out a caller check: the function can't require an
+admin when a member's RSVP is what calls it. It's safe instead by having
+no grants, so only the database's own functions reach it.
+
+One request per add or promotion, not per player: Resend limits
+requests per second, and pg_net would fire a 20-player add as 20
+parallel requests with nothing retrying the throttled ones.
+
 ## Invitations are an RPC, not a direct insert
 
 The app used to insert into `group_invitations` directly, relying on RLS.

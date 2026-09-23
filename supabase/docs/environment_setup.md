@@ -26,31 +26,34 @@ set by hand.
 
 ## 3. Vault
 
-Two entries, read by the database when it queues an invite email:
+Three entries, read by the database when it queues an invite email:
 
 | Name | Value |
 |---|---|
 | `project_url` | this environment's project URL |
 | `group_invitation_webhook_secret` | a new random value, identical to `GROUP_INVITATION_WEBHOOK_SECRET` in `edge.env` |
+| `event_invitation_webhook_secret` | a new random value, identical to `EVENT_INVITATION_WEBHOOK_SECRET` in `edge.env` |
 
-**Without both, inviting anyone fails** — the invite and its email share
-a transaction. Do this before the environment is used.
+**Without `project_url` and the group secret, inviting anyone to a
+group fails** — the invite and its email share a transaction. Event
+invites never fail on configuration: promotion runs inside a member's
+own RSVP change, so a missing entry skips the email with a warning in
+the database log instead. Set all three before the environment is used.
 
 ```sql
 select vault.create_secret('<value>', 'project_url');
 select vault.create_secret('<value>', 'group_invitation_webhook_secret');
+select vault.create_secret('<value>', 'event_invitation_webhook_secret');
 ```
 
 ## 4. Resend
 
 - Sending domain verified, with SPF and DKIM.
 - An API key for this environment.
-- The `group-member-invitation` template published, from
-  `supabase/resend.template/group-member-invitation.html`. Its variables:
-  `GROUP_NAME`, `INVITER_NAME`, `RECIPIENT_EMAIL`, `CONTACT_EMAIL`,
-  `ANDROID_APP_URL`, `WEB_APP_URL`.
+- Both templates published from `supabase/resend.template/`, with the
+  subjects and variables listed in its `README.md`.
 
-Record the key, sender and template ID in `edge.env`.
+Record the key, sender and both template IDs in `edge.env`.
 
 ## 5. Edge Function secrets and deploy
 
@@ -64,12 +67,13 @@ every required secret is present, uploads, then removes stale ones. The
 second deploys every function. Both take the project ref from `env`, so
 they can't target the wrong project. `prod` asks for confirmation.
 
-Push secrets first: the function refuses to start if any required one is
+Push secrets first: a function refuses to start if any required one is
 missing. `ANDROID_APP_URL` is optional and falls back to the web URL.
 
 Confirm `verify_jwt = false` took effect on
-`send-group-invitation-email` — `config.toml` sets it, and the function
-authenticates with the webhook secret instead.
+`send-group-invitation-email` and `send-event-invitation-email` —
+`config.toml` sets it, and the functions authenticate with their
+webhook secrets instead.
 
 ## 6. Auth
 
@@ -84,8 +88,8 @@ function. Configure it in the dashboard:
 
 ## 7. Check
 
-Sign in with a code, then invite an address you control and confirm the
-email arrives. If it doesn't:
+Sign in with a code, then invite an address you control to a group and
+to an event, and confirm both emails arrive. If one doesn't:
 
 ```sql
 select status_code, content, error_msg, created
