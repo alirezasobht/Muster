@@ -1,7 +1,7 @@
 package app.muster.data.repository
 
+import app.muster.data.dto.CreateEventDto
 import app.muster.data.dto.EventDto
-import app.muster.data.dto.EventInsertDto
 import app.muster.data.dto.EventInvitationGroupIdDto
 import app.muster.data.dto.EventInvitationRowDto
 import app.muster.data.dto.EventRsvpUpdateDto
@@ -26,6 +26,7 @@ import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
+import io.github.jan.supabase.postgrest.rpc
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -76,17 +77,16 @@ internal class EventRepositoryImpl(
         location: String?,
         capacity: Int
     ): Event = mapErrors {
-        client.from(EVENTS_TABLE)
-            .insert(
-                EventInsertDto(
-                    groupId = groupId,
-                    title = title,
-                    startsAt = startsAt.toString(),
-                    location = location,
-                    capacity = capacity,
-                    createdBy = myId()
-                )
-            ) { select() }
+        client.postgrest.rpc(
+            CREATE_EVENT_FUNCTION,
+            CreateEventDto(
+                groupId = groupId,
+                title = title,
+                startsAt = startsAt.toString(),
+                location = location,
+                capacity = capacity
+            )
+        )
             .decodeSingle<EventDto>()
             // A brand-new event has no invitations yet.
             .toEvent(inCount = 0, pendingCount = 0, myStatus = null)
@@ -209,6 +209,7 @@ internal class EventRepositoryImpl(
         const val PROFILES_TABLE = "profiles"
         const val IN_STATUS = "in"
         const val PENDING_STATUS = "pending"
+        const val CREATE_EVENT_FUNCTION = "create_event"
         const val SET_STANDBY_ORDER_FUNCTION = "set_standby_order"
         const val DISINVITE_PLAYER_FUNCTION = "disinvite_player"
         const val ADD_PLAYERS_TO_EVENT_FUNCTION = "add_players_to_event"

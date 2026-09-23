@@ -106,6 +106,11 @@ UNIQUE `(id, group_id)` — not for uniqueness, which `id` already gives.
 It exists so child tables can reference the pair and have Postgres
 guarantee their denormalised `group_id` matches the event's.
 
+Creation goes through `create_event`: a signed-in admin of a live group
+supplies the event fields, and the database sets `created_by`. No direct
+client write grants remain on `events`; editing and deleting events are
+not exposed by the app.
+
 ### event_invitations
 Event-level RSVP. A row means the player has been invited.
 
@@ -186,10 +191,9 @@ it never needs to renumber anything.
    granting themselves `can_create_groups`, which sits on their own
    profile row; or, as an admin, rewriting a `group_members.profile_id`
    to add someone who never accepted an invitation). `authenticated` may
-   update only `event_invitations (status)`,
-   `group_members (role)` and
-   `events (title, starts_at, location)` — the last of which is what
-   makes `capacity` immutable and pins an event to its group. `groups`
+   update only `event_invitations (status)` and `group_members (role)`.
+   `events` has no client write grants; `create_event` exposes creation
+   only, keeping `capacity` and the event's group immutable. `groups`
    has no client write grants, including column grants; creation and
    archiving go through RPCs, and renaming is not exposed.
    `profiles` also has no client write grants; `set_profile_name` updates
@@ -284,6 +288,7 @@ calls one by name must qualify it, `private.is_group_admin(...)`.
 
 | Function | Why it exists |
 |---|---|
+| `create_event(group_id, title, starts_at, capacity, location)` | `security definer`: requires a signed-in admin, locks the live group before inserting, sets the creator, and returns the created event. Location is optional |
 | `set_profile_name(name)` | `security definer`: requires a signed-in caller, updates only their name, and returns their profile; raises if the profile is missing. No group membership is required |
 | `create_group(name)` | `security definer`: requires a signed-in, allowlisted caller, sets the creator, and returns the created group. The existing trigger creates its admin membership |
 | `archive_group(group_id)` | `security definer`: locks a live group, requires its admin, and sets the archive timestamp on the server; raises for a missing or already archived group |
@@ -368,7 +373,8 @@ The concurrency-sensitive parts rest on six details:
   see the other's uncommitted admin row.
 - **`select ... for share` on the group row** in the two invitation
   RPCs, in `set_standby_order`, in `promote_standby`, and in
-  `add_players_to_event`. Checking `archived_at is null` reads a
+  `add_players_to_event` and `create_event`. Creation holds the group
+  lock before inserting its new event. Checking `archived_at is null` reads a
   snapshot; without the lock an archive committing in between would
   still let the operation write into an archived group.
 - **Lock order is group before event**, everywhere both are taken.
@@ -419,6 +425,14 @@ separate `UPDATE (name)` grants. Read grants and RLS policies remain;
 Auth's definer triggers still create/restore profiles and sync email.
 Apply the RPC migration and switch the app before the revoke migration.
 
+**Events converted:** `create_event` owns the app's event creation.
+A separate migration revokes `INSERT`, `UPDATE`, `DELETE` and `TRUNCATE`
+on `events` from `PUBLIC`, `anon` and `authenticated`, plus the separate
+`UPDATE (title, starts_at, location)` grants. Read grants and RLS policies
+remain. Existing definer RPCs and triggers still lock events for roster
+operations; `disinvite_player` needs no write grant on `events`.
+Apply the RPC migration and switch the app before the revoke migration.
+
 **Still open: other table grants.** `authenticated` still has broad direct
 write access to the remaining tables, narrowed only by RLS and the column grants
 in rule 5. The plan is to move writes behind RPCs one at a time, then
@@ -429,7 +443,7 @@ keep a narrow grant, before the revoke.
 
 Done so far: every write to `group_members`, and invites and revokes on
 `group_invitations`, go through definer RPCs — so those grants can go.
-`events` and `event_invitations` are still written directly.
+`event_invitations` is still written directly for RSVP changes.
 
 ### Known limits
 

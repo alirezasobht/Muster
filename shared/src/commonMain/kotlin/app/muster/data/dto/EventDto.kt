@@ -13,15 +13,13 @@ internal data class EventDto(
     val capacity: Int
 )
 
-// RLS requires the caller to be a group admin; created_by is the caller.
 @Serializable
-internal data class EventInsertDto(
+internal data class CreateEventDto(
     @SerialName("group_id") val groupId: String,
     val title: String,
     @SerialName("starts_at") val startsAt: String,
     val location: String? = null,
-    val capacity: Int,
-    @SerialName("created_by") val createdBy: String
+    val capacity: Int
 )
 
 @Serializable
