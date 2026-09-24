@@ -292,6 +292,7 @@ calls one by name must qualify it, `private.is_group_admin(...)`.
 
 | Function | Why it exists |
 |---|---|
+| `list_upcoming_events(gid)` | read-only `security invoker`: returns upcoming events with complete in/pending counts and the caller's RSVP in one SQL statement. Uses existing RLS and SELECT grants, database time, and orders by start time then ID |
 | `create_event(group_id, title, starts_at, capacity, location)` | `security definer`: requires a signed-in admin, locks the live group before inserting, sets the creator, and returns the created event. Location is optional |
 | `set_profile_name(name)` | `security definer`: requires a signed-in caller, updates only their name, and returns their profile; raises if the profile is missing. No group membership is required |
 | `create_group(name)` | `security definer`: requires a signed-in, allowlisted caller, sets the creator, and returns the created group. The existing trigger creates its admin membership |
@@ -313,6 +314,14 @@ The four member RPCs are `security definer` with their own checks, and
 raise if nothing matched rather than succeeding silently. None of them
 checks for the last admin: `group_keeps_an_admin` still fires, since a
 definer function doesn't bypass triggers, and still raises at commit.
+
+`list_upcoming_events` aggregates invitations before PostgREST applies
+its response row limit. A large combined roster therefore cannot truncate
+the counts or hide the caller's RSVP. Events with no invitations return
+zero counts and a null RSVP; an `out` RSVP is retained. Missing, archived
+or inaccessible groups return an empty list through RLS. The API limit
+still applies to the number of event summaries returned (currently
+1,000 in the repository configuration), not the invitation rows counted.
 
 `set_group_member_role`, `remove_group_member` and `leave_group` take
 `FOR UPDATE` on the live group before touching membership rows. This
@@ -435,6 +444,11 @@ too. A new function that forgets this is callable by anyone with the
 publishable key.
 
 `create or replace` keeps existing grants; a fresh `create` does not.
+
+The read-only `list_upcoming_events` RPC is deliberately `security
+invoker`: it needs SELECT on `events` and `event_invitations` plus the
+existing RLS helper permissions. It adds no table privileges and does
+not bypass RLS. EXECUTE is granted only to `authenticated`.
 
 **Groups converted:** `create_group` and `archive_group` own all app
 writes. A separate migration revokes `INSERT`, `UPDATE`, `DELETE` and

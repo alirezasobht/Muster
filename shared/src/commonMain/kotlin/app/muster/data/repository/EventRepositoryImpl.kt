@@ -5,8 +5,10 @@ import app.muster.data.dto.EventDto
 import app.muster.data.dto.EventInvitationGroupIdDto
 import app.muster.data.dto.EventInvitationRowDto
 import app.muster.data.dto.EventStandbyRowDto
+import app.muster.data.dto.ListUpcomingEventsDto
 import app.muster.data.dto.ProfileNameRowDto
 import app.muster.data.dto.SetEventRsvpDto
+import app.muster.data.dto.UpcomingEventDto
 import app.muster.data.mapper.mapErrors
 import app.muster.data.mapper.toDbValue
 import app.muster.data.mapper.toEvent
@@ -31,7 +33,6 @@ import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
-import kotlin.time.Clock
 import kotlin.time.Instant
 
 internal class EventRepositoryImpl(
@@ -40,34 +41,9 @@ internal class EventRepositoryImpl(
 ) : EventRepository {
 
     override suspend fun listUpcomingEvents(groupId: String): List<Event> = mapErrors {
-        val events = client.from(EVENTS_TABLE)
-            .select(Columns.raw("id,group_id,title,starts_at,location,capacity")) {
-                filter {
-                    eq("group_id", groupId)
-                    gt("starts_at", Clock.System.now().toString())
-                }
-                order("starts_at", Order.ASCENDING)
-            }
-            .decodeList<EventDto>()
-
-        if (events.isEmpty()) return@mapErrors emptyList()
-
-        val invitationsByEvent = client.from(EVENT_INVITATIONS_TABLE)
-            .select(Columns.raw("event_id,profile_id,status")) {
-                filter { isIn("event_id", events.map { it.id }) }
-            }
-            .decodeList<EventInvitationRowDto>()
-            .groupBy { it.eventId }
-
-        val myId = myId()
-        events.map { event ->
-            val rows = invitationsByEvent[event.id].orEmpty()
-            event.toEvent(
-                inCount = rows.count { it.status == IN_STATUS },
-                pendingCount = rows.count { it.status == PENDING_STATUS },
-                myStatus = rows.firstOrNull { it.profileId == myId }?.status?.toRsvpStatus()
-            )
-        }
+        client.postgrest.rpc(LIST_UPCOMING_EVENTS_FUNCTION, ListUpcomingEventsDto(groupId))
+            .decodeList<UpcomingEventDto>()
+            .map { it.toEvent() }
     }
 
     override suspend fun createEvent(
@@ -114,7 +90,6 @@ internal class EventRepositoryImpl(
                 order("position", Order.ASCENDING)
             }
             .decodeList<EventStandbyRowDto>()
-
 
         val allProfileIds = (invitations.map { it.profileId } + standbyRows.map { it.profileId }).distinct()
         val namesByProfileId = if (allProfileIds.isEmpty()) {
@@ -200,8 +175,7 @@ internal class EventRepositoryImpl(
         const val EVENT_INVITATIONS_TABLE = "event_invitations"
         const val EVENT_STANDBY_TABLE = "event_standby"
         const val PROFILES_TABLE = "profiles"
-        const val IN_STATUS = "in"
-        const val PENDING_STATUS = "pending"
+        const val LIST_UPCOMING_EVENTS_FUNCTION = "list_upcoming_events"
         const val CREATE_EVENT_FUNCTION = "create_event"
         const val SET_EVENT_RSVP_FUNCTION = "set_event_rsvp"
         const val SET_STANDBY_ORDER_FUNCTION = "set_standby_order"

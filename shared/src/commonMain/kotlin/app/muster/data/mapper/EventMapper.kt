@@ -3,6 +3,7 @@ package app.muster.data.mapper
 import app.muster.data.dto.EventDto
 import app.muster.data.dto.EventInvitationRowDto
 import app.muster.data.dto.EventStandbyRowDto
+import app.muster.data.dto.UpcomingEventDto
 import app.muster.domain.model.Event
 import app.muster.domain.model.RosterEntry
 import app.muster.domain.model.RsvpStatus
@@ -19,6 +20,19 @@ internal fun EventDto.toEvent(inCount: Int, pendingCount: Int, myStatus: RsvpSta
     inCount = inCount,
     pendingCount = pendingCount,
     myStatus = myStatus
+)
+
+internal fun UpcomingEventDto.toEvent() = EventDto(
+    id = id,
+    groupId = groupId,
+    title = title,
+    startsAt = startsAt,
+    location = location,
+    capacity = capacity
+).toEvent(
+    inCount = inCount,
+    pendingCount = pendingCount,
+    myStatus = myStatus?.toRsvpStatus()
 )
 
 internal fun EventInvitationRowDto.toRosterEntry(name: String) = RosterEntry(

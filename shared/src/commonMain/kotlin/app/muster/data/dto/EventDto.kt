@@ -14,6 +14,24 @@ internal data class EventDto(
 )
 
 @Serializable
+internal data class ListUpcomingEventsDto(
+    @SerialName("gid") val groupId: String
+)
+
+@Serializable
+internal data class UpcomingEventDto(
+    val id: String,
+    @SerialName("group_id") val groupId: String,
+    val title: String,
+    @SerialName("starts_at") val startsAt: String,
+    val location: String? = null,
+    val capacity: Int,
+    @SerialName("in_count") val inCount: Int,
+    @SerialName("pending_count") val pendingCount: Int,
+    @SerialName("my_status") val myStatus: String? = null
+)
+
+@Serializable
 internal data class CreateEventDto(
     @SerialName("group_id") val groupId: String,
     val title: String,
