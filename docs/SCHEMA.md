@@ -455,6 +455,14 @@ publishable key.
 
 `create or replace` keeps existing grants; a fresh `create` does not.
 
+**New tables need their own grants.** From 2026-10-30 Supabase stops
+granting its API roles on new objects in `public` (environment_setup.md
+step 1). Existing tables keep theirs. A migration creating a table must
+grant what it needs: `select` to `authenticated` for reads through RLS,
+and to `service_role` if an Edge Function reads it. Without it the Data
+API refuses the table before RLS runs. Functions already grant
+`EXECUTE` explicitly, as above.
+
 The read-only `list_upcoming_events` and `get_event_detail` RPCs are
 deliberately `security invoker`: both need SELECT on `events` and
 `event_invitations`; detail also reads `event_standby` and `profiles`.

@@ -14,6 +14,20 @@ they live in `Muster-env/<env>/`, with every name prefixed `DEV_` or
 Create the project in `ap-southeast-2`. Record its ref, URL, publishable
 key and database password in `env`.
 
+Under **Security**, tick all three:
+
+- **Enable Data API** — the app reaches Postgres only through it.
+- **Automatically expose new tables** — the migrations never grant
+  `SELECT`; reads rely on the default grants this creates.
+- **Enable automatic RLS** — creates `public.rls_auto_enable()`, which
+  `20260921220000_restrict_public_function_execute.sql` revokes. Without
+  it, `db push` fails there.
+
+Auto-expose is being retired. From 2026-10-30 Supabase enforces it off
+on every project: tables that exist keep their grants, but any table or
+function created afterwards needs explicit grants in its migration, or
+the Data API refuses it.
+
 ## 2. Database
 
 ```
