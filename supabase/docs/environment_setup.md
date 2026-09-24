@@ -81,8 +81,9 @@ Supabase Auth sends sign-in codes itself, separately from the invite
 function. Configure it in the dashboard:
 
 - Custom SMTP pointing at Resend, with this environment's sender.
-- Email templates using `{{ .Token }}`, not a confirmation link — sign-in
-  is code-only.
+- Email templates from `supabase/auth.template/`, pasted into the slots
+  and with the subjects listed in its `README.md`. They use `{{ .Token }}`,
+  not a confirmation link — sign-in is code-only.
 - Site URL and redirect URLs for this environment.
 - Session time-boxing and inactivity timeout off.
 
