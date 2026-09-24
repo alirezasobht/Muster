@@ -41,9 +41,22 @@ internal data class CreateEventDto(
 )
 
 @Serializable
-internal data class EventInvitationRowDto(
-    @SerialName("event_id") val eventId: String,
+internal data class GetEventDetailDto(
+    @SerialName("eid") val eventId: String
+)
+
+@Serializable
+internal data class EventDetailDto(
+    val event: EventDto,
+    val roster: List<EventRosterEntryDto>,
+    val standby: List<EventStandbyEntryDto>,
+    @SerialName("my_status") val myStatus: String? = null
+)
+
+@Serializable
+internal data class EventRosterEntryDto(
     @SerialName("profile_id") val profileId: String,
+    val name: String? = null,
     val status: String
 )
 
@@ -60,6 +73,7 @@ internal data class EventInvitationGroupIdDto(
 )
 
 @Serializable
-internal data class EventStandbyRowDto(
-    @SerialName("profile_id") val profileId: String
+internal data class EventStandbyEntryDto(
+    @SerialName("profile_id") val profileId: String,
+    val name: String? = null
 )

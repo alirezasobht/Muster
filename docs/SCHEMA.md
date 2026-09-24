@@ -292,6 +292,7 @@ calls one by name must qualify it, `private.is_group_admin(...)`.
 
 | Function | Why it exists |
 |---|---|
+| `get_event_detail(eid)` | read-only `security invoker`: returns event fields, roster with names, ordered standby with names, and the caller's RSVP in one SQL statement. Existing SELECT grants and RLS apply to every table |
 | `list_upcoming_events(gid)` | read-only `security invoker`: returns upcoming events with complete in/pending counts and the caller's RSVP in one SQL statement. Uses existing RLS and SELECT grants, database time, and orders by start time then ID |
 | `create_event(group_id, title, starts_at, capacity, location)` | `security definer`: requires a signed-in admin, locks the live group before inserting, sets the creator, and returns the created event. Location is optional |
 | `set_profile_name(name)` | `security definer`: requires a signed-in caller, updates only their name, and returns their profile; raises if the profile is missing. No group membership is required |
@@ -322,6 +323,15 @@ zero counts and a null RSVP; an `out` RSVP is retained. Missing, archived
 or inaccessible groups return an empty list through RLS. The API limit
 still applies to the number of event summaries returned (currently
 1,000 in the repository configuration), not the invitation rows counted.
+
+`get_event_detail` returns one row with nested roster and standby arrays,
+so promotion cannot fall between separate invitation and queue reads.
+Standby is ordered by position; the roster is unordered, since the Event
+screen sorts it. Empty lists return `[]`; null or RLS-hidden names keep the app's
+empty-name fallback. Missing or inaccessible events return no row, which
+the repository treats as a failed load. Past events remain readable.
+The API row limit does not truncate the nested arrays. Counts are derived
+from the returned roster, and the caller's RSVP is read in the same snapshot.
 
 `set_group_member_role`, `remove_group_member` and `leave_group` take
 `FOR UPDATE` on the live group before touching membership rows. This
@@ -445,10 +455,11 @@ publishable key.
 
 `create or replace` keeps existing grants; a fresh `create` does not.
 
-The read-only `list_upcoming_events` RPC is deliberately `security
-invoker`: it needs SELECT on `events` and `event_invitations` plus the
-existing RLS helper permissions. It adds no table privileges and does
-not bypass RLS. EXECUTE is granted only to `authenticated`.
+The read-only `list_upcoming_events` and `get_event_detail` RPCs are
+deliberately `security invoker`: both need SELECT on `events` and
+`event_invitations`; detail also reads `event_standby` and `profiles`.
+They retain the existing RLS helper permissions, add no table privileges
+and do not bypass RLS. EXECUTE is granted only to `authenticated`.
 
 **Groups converted:** `create_group` and `archive_group` own all app
 writes. A separate migration revokes `INSERT`, `UPDATE`, `DELETE` and

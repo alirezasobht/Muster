@@ -15,9 +15,3 @@ internal data class ProfileDto(
 internal data class SetProfileNameDto(
     val name: String
 )
-
-@Serializable
-internal data class ProfileNameRowDto(
-    val id: String,
-    val name: String? = null
-)

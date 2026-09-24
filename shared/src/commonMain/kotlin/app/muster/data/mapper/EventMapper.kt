@@ -1,10 +1,10 @@
 package app.muster.data.mapper
 
+import app.muster.data.dto.EventDetailDto
 import app.muster.data.dto.EventDto
-import app.muster.data.dto.EventInvitationRowDto
-import app.muster.data.dto.EventStandbyRowDto
 import app.muster.data.dto.UpcomingEventDto
 import app.muster.domain.model.Event
+import app.muster.domain.model.EventDetail
 import app.muster.domain.model.RosterEntry
 import app.muster.domain.model.RsvpStatus
 import app.muster.domain.model.StandbyEntry
@@ -35,16 +35,20 @@ internal fun UpcomingEventDto.toEvent() = EventDto(
     myStatus = myStatus?.toRsvpStatus()
 )
 
-internal fun EventInvitationRowDto.toRosterEntry(name: String) = RosterEntry(
-    profileId = profileId,
-    name = name,
-    status = status.toRsvpStatus()!!
-)
-
-internal fun EventStandbyRowDto.toStandbyEntry(name: String) = StandbyEntry(
-    profileId = profileId,
-    name = name
-)
+internal fun EventDetailDto.toEventDetail(): EventDetail {
+    val rosterEntries = roster.map {
+        RosterEntry(profileId = it.profileId, name = it.name.orEmpty(), status = it.status.toRsvpStatus()!!)
+    }
+    return EventDetail(
+        event = event.toEvent(
+            inCount = rosterEntries.count { it.status == RsvpStatus.In },
+            pendingCount = rosterEntries.count { it.status == RsvpStatus.Pending },
+            myStatus = myStatus?.toRsvpStatus()
+        ),
+        roster = rosterEntries,
+        standby = standby.map { StandbyEntry(profileId = it.profileId, name = it.name.orEmpty()) }
+    )
+}
 
 internal fun String.toRsvpStatus(): RsvpStatus? = when (this) {
     "pending" -> RsvpStatus.Pending
