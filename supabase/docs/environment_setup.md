@@ -103,6 +103,20 @@ function. Configure it in the dashboard:
 
 ## 7. Check
 
+Point the app build at this environment. Source the script, don't run
+it, or the exports never reach your shell:
+
+```
+. scripts/set-env-vars.sh <env>
+./gradlew :androidApp:installDebug
+```
+
+It exports `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` from `env`,
+which the build prefers over `local.properties`. Build from that same
+shell; Android Studio's Run button won't see them. Clear the app's data
+when switching, or the old environment's session is sent to the new one.
+A new shell goes back to `local.properties`.
+
 Sign in with a code, then invite an address you control to a group and
 to an event, and confirm both emails arrive. If one doesn't:
 
