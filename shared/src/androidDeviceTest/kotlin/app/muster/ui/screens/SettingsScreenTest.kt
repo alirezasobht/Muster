@@ -29,7 +29,8 @@ class SettingsScreenTest {
         onSave: () -> Unit = {},
         onRetryLoad: () -> Unit = {},
         onBack: () -> Unit = {},
-        onSignOut: () -> Unit = {}
+        onSignOut: () -> Unit = {},
+        onDeleteAccount: () -> Unit = {}
     ) {
         composeRule.setContent {
             MusterTheme {
@@ -40,7 +41,8 @@ class SettingsScreenTest {
                         onSave = onSave,
                         onRetryLoad = onRetryLoad,
                         onBack = onBack,
-                        onSignOut = onSignOut
+                        onSignOut = onSignOut,
+                        onDeleteAccount = onDeleteAccount
                     ),
                     spinnerDelayMillis = 0
                 )
@@ -133,6 +135,17 @@ class SettingsScreenTest {
         )
         composeRule.onNodeWithText("Sign out").performClick()
         assert(signedOut)
+    }
+
+    @Test
+    fun deleteAccountReachesTheCallback() {
+        var deleting = false
+        show(
+            state = SettingsUiState.Success(name = "Alex Doyle", email = "alex.doyle@gmail.com"),
+            onDeleteAccount = { deleting = true }
+        )
+        composeRule.onNodeWithText("Delete account").performClick()
+        assert(deleting)
     }
 
     @Test

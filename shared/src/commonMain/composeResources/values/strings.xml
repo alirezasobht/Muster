@@ -44,6 +44,17 @@
     <string name="settings_discard_body">Your name hasn’t been saved yet.</string>
     <string name="settings_discard_confirm">Discard</string>
     <string name="settings_discard_cancel">Keep editing</string>
+    <string name="settings_delete_account">Delete account</string>
+
+    <!-- Delete account (Settings) -->
+    <string name="delete_account_title">Delete your account?</string>
+    <string name="delete_account_body">Your name, email, group memberships and RSVPs will be removed. This can’t be undone.</string>
+    <string name="delete_account_confirm">Delete</string>
+    <string name="delete_account_cancel">Cancel</string>
+    <string name="delete_account_sole_admin_title">You’re the only admin</string>
+    <string name="delete_account_sole_admin_body">These groups will be archived:</string>
+    <string name="delete_account_sole_admin_warning">They’ll disappear for all their members, and this can’t be undone in the app.</string>
+    <string name="delete_account_sole_admin_confirm">Delete and archive</string>
 
     <!-- New group (1g) -->
     <string name="new_group_title">New group</string>

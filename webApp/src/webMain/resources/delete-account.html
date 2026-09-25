@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Delete your Muster account</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --accent: #2F7D4F;
+            --ink: #14171A;
+            --secondary: #4A524D;
+            --muted: #6E7671;
+            --hairline: #E4E7E4;
+            --quiet: #F5F7F5;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background: var(--hairline);
+            color: var(--ink);
+            font-family: "DM Sans", system-ui, sans-serif;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        main {
+            max-width: 480px;
+            min-height: 100vh;
+            margin: 0 auto;
+            padding: 40px 24px;
+            background: #fff;
+        }
+        .wordmark {
+            color: var(--accent);
+            font-weight: 700;
+            font-size: 20px;
+            margin: 0 0 32px;
+        }
+        h1 { font-size: 26px; line-height: 1.25; margin: 0 0 12px; }
+        h2 { font-size: 17px; margin: 32px 0 8px; }
+        p, li { color: var(--secondary); }
+        ol, ul { padding-left: 20px; margin: 0; }
+        li { margin-bottom: 6px; }
+        .panel {
+            background: var(--quiet);
+            border-radius: 14px;
+            padding: 16px 18px;
+            margin-top: 24px;
+        }
+        .panel p { margin: 0; }
+        a { color: var(--accent); font-weight: 600; }
+        footer { margin-top: 40px; color: var(--muted); font-size: 13px; }
+    </style>
+</head>
+<body>
+<main>
+    <p class="wordmark">Muster</p>
+
+    <h1>Delete your Muster account</h1>
+    <p>You can delete your account yourself, in the app or on the web.</p>
+
+    <h2>How to delete it</h2>
+    <ol>
+        <li>Open the Muster app, or <a href="@WEB_APP_URL@">@WEB_APP_URL@</a>, and sign in with your email.</li>
+        <li>Tap <strong>Settings</strong> at the top of the home screen.</li>
+        <li>Tap <strong>Delete account</strong> and confirm.</li>
+    </ol>
+
+    <h2>What is deleted</h2>
+    <ul>
+        <li>Your name and email address.</li>
+        <li>Your group memberships, event RSVPs and standby places.</li>
+        <li>Group invitations sent to your address.</li>
+    </ul>
+
+    <h2>What stays</h2>
+    <ul>
+        <li>Groups and events you created stay for their other members, no longer linked to you.</li>
+        <li>If you are the only admin of a group, that group is archived and hidden from all its members. The app lists these groups before you confirm.</li>
+    </ul>
+    <p>Deletion happens straight away and can't be undone.</p>
+
+    <div class="panel">
+        <p>Can't sign in? Email <a href="mailto:@CONTACT_EMAIL@">@CONTACT_EMAIL@</a> from the email address you use for Muster, and we'll delete your account for you.</p>
+    </div>
+
+    <footer>Muster</footer>
+</main>
+</body>
+</html>

@@ -12,6 +12,7 @@ import app.muster.ui.screens.launch.LaunchViewModel
 import app.muster.ui.screens.newevent.NewEventViewModel
 import app.muster.ui.screens.newgroup.NewGroupViewModel
 import app.muster.ui.screens.setname.SetNameViewModel
+import app.muster.ui.screens.settings.DeleteAccountViewModel
 import app.muster.ui.screens.settings.SettingsViewModel
 import app.muster.ui.screens.signin.EnterCodeViewModel
 import app.muster.ui.screens.signin.RequestCodeViewModel
@@ -25,6 +26,7 @@ val uiModule = module {
     viewModelOf(::SetNameViewModel)
     viewModelOf(::HomeViewModel)
     viewModelOf(::SettingsViewModel)
+    viewModelOf(::DeleteAccountViewModel)
     viewModelOf(::NewGroupViewModel)
     // Email comes from the EnterCode route, not the graph.
     viewModel { (email: String) -> EnterCodeViewModel(email, get(), get()) }

@@ -4,6 +4,7 @@ import app.muster.data.dto.GroupDto
 import app.muster.data.dto.GroupMemberRoleDto
 import app.muster.data.dto.GroupMembershipDto
 import app.muster.data.dto.PendingInvitationDto
+import app.muster.data.dto.SoleAdminGroupDto
 import app.muster.domain.model.Group
 import app.muster.domain.model.GroupInvitation
 import app.muster.domain.model.GroupRole
@@ -11,6 +12,8 @@ import app.muster.domain.model.GroupRole
 internal fun GroupDto.toGroup() = Group(id = id, name = name)
 
 internal fun GroupMembershipDto.toGroup() = groups.toGroup()
+
+internal fun SoleAdminGroupDto.toGroup() = Group(id = groupId, name = name)
 
 internal fun GroupMemberRoleDto.toGroupRole() = role.toGroupRole()
 

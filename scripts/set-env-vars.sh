@@ -4,10 +4,10 @@
 #   . scripts/set-env-vars.sh prod
 #
 # Points the app build at one environment by exporting SUPABASE_URL and
-# SUPABASE_PUBLISHABLE_KEY, which the build prefers over local.properties.
-# Run ./gradlew from the same shell; Android Studio's Run button won't see
-# them. return, never exit, and no set -e: either would reach the caller's
-# shell.
+# SUPABASE_PUBLISHABLE_KEY from env, and CONTACT_EMAIL and WEB_APP_URL from
+# edge.env, which the build prefers over local.properties. Run ./gradlew from
+# the same shell; Android Studio's Run button won't see them. return, never
+# exit, and no set -e: either would reach the caller's shell.
 
 case "${1:-}" in
   dev|prod) ;;
@@ -15,19 +15,23 @@ case "${1:-}" in
 esac
 
 _root=$(git rev-parse --show-toplevel) || return 1
-_file="$_root/../Muster-env/$1/env"
+_dir="$_root/../Muster-env/$1"
 _prefix="$(echo "$1" | tr '[:lower:]' '[:upper:]')_"
 
-if [ ! -f "$_file" ]; then
-  echo "missing $_file" >&2
+if [ ! -f "$_dir/env" ] || [ ! -f "$_dir/edge.env" ]; then
+  echo "missing $_dir/env or $_dir/edge.env" >&2
 else
-  _url=$(grep "^${_prefix}SUPABASE_URL=" "$_file" | cut -d= -f2-)
-  _key=$(grep "^${_prefix}SUPABASE_PUBLISHABLE_KEY=" "$_file" | cut -d= -f2-)
-  if [ -z "$_url" ] || [ -z "$_key" ]; then
-    echo "missing ${_prefix}SUPABASE_URL or ${_prefix}SUPABASE_PUBLISHABLE_KEY in $_file" >&2
+  _url=$(grep "^${_prefix}SUPABASE_URL=" "$_dir/env" | cut -d= -f2-)
+  _key=$(grep "^${_prefix}SUPABASE_PUBLISHABLE_KEY=" "$_dir/env" | cut -d= -f2-)
+  _contact=$(grep "^${_prefix}CONTACT_EMAIL=" "$_dir/edge.env" | cut -d= -f2-)
+  _web=$(grep "^${_prefix}WEB_APP_URL=" "$_dir/edge.env" | cut -d= -f2-)
+  if [ -z "$_url" ] || [ -z "$_key" ] || [ -z "$_contact" ] || [ -z "$_web" ]; then
+    echo "missing one of ${_prefix}SUPABASE_URL, ${_prefix}SUPABASE_PUBLISHABLE_KEY (env)," \
+      "${_prefix}CONTACT_EMAIL, ${_prefix}WEB_APP_URL (edge.env)" >&2
   else
-    export SUPABASE_URL="$_url" SUPABASE_PUBLISHABLE_KEY="$_key"
+    export SUPABASE_URL="$_url" SUPABASE_PUBLISHABLE_KEY="$_key" \
+      CONTACT_EMAIL="$_contact" WEB_APP_URL="$_web"
     echo "App build now targets $1 ($SUPABASE_URL)"
   fi
 fi
-unset _root _file _prefix _url _key
+unset _root _dir _prefix _url _key _contact _web

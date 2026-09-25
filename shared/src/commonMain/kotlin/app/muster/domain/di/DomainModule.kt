@@ -6,6 +6,7 @@ import app.muster.domain.usecase.ArchiveGroupUseCase
 import app.muster.domain.usecase.CreateEventUseCase
 import app.muster.domain.usecase.CreateGroupUseCase
 import app.muster.domain.usecase.DeclineGroupInvitationUseCase
+import app.muster.domain.usecase.DeleteAccountUseCase
 import app.muster.domain.usecase.DemoteMemberUseCase
 import app.muster.domain.usecase.DisinvitePlayerUseCase
 import app.muster.domain.usecase.GetEventUseCase
@@ -64,4 +65,5 @@ val domainModule = module {
     factoryOf(::ArchiveGroupUseCase)
     factoryOf(::DisinvitePlayerUseCase)
     factoryOf(::AddPlayersUseCase)
+    factoryOf(::DeleteAccountUseCase)
 }

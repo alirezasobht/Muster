@@ -16,9 +16,9 @@ plugins {
 val localProperties = rootProject.layout.projectDirectory.file("local.properties")
 
 val generateSupabaseConfig by tasks.registering(GenerateSupabaseConfig::class) {
-    url.set(supabaseSetting(providers, localProperties, "SUPABASE_URL"))
+    url.set(buildSetting(providers, localProperties, "SUPABASE_URL"))
     publishableKey.set(
-        supabaseSetting(providers, localProperties, "SUPABASE_PUBLISHABLE_KEY")
+        buildSetting(providers, localProperties, "SUPABASE_PUBLISHABLE_KEY")
     )
     outputDir.set(layout.buildDirectory.dir("generated/supabase"))
 }

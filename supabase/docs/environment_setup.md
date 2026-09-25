@@ -111,8 +111,9 @@ it, or the exports never reach your shell:
 ./gradlew :androidApp:installDebug
 ```
 
-It exports `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` from `env`,
-which the build prefers over `local.properties`. Build from that same
+It exports `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` from `env`, and
+`CONTACT_EMAIL` and `WEB_APP_URL` from `edge.env`, which the build
+prefers over `local.properties`. Build from that same
 shell; Android Studio's Run button won't see them. Clear the app's data
 when switching, or the old environment's session is sent to the new one.
 A new shell goes back to `local.properties`.
@@ -151,6 +152,11 @@ in the output — over Pages' 25 MiB per-file limit:
 
 Upload `webApp/build/dist/wasmJs/productionExecutable/` in the
 project's **Create deployment**. `composeResources` must be included.
+
+`delete-account.html` rides along and is served at `/delete-account`,
+the account deletion link for Play. The build fills its contact address
+and web link from `CONTACT_EMAIL` and `WEB_APP_URL`, and fails without
+them.
 
 Domain, set once:
 

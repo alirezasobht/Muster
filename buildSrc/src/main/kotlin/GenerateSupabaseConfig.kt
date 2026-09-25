@@ -64,7 +64,7 @@ abstract class GenerateSupabaseConfig : DefaultTask() {
  * string and surfaces as the task's own error message when it runs, so a plain
  * project sync does not break on an unconfigured machine.
  */
-fun supabaseSetting(
+fun buildSetting(
     providers: ProviderFactory,
     localProperties: RegularFile,
     name: String,

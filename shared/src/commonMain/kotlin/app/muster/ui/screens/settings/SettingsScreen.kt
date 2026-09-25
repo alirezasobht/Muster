@@ -16,6 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -25,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -44,6 +46,7 @@ import muster.shared.generated.resources.action_save
 import muster.shared.generated.resources.action_sign_out
 import muster.shared.generated.resources.content_description_back
 import muster.shared.generated.resources.field_email
+import muster.shared.generated.resources.settings_delete_account
 import muster.shared.generated.resources.settings_discard_body
 import muster.shared.generated.resources.settings_discard_cancel
 import muster.shared.generated.resources.settings_discard_confirm
@@ -61,14 +64,16 @@ data class SettingsActions(
     val onSave: () -> Unit,
     val onRetryLoad: () -> Unit,
     val onBack: () -> Unit,
-    val onSignOut: () -> Unit
+    val onSignOut: () -> Unit,
+    val onDeleteAccount: () -> Unit
 )
 
 @Composable
 fun SettingsRoute(
     onBack: () -> Unit,
     onSignOut: () -> Unit,
-    viewModel: SettingsViewModel = koinViewModel()
+    viewModel: SettingsViewModel = koinViewModel(),
+    deleteAccountViewModel: DeleteAccountViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var confirmDiscard by remember { mutableStateOf(false) }
@@ -98,10 +103,13 @@ fun SettingsRoute(
             onSave = viewModel::onSave,
             onRetryLoad = viewModel::onRetryLoad,
             onBack = requestBack,
-            onSignOut = onSignOut
+            onSignOut = onSignOut,
+            onDeleteAccount = deleteAccountViewModel::onStart
         ),
         showSaved = showSaved
     )
+
+    DeleteAccountRoute(viewModel = deleteAccountViewModel)
 
     if (confirmDiscard) {
         ConfirmDialog(
@@ -232,6 +240,14 @@ private fun FormContent(
         OutlinedButton(onClick = actions.onSignOut, shape = MaterialTheme.shapes.medium) {
             Text(text = stringResource(Res.string.action_sign_out), color = MusterColors.Ink)
         }
+        Spacer(Modifier.weight(1f))
+        TextButton(onClick = actions.onDeleteAccount, modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = stringResource(Res.string.settings_delete_account),
+                color = MusterColors.Ink,
+                style = MaterialTheme.typography.bodySmall,
+                textDecoration = TextDecoration.Underline)
+        }
     }
 }
 
@@ -240,7 +256,8 @@ private val PreviewActions = SettingsActions(
     onSave = {},
     onRetryLoad = {},
     onBack = {},
-    onSignOut = {}
+    onSignOut = {},
+    onDeleteAccount = {}
 )
 
 @Preview

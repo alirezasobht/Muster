@@ -1,6 +1,7 @@
 package app.muster.data.fake
 
 import app.muster.domain.error.DomainError
+import app.muster.domain.model.Group
 import app.muster.domain.model.SessionState
 import app.muster.domain.repository.AuthRepository
 import kotlinx.coroutines.delay
@@ -17,6 +18,9 @@ class FakeAuthRepository(
     var verifyError: DomainError? = null,
     var signOutError: DomainError? = null,
     var retryError: DomainError? = null,
+    var deleteError: DomainError? = null,
+    // Returned by a non-forced delete; empty means the delete goes through.
+    var soleAdminGroups: List<Group> = emptyList(),
     private val latency: Long = FAKE_LATENCY_MS
 ) : AuthRepository {
 
@@ -27,6 +31,9 @@ class FakeAuthRepository(
         private set
 
     var lastRequestedEmail: String? = null
+        private set
+
+    var deleteCalls: Int = 0
         private set
 
     override suspend fun requestSignInCode(email: String) {
@@ -51,6 +58,15 @@ class FakeAuthRepository(
     override suspend fun retrySession() {
         delay(latency.milliseconds)
         retryError?.let { throw it }
+    }
+
+    override suspend fun deleteAccount(force: Boolean): List<Group> {
+        deleteCalls++
+        delay(latency.milliseconds)
+        deleteError?.let { throw it }
+        if (!force && soleAdminGroups.isNotEmpty()) return soleAdminGroups
+        state.value = SessionState.SignedOut
+        return emptyList()
     }
 
     // Stands in for the SDK reaching the server again, or losing it.
