@@ -132,3 +132,32 @@ limit 5;
   **Logs** tab, not Invocations, for the missing secret.
 - No status, `error_msg` set — check Vault's `project_url`.
 - No row — nothing was queued; check the invitation was created.
+
+## 8. Web app (prod only)
+
+The web app is the prod site, `https://www.musterapp.fyi`, and the
+value of `WEB_APP_URL` and the Auth Site URL. It's a Cloudflare
+**Pages** project, `muster-prod`, on direct upload. Not a Worker: a
+Worker's custom domain needs Cloudflare to run DNS, and DNS stays at
+Porkbun.
+
+Build from clean, or a stale development wasm (over 30 MB) can end up
+in the output — over Pages' 25 MiB per-file limit:
+
+```
+. scripts/set-env-vars.sh prod
+./gradlew :webApp:clean :webApp:wasmJsBrowserDistribution
+```
+
+Upload `webApp/build/dist/wasmJs/productionExecutable/` in the
+project's **Create deployment**. `composeResources` must be included.
+
+Domain, set once:
+
+- Pages → Custom domains: `www.musterapp.fyi`.
+- Porkbun DNS: `CNAME www → muster-prod.pages.dev`.
+- Porkbun URL forwarding: root → `https://www.musterapp.fyi`, 301, path
+  included, no wildcard. A wildcard would also catch `send`.
+
+Leave the MX and TXT records alone: they carry `support@musterapp.fyi`
+forwarding and Resend's SPF and DKIM.
