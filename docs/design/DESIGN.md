@@ -135,7 +135,7 @@ message is about, not how bad it is.
 **Field error — about the contents of a field.** Unchanged: bare text
 under the field, 13px, `#9A3324`, no fill and no icon; the field's outline
 turns `#9A3324`. On the green ground (1a) the text inverts to `#FBE9E7`.
-Focus moves to the field. "Enter a name", "That code is only 5 digits",
+Focus is not moved (see No autofocus). "Enter a name", "That code is only 5 digits",
 "Keep it under 40 characters."
 
 **Form error — about the request.** A filled block sitting immediately
@@ -253,6 +253,10 @@ a different kind of thing.
   "No reply", the standby header reads "Standby · not called up". Identical
   for admins and members.
 - **Set name** reuses the Settings name field and has no back button.
+- **No autofocus.** No field is focused by the app, on open or on error;
+  the user taps it. iOS only opens the keyboard for focus that comes from
+  a tap, so app-driven focus can leave a field focused with no keyboard,
+  and tapping an already-focused field doesn't bring one up.
 - **Launch** is the one screen where accent fills the surface — it reads as
   the app icon, not UI. On Android it is the splashscreen theme
   (`windowBackground` `#2F7D4F`, the M as the icon), so there is no second

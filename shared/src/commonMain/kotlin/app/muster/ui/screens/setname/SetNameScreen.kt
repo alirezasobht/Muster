@@ -12,10 +12,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -65,8 +62,6 @@ fun SetNameScreen(
     error: DomainError? = null
 ) {
     val canContinue = name.isNotBlank()
-    val focusRequester = remember { FocusRequester() }
-    LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
     Surface(modifier = modifier.fillMaxSize()) {
         PhoneWidth {
@@ -89,8 +84,7 @@ fun SetNameScreen(
                         onValueChange = onNameChange,
                         enabled = !saving,
                         error = error?.toMessage(),
-                        onDone = { if (canContinue) onContinue() },
-                        modifier = Modifier.focusRequester(focusRequester)
+                        onDone = { if (canContinue) onContinue() }
                     )
                     Spacer(Modifier.height(24.dp))
                     PrimaryButton(
