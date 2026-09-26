@@ -147,16 +147,22 @@ in the output — over Pages' 25 MiB per-file limit:
 
 ```
 . scripts/set-env-vars.sh prod
-./gradlew :webApp:clean :webApp:wasmJsBrowserDistribution
+./gradlew :webApp:clean :webApp:composeCompatibilityBrowserDistribution
 ```
 
-Upload `webApp/build/dist/wasmJs/productionExecutable/` in the
-project's **Create deployment**. `composeResources` must be included.
+The compatibility build packs the Wasm and JS builds together and falls
+back to JS where Wasm GC is missing (Safari before 18.2, so iOS 17 and
+older). A Wasm-only build shows those browsers a spinner forever.
 
-`delete-account.html` rides along and is served at `/delete-account`,
-the account deletion link for Play. The build fills its contact address
-and web link from `CONTACT_EMAIL` and `WEB_APP_URL`, and fails without
-them.
+Upload `webApp/build/dist/composeWebCompatibility/productionExecutable/`
+in the project's **Create deployment**. `composeResources` must be
+included.
+
+`delete-account.html` and `privacy.html` ride along and are served at
+`/delete-account` and `/privacy`: Play's account deletion link and
+privacy policy URL. The app's Privacy policy screen shows
+`privacy.html` too. The build fills their contact address and web link
+from `CONTACT_EMAIL` and `WEB_APP_URL`, and fails without them.
 
 Domain, set once:
 

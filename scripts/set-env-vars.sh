@@ -21,10 +21,14 @@ _prefix="$(echo "$1" | tr '[:lower:]' '[:upper:]')_"
 if [ ! -f "$_dir/env" ] || [ ! -f "$_dir/edge.env" ]; then
   echo "missing $_dir/env or $_dir/edge.env" >&2
 else
-  _url=$(grep "^${_prefix}SUPABASE_URL=" "$_dir/env" | cut -d= -f2-)
-  _key=$(grep "^${_prefix}SUPABASE_PUBLISHABLE_KEY=" "$_dir/env" | cut -d= -f2-)
-  _contact=$(grep "^${_prefix}CONTACT_EMAIL=" "$_dir/edge.env" | cut -d= -f2-)
-  _web=$(grep "^${_prefix}WEB_APP_URL=" "$_dir/edge.env" | cut -d= -f2-)
+  # Values may be quoted in the files; the quotes must not reach the build.
+  _read() {
+    grep "^${_prefix}$1=" "$_dir/$2" | cut -d= -f2- | sed -e 's/^["'\'']//' -e 's/["'\'']$//'
+  }
+  _url=$(_read SUPABASE_URL env)
+  _key=$(_read SUPABASE_PUBLISHABLE_KEY env)
+  _contact=$(_read CONTACT_EMAIL edge.env)
+  _web=$(_read WEB_APP_URL edge.env)
   if [ -z "$_url" ] || [ -z "$_key" ] || [ -z "$_contact" ] || [ -z "$_web" ]; then
     echo "missing one of ${_prefix}SUPABASE_URL, ${_prefix}SUPABASE_PUBLISHABLE_KEY (env)," \
       "${_prefix}CONTACT_EMAIL, ${_prefix}WEB_APP_URL (edge.env)" >&2
@@ -35,3 +39,4 @@ else
   fi
 fi
 unset _root _dir _prefix _url _key _contact _web
+unset -f _read 2>/dev/null

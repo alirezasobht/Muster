@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.muster.domain.error.DomainError
 import app.muster.domain.model.Profile
-import app.muster.ui.common.components.NameField
+import app.muster.ui.common.components.AdaptedNameField
 import app.muster.ui.common.components.PhoneWidth
 import app.muster.ui.common.components.PrimaryButton
 import app.muster.ui.common.toMessage
@@ -79,7 +79,7 @@ fun SetNameScreen(
                         color = MusterColors.Muted
                     )
                     Spacer(Modifier.height(36.dp))
-                    NameField(
+                    AdaptedNameField(
                         value = name,
                         onValueChange = onNameChange,
                         enabled = !saving,

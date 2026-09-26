@@ -28,9 +28,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.muster.domain.error.DomainError
+import app.muster.ui.common.components.AdaptedMusterTextField
 import app.muster.ui.common.components.FormError
 import app.muster.ui.common.components.MusterMark
-import app.muster.ui.common.components.MusterTextField
 import app.muster.ui.common.components.MusterWordmark
 import app.muster.ui.common.components.PhoneWidth
 import app.muster.ui.common.components.PrimaryButton
@@ -108,7 +108,7 @@ fun RequestCodeScreen(
                     color = MusterColors.OnAccent
                 )
                 Spacer(Modifier.height(36.dp))
-                MusterTextField(
+                AdaptedMusterTextField(
                     value = email,
                     onValueChange = onEmailChange,
                     label = stringResource(Res.string.field_email),

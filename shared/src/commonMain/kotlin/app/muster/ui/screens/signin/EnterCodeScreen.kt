@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.muster.domain.error.DomainError
-import app.muster.ui.common.components.CodeInput
+import app.muster.ui.common.components.AdaptedCodeInput
 import app.muster.ui.common.components.FormError
 import app.muster.ui.common.components.MusterIcons
 import app.muster.ui.common.components.PhoneWidth
@@ -109,7 +109,7 @@ fun EnterCodeScreen(
                         color = MusterColors.Muted
                     )
                     Spacer(Modifier.height(36.dp))
-                    CodeInput(
+                    AdaptedCodeInput(
                         value = code,
                         onValueChange = onCodeChange,
                         length = CODE_LENGTH,

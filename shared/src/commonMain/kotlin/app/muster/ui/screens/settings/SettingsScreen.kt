@@ -31,11 +31,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.muster.domain.error.DomainError
+import app.muster.ui.common.components.AdaptedNameField
 import app.muster.ui.common.components.ConfirmDialog
 import app.muster.ui.common.components.MusterIcons
 import app.muster.ui.common.components.MusterSpinner
 import app.muster.ui.common.components.MusterTextField
-import app.muster.ui.common.components.NameField
 import app.muster.ui.common.components.PhoneWidth
 import app.muster.ui.common.components.PrimaryButton
 import app.muster.ui.common.toMessage
@@ -207,7 +207,7 @@ private fun FormContent(
     showSaved: Boolean = false
 ) {
     Column(modifier = modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
-        NameField(
+        AdaptedNameField(
             value = state.name,
             onValueChange = actions.onNameChange,
             enabled = !state.saving,
