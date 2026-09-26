@@ -20,15 +20,15 @@ import app.muster.ui.screens.addplayers.AddPlayersRoute
 import app.muster.ui.screens.event.EventRoute
 import app.muster.ui.screens.event.EventSummary
 import app.muster.ui.screens.group.GroupRoute
-import app.muster.ui.screens.group.events.EventRow
 import app.muster.ui.screens.home.HomeRoute
 import app.muster.ui.screens.launch.LaunchRoute
 import app.muster.ui.screens.launch.LaunchUiState
 import app.muster.ui.screens.launch.LaunchViewModel
 import app.muster.ui.screens.newevent.NewEventRoute
 import app.muster.ui.screens.newgroup.NewGroupRoute
-import app.muster.ui.screens.settings.SettingsRoute
+import app.muster.ui.screens.privacy.PrivacyPolicyScreen
 import app.muster.ui.screens.setname.SetNameRoute
+import app.muster.ui.screens.settings.SettingsRoute
 import app.muster.ui.screens.signin.EnterCodeRoute
 import app.muster.ui.screens.signin.RequestCodeRoute
 import org.koin.compose.viewmodel.koinViewModel
@@ -99,8 +99,12 @@ fun NavGraph(
                 composable<Settings> {
                     SettingsRoute(
                         onBack = { navController.popBackStack() },
-                        onSignOut = launchViewModel::onSignOut
+                        onSignOut = launchViewModel::onSignOut,
+                        onOpenPrivacyPolicy = { navController.navigate(PrivacyPolicy) }
                     )
+                }
+                composable<PrivacyPolicy> {
+                    PrivacyPolicyScreen(onBack = { navController.popBackStack() })
                 }
                 composable<NewGroup> {
                     NewGroupRoute(

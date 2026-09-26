@@ -52,6 +52,7 @@ import muster.shared.generated.resources.settings_discard_cancel
 import muster.shared.generated.resources.settings_discard_confirm
 import muster.shared.generated.resources.settings_discard_title
 import muster.shared.generated.resources.settings_load_failed_title
+import muster.shared.generated.resources.settings_privacy_policy
 import muster.shared.generated.resources.settings_saved
 import muster.shared.generated.resources.settings_title
 import muster.shared.generated.resources.settings_try_again
@@ -65,13 +66,15 @@ data class SettingsActions(
     val onRetryLoad: () -> Unit,
     val onBack: () -> Unit,
     val onSignOut: () -> Unit,
-    val onDeleteAccount: () -> Unit
+    val onDeleteAccount: () -> Unit,
+    val onOpenPrivacyPolicy: () -> Unit
 )
 
 @Composable
 fun SettingsRoute(
     onBack: () -> Unit,
     onSignOut: () -> Unit,
+    onOpenPrivacyPolicy: () -> Unit,
     viewModel: SettingsViewModel = koinViewModel(),
     deleteAccountViewModel: DeleteAccountViewModel = koinViewModel()
 ) {
@@ -104,7 +107,8 @@ fun SettingsRoute(
             onRetryLoad = viewModel::onRetryLoad,
             onBack = requestBack,
             onSignOut = onSignOut,
-            onDeleteAccount = deleteAccountViewModel::onStart
+            onDeleteAccount = deleteAccountViewModel::onStart,
+            onOpenPrivacyPolicy = onOpenPrivacyPolicy
         ),
         showSaved = showSaved
     )
@@ -241,6 +245,14 @@ private fun FormContent(
             Text(text = stringResource(Res.string.action_sign_out), color = MusterColors.Ink)
         }
         Spacer(Modifier.weight(1f))
+        TextButton(onClick = actions.onOpenPrivacyPolicy, modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = stringResource(Res.string.settings_privacy_policy),
+                color = MusterColors.Ink,
+                style = MaterialTheme.typography.bodySmall,
+                textDecoration = TextDecoration.Underline
+            )
+        }
         TextButton(onClick = actions.onDeleteAccount, modifier = Modifier.fillMaxWidth()) {
             Text(
                 text = stringResource(Res.string.settings_delete_account),
@@ -257,7 +269,8 @@ private val PreviewActions = SettingsActions(
     onRetryLoad = {},
     onBack = {},
     onSignOut = {},
-    onDeleteAccount = {}
+    onDeleteAccount = {},
+    onOpenPrivacyPolicy = {}
 )
 
 @Preview

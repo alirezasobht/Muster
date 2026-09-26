@@ -25,6 +25,9 @@ abstract class GenerateSupabaseConfig : DefaultTask() {
     @get:Input
     abstract val publishableKey: Property<String>
 
+    @get:Input
+    abstract val webAppUrl: Property<String>
+
     @get:OutputDirectory
     abstract val outputDir: DirectoryProperty
 
@@ -32,8 +35,9 @@ abstract class GenerateSupabaseConfig : DefaultTask() {
     fun generate() {
         val url = url.get()
         val key = publishableKey.get()
-        require(url.isNotBlank() && key.isNotBlank()) {
-            "SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY must be set in " +
+        val webAppUrl = webAppUrl.get()
+        require(url.isNotBlank() && key.isNotBlank() && webAppUrl.isNotBlank()) {
+            "SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY and WEB_APP_URL must be set in " +
                 "local.properties or in the environment."
         }
 
@@ -46,6 +50,7 @@ abstract class GenerateSupabaseConfig : DefaultTask() {
             |internal object SupabaseConfig {
             |    const val URL = "${url.escapeForKotlin()}"
             |    const val PUBLISHABLE_KEY = "${key.escapeForKotlin()}"
+            |    const val WEB_APP_URL = "${webAppUrl.trimEnd('/').escapeForKotlin()}"
             |}
             |
             """.trimMargin()

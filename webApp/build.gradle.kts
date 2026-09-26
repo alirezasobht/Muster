@@ -40,7 +40,7 @@ tasks.withType<ProcessResources>().configureEach {
     val url = webAppUrl
     inputs.property("contactEmail", email)
     inputs.property("webAppUrl", url)
-    filesMatching("delete-account.html") {
+    filesMatching(listOf("delete-account.html", "privacy.html")) {
         val emailValue = email.get()
         val urlValue = url.get()
         require(emailValue.isNotBlank() && urlValue.isNotBlank()) {

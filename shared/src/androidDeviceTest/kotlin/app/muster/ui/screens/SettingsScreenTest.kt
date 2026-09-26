@@ -30,7 +30,8 @@ class SettingsScreenTest {
         onRetryLoad: () -> Unit = {},
         onBack: () -> Unit = {},
         onSignOut: () -> Unit = {},
-        onDeleteAccount: () -> Unit = {}
+        onDeleteAccount: () -> Unit = {},
+        onOpenPrivacyPolicy: () -> Unit = {}
     ) {
         composeRule.setContent {
             MusterTheme {
@@ -42,7 +43,8 @@ class SettingsScreenTest {
                         onRetryLoad = onRetryLoad,
                         onBack = onBack,
                         onSignOut = onSignOut,
-                        onDeleteAccount = onDeleteAccount
+                        onDeleteAccount = onDeleteAccount,
+                        onOpenPrivacyPolicy = onOpenPrivacyPolicy
                     ),
                     spinnerDelayMillis = 0
                 )
@@ -146,6 +148,17 @@ class SettingsScreenTest {
         )
         composeRule.onNodeWithText("Delete account").performClick()
         assert(deleting)
+    }
+
+    @Test
+    fun privacyPolicyReachesTheCallback() {
+        var opened = false
+        show(
+            state = SettingsUiState.Success(name = "Alex Doyle", email = "alex.doyle@gmail.com"),
+            onOpenPrivacyPolicy = { opened = true }
+        )
+        composeRule.onNodeWithText("Privacy policy").performClick()
+        assert(opened)
     }
 
     @Test

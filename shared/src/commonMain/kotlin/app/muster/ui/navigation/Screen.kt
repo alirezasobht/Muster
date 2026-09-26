@@ -21,6 +21,9 @@ data object Home
 data object Settings
 
 @Serializable
+data object PrivacyPolicy
+
+@Serializable
 data object NewGroup
 
 @Serializable

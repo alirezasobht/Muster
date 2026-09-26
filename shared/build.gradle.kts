@@ -20,6 +20,7 @@ val generateSupabaseConfig by tasks.registering(GenerateSupabaseConfig::class) {
     publishableKey.set(
         buildSetting(providers, localProperties, "SUPABASE_PUBLISHABLE_KEY")
     )
+    webAppUrl.set(buildSetting(providers, localProperties, "WEB_APP_URL"))
     outputDir.set(layout.buildDirectory.dir("generated/supabase"))
 }
 

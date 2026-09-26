@@ -45,6 +45,7 @@
     <string name="settings_discard_confirm">Discard</string>
     <string name="settings_discard_cancel">Keep editing</string>
     <string name="settings_delete_account">Delete account</string>
+    <string name="settings_privacy_policy">Privacy policy</string>
 
     <!-- Delete account (Settings) -->
     <string name="delete_account_title">Delete your account?</string>
