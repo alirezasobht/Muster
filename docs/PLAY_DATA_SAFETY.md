@@ -8,8 +8,10 @@ Last checked against the policy: 26 September 2026.
 
 ## Links
 
-- Privacy policy: `https://www.musterapp.fyi/privacy`
-- Account deletion: `https://www.musterapp.fyi/delete-account`
+Both on the prod web app, at prod's `WEB_APP_URL`:
+
+- Privacy policy: `<WEB_APP_URL>/privacy`
+- Account deletion: `<WEB_APP_URL>/delete-account`
 
 ## Data collection and security
 

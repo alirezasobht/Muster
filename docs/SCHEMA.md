@@ -40,7 +40,7 @@ such change back into `profiles`. See CONTEXT.md → Identity.
 |---|---|---|
 | id | uuid PK | |
 | name | text | not null, non-blank |
-| created_by | uuid | → profiles, not null |
+| created_by | uuid | → profiles, nullable, set null when the account is deleted |
 | created_at | timestamptz | |
 | archived_at | timestamptz | null = live |
 
@@ -78,7 +78,7 @@ Keyed by email, not by profile.
 | id | uuid PK | |
 | group_id | uuid | → groups, cascade |
 | email | text | lowercase |
-| invited_by | uuid | → profiles, not null |
+| invited_by | uuid | → profiles, nullable, set null when the account is deleted |
 | status | text | `pending` \| `accepted` \| `declined` |
 | created_at | timestamptz | |
 
@@ -99,7 +99,7 @@ who has already accepted is caught separately, by rule 16.
 | starts_at | timestamptz | |
 | location | text | nullable |
 | capacity | int | > 0. Ceiling on invitations, not on confirmations. **Set at creation, never editable** |
-| created_by | uuid | → profiles, not null |
+| created_by | uuid | → profiles, nullable, set null when the account is deleted |
 | created_at | timestamptz | |
 
 UNIQUE `(id, group_id)` — not for uniqueness, which `id` already gives.
@@ -310,6 +310,7 @@ calls one by name must qualify it, `private.is_group_admin(...)`.
 | `remove_group_member(group_id, profile_id)` | locks the live group before checking admin authority and deleting the member. Refuses the caller's own id — that's `leave_group` |
 | `revoke_group_invitation(group_id, invitation_id)` | admins only. Locks the invitation then its live group before checking authority and deleting; raises if nothing matched |
 | `leave_group(group_id)` | locks the live group and removes only the signed-in caller's membership; raises if the group is missing/archived or the caller is not a member |
+| `delete_account(force)` | `security definer`. Without `force`, returns the live groups where the caller is the only admin and deletes nothing if there are any. With `force`, or when there are none, archives those groups, deletes invitations sent to the caller's address, and deletes the caller's `auth.users` row; cascades remove the profile, memberships and RSVPs |
 
 The four member RPCs are `security definer` with their own checks, and
 raise if nothing matched rather than succeeding silently. None of them
@@ -364,10 +365,10 @@ is stale. These existing whole-queue and batch semantics are preserved.
 | `on_auth_user_email_changed` | `sync_user_email` | update of email on `auth.users` | keeps `profiles.email` in step with Auth |
 | `on_group_created` | `handle_new_group` | insert on `groups` | creator's admin membership |
 | `group_invitations_not_member` | `reject_if_already_member` | insert on `group_invitations` | rejects inviting someone already in the group |
-| `group_keeps_an_admin` | `ensure_admin_remains` | update/delete on `group_members` | rejects leaving a group admin-less. **Deferred** — lets a transaction promote and demote in either order, and lets a group's cascade through |
+| `group_keeps_an_admin` | `ensure_admin_remains` | update/delete on `group_members` | rejects leaving a live group admin-less; archived groups are skipped so account deletion can cascade. **Deferred** — lets a transaction promote and demote in either order, and lets a group's cascade through |
 | `event_invitations_frozen` | `reject_if_event_started` | insert/update on `event_invitations` | rejects writes past `starts_at` |
 | `event_standby_frozen` | `reject_if_event_started` | insert/update on `event_standby` | as above |
-| `events_frozen` | `reject_if_event_started_self` | update on `events` | as above, checked against the old row |
+| `events_frozen` | `reject_if_event_started_self` | update on `events` | as above, checked against the old row. An update that only nulls `created_by` is allowed, so deleting an account that created a past event can cascade |
 | `event_invitations_not_queued` | `reject_if_queued` | insert on `event_invitations` | mutual exclusion — invited or queued, never both |
 | `event_standby_not_invited` | `reject_if_invited` | insert on `event_standby` | the other half of the same rule |
 | `event_invitations_capacity` | `enforce_capacity` | insert/update on `event_invitations` | `pending + in <= capacity` |
@@ -473,16 +474,13 @@ and do not bypass RLS. EXECUTE is granted only to `authenticated`.
 writes. A separate migration revokes `INSERT`, `UPDATE`, `DELETE` and
 `TRUNCATE` on `groups` from `PUBLIC`, `anon` and `authenticated`, plus
 the separate `UPDATE (name, archived_at)` grants. Read grants and
-SELECT policies remain. Apply the RPC migration and switch the app
-before applying the revoke migration; older clients still use direct
-writes.
+SELECT policies remain.
 
 **Profiles converted:** `set_profile_name` owns the app's name update.
 A separate migration revokes `INSERT`, `UPDATE`, `DELETE` and `TRUNCATE`
 on `profiles` from `PUBLIC`, `anon` and `authenticated`, plus the
 separate `UPDATE (name)` grants. Read grants and SELECT policies remain;
 Auth's definer triggers still create/restore profiles and sync email.
-Apply the RPC migration and switch the app before the revoke migration.
 
 **Events converted:** `create_event` owns the app's event creation.
 A separate migration revokes `INSERT`, `UPDATE`, `DELETE` and `TRUNCATE`
@@ -491,54 +489,44 @@ on `events` from `PUBLIC`, `anon` and `authenticated`, plus the separate
 policies remain. Existing definer RPCs and triggers still lock events
 for roster operations; `disinvite_player` needs no write grant on
 `events`.
-Apply the RPC migration and switch the app before the revoke migration.
 
 **Event invitations converted:** creation uses `add_players_to_event`
 or standby promotion, RSVP changes use `set_event_rsvp`, and disinviting
-uses the now-definer `disinvite_player`. A separate migration revokes
+uses the definer `disinvite_player`. A separate migration revokes
 `INSERT`, `UPDATE`, `DELETE` and `TRUNCATE` on `event_invitations` from
 `PUBLIC`, `anon` and `authenticated`, plus `UPDATE (status)`. Read grants
-and SELECT policies remain. Apply the RPC migration and switch the app
-before the revoke migration. A missing invitation now raises on disinvite
-instead of returning false and letting the app report success.
+and SELECT policies remain. A missing invitation raises on disinvite.
 
 **Group members converted:** role changes, removal and leaving use
 definer RPCs with upfront live-group locks. Group creation's trigger and
 invitation acceptance remain the only inserters. A separate migration
 revokes `INSERT`, `UPDATE`, `DELETE` and `TRUNCATE` on `group_members`
 from `PUBLIC`, `anon` and `authenticated`, plus `UPDATE (role)`.
-Read grants and SELECT policies remain. Apply the member-RPC locking
-migration before the revoke migration; the app already uses these RPCs.
+Read grants and SELECT policies remain.
 
 **Group invitations converted:** invite, revoke, accept and decline all
 use definer RPCs with explicit authentication, authority and locked
 live-group checks. A separate migration revokes `INSERT`, `UPDATE`,
 `DELETE` and `TRUNCATE` on `group_invitations` from `PUBLIC`, `anon` and
 `authenticated`. There are no column write grants in the migrations to
-revoke. Read grants and SELECT policies remain. Apply the invitation-RPC
-hardening migration before the revoke migration; the app already uses
-these RPCs. Email queuing and the existing invitation constraints and
-triggers remain in place.
+revoke. Read grants and SELECT policies remain. Email queuing and the
+existing invitation constraints and triggers remain in place.
 
 **Event standby converted:** queue replacement and appends use
 `set_standby_order` and `add_players_to_event`; promotion uses internal
 definer functions. Both public RPCs explicitly check the existing session,
 use an empty search path, and retain group-before-event locking. A separate
-migration extends the earlier authenticated insert/update/delete revoke
-to `INSERT`, `UPDATE`, `DELETE` and `TRUNCATE` for `PUBLIC`, `anon` and
-`authenticated`. No column write grants occur in the migrations. Read
-grants and SELECT policies remain. Apply the RPC hardening before the
-revoke; the app already uses these RPCs.
+migration revokes `INSERT`, `UPDATE`, `DELETE` and `TRUNCATE` for
+`PUBLIC`, `anon` and `authenticated`. No column write grants occur in the
+migrations. Read grants and SELECT policies remain.
 
-All seven tables now have write-grant revocations in migration files.
+All seven tables have write-grant revocations in migration files.
 With every write grant gone, the old INSERT, UPDATE and DELETE policies
 could never apply; a later migration drops them, leaving SELECT only.
-This is a repository audit; deployed grants and app behavior still need
-verification after applying the migrations.
 Any future invoker RPC must retain the table privileges it needs or
 become a definer with its own guards before those privileges are revoked.
 
-The app no longer writes directly to these tables.
+The app never writes directly to these tables.
 
 ### Known limits
 

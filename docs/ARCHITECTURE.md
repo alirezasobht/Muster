@@ -12,21 +12,22 @@ project. Targets: Android, iOS with **Share UI**, and Web.
 ```
 shared/              shared module — UI + logic
   src/commonMain/    shared Compose UI, models, logic
-  src/androidMain/ iosMain/ jsMain/ wasmJsMain/
+  src/androidMain/ iosMain/ webMain/ jsMain/ wasmJsMain/
   src/commonTest/    + androidHostTest (JVM unit tests),
                      androidDeviceTest (Compose UI tests), iosTest, webTest
 androidApp/          Android host — MainActivity only
 iosApp/              Xcode project, thin SwiftUI wrapper
-webApp/              Web host — main.kt, index.html, styles.css
+webApp/              Web host — main.kt, index.html, styles.css, and the
+                     static delete-account.html and privacy.html
 ```
 
 Package: `app.muster`.
 
 ## On the Web target
 
-Included to experiment with, not committed to. It's the Wasm canvas
-target — heavy initial load, weak on Safari — so it is not the path to a
-lightweight public invite page.
+It ships as the prod web app. It's the Wasm canvas target, with a JS
+fallback for browsers without Wasm GC — heavy initial load, weak on
+Safari — so it is not the path to a lightweight public invite page.
 
 The cost of keeping it: `wasmJs` constrains `commonMain`. Every shared
 dependency must support Wasm or it has to move into platform-specific
@@ -69,11 +70,10 @@ data/
   fake/         Fake*Repository — in-memory, for ViewModel tests
 domain/
   di/           domainModule — use cases
-  model/        Profile, Group, GroupInvitation, ... (Member, Event, Rsvp,
-                StandbyEntry arrive with Group/Event screens)
+  model/        Profile, Group, GroupInvitation, Member, Event,
+                EventDetail, RsvpStatus, ...
   error/        DomainError — one case per predictable DB rejection
-                (InvalidName, InvitationNotPending, ...); more arrive as
-                Group/Event screens do
+                (InvalidName, InvitationNotPending, ...)
   repository/   interfaces
   usecase/      one class per operation, named *UseCase
 ui/
@@ -81,8 +81,10 @@ ui/
   di/           uiModule — ViewModels
   navigation/   NavGraph.kt, Screen.kt
   screens/      one folder per screen: XScreen.kt, XUiState.kt, XViewModel.kt
-                launch/ signin/ setname/ home/ group/ event/ settings/
+                launch/ signin/ setname/ home/ settings/ privacy/
+                newgroup/ group/ addbyemail/ newevent/ event/ addplayers/
   common/       ErrorMessages.kt, components/
+  platform/     expect/actual pieces a screen needs from its platform
   theme/
 ```
 

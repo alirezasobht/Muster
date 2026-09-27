@@ -17,6 +17,7 @@ flowchart TD
     SetName[Set name<br/><i>if none yet</i>]
     Home[Home<br/><i>group cards</i>]
     Settings[Settings]
+    Privacy[Privacy policy]
     NewGroup[New group<br/><i>if allowed</i>]
     Group[Group<br/><i>events / members tabs</i>]
     AddMemberByEmail[Add by email<br/><i>admins</i>]
@@ -31,6 +32,7 @@ flowchart TD
     Enter -->|name set| Home
     SetName --> Home
     Home --> Settings
+    Settings --> Privacy
     Home --> NewGroup
     Home --> Group
     NewGroup --> Group
@@ -41,7 +43,7 @@ flowchart TD
     Event --> AddPlayers
 ```
 
-Ten screens. A plain stack — no bottom navigation.
+Twelve screens. A plain stack — no bottom navigation.
 
 ## Staying current
 
@@ -57,8 +59,8 @@ are two ways to get fresh data after that:
   manual refresh is wanted there it needs an explicit button.
 
 Both apply to Home, the Group events tab, the Group members tab, and
-Event. Not to Launch, Request code, Enter code, Set name or Settings:
-nothing changes underneath those.
+Event. Not to Launch, Request code, Enter code, Set name, Settings or
+Privacy policy: nothing changes underneath those.
 
 Event is the one that matters most. Standby promotion happens in a
 database trigger, so no client code runs when a player is promoted —
@@ -107,8 +109,17 @@ Leaf screen off Home.
 - Email — read-only. There is no change-email path by design.
 - Sign out. Sessions never expire, so this is the only way back to
   sign-in.
+- Privacy policy — opens the Privacy policy screen.
+- Delete account — confirms first. If the user is the only admin of any
+  group, the confirmation lists those groups and says they will be
+  archived. On success the session is cleared and the app returns to
+  sign-in.
 
 Later: notification preferences once push lands.
+
+### Privacy policy
+Leaf screen off Settings. Shows the web app's `privacy.html` in an
+embedded web view, so the policy has one source. Needs a connection.
 
 ### Group
 Two tabs. Tabs rather than bottom navigation — bottom nav is for
@@ -186,11 +197,6 @@ is a drag-to-reorder list on the Event screen, not part of adding.
 
 ## Open questions
 
-The four that lived here — where archiving lives, roster grouping, the
-frozen event, and Home's empty state — are all settled in DESIGN.md.
-
-Still open:
-
 - A past events tab. Out of scope for now.
 - Notification preferences in Settings, once push lands.
 - **Supabase Realtime.** `realtime-kt` would push Postgres changes over
@@ -200,4 +206,4 @@ Still open:
   match. Deferred: refresh-on-resume covers almost everything, and
   Realtime adds a module to verify on wasm, connection lifecycle across
   four platforms, and subscriptions that RLS can silently filter to
-  nothing. Revisit once Event exists.
+  nothing. Revisit if refresh-on-resume stops being enough.

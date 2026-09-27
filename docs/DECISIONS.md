@@ -1,296 +1,234 @@
 # Muster — Decisions
 
-Closed decisions and why. Nothing routine needs this file — the
-conclusions live where they apply, in CONTEXT.md, ARCHITECTURE.md and
-SCHEMA.md. This is the argument behind them, kept so they aren't
-relitigated every few chats.
-
-Reopening one is fine. Reopening it without reading the reason it was
-closed is not.
+Closed decisions and why. The conclusions live where they apply, in
+CONTEXT.md, ARCHITECTURE.md and SCHEMA.md; this file keeps the reasons so
+they aren't relitigated. Reopening one is fine, after reading why it was
+closed.
 
 ## Native over PWA
 
-A PWA was seriously considered: it would have avoided the $99/yr Apple
-Developer fee and covered Android, iOS and web from one build with no app
-stores at all.
+Push notifications are the core feature, and a missed one means a missing
+player. iOS web push is unreliable: silent unsubscriptions, listeners
+that stop after a restart, and push only after adding the site to the
+home screen. Android PWA push is fine, but the weakest platform sets the
+bar.
 
-Rejected because iOS web push is unreliable — silent unsubscriptions,
-listeners failing to fire after a restart, and push only working at all
-once the user has added the site to their home screen through Safari's
-share menu. Notifications are the core feature of the app; a missed one
-means a missing player. Android PWA push is solid, but the weakest
-platform sets the bar.
+Rejected: a PWA, despite saving the Apple Developer fee and the app stores.
 
 ## Compose Multiplatform over Flutter
 
-Flutter is the more mature cross-platform option — bigger plugin
-ecosystem, longer-settled iOS story. It doesn't pay off at this size, and
-the cost is learning Dart, a new widget system and new state management.
+Existing Kotlin and Compose skills transfer directly, so a working app
+comes sooner despite the thinner ecosystem.
 
-Existing Kotlin and Compose skills transfer directly, so time to a working
-app is shorter despite the thinner ecosystem.
+Rejected: Flutter. More mature, but it means learning Dart, a new widget
+system and new state management, which doesn't pay off at this size.
 
 ## Supabase over Firebase
 
-The data is relational. Standby queues need ordered SQL; Firestore would
-mean maintaining position numbers by hand on every document and rewriting
-them whenever someone drops out.
+The data is relational: standby queues need ordered SQL. Supabase also has
+an official Kotlin Multiplatform SDK.
 
-Supabase also has an official Kotlin Multiplatform SDK. Firebase on KMP
-relies on GitLive's community wrapper — one more dependency outside our
-control.
-
-FCM is still the push path when push lands, so Firebase's bundling
-advantage was never really on the table.
+Rejected: Firebase. Firestore would mean maintaining queue positions by
+hand, and KMP support relies on a community wrapper. FCM remains the push
+path either way.
 
 ## Supabase over a self-hosted Ktor backend
 
-Ktor would give shared models across client and server, but means writing
-auth, running Postgres, migrations, deployment, and hosting (~$5/mo).
+Supabase enforces visibility with RLS in the database; with Ktor every
+check is endpoint code that must not be forgotten. It also saves writing
+auth, running Postgres, deployment and hosting.
 
-More importantly, Supabase enforces visibility in RLS at the database;
-with Ktor every check is code that must not be forgotten in any endpoint.
+Rejected: Ktor, despite shared models. Revisit only if standby logic
+outgrows an Edge Function.
 
-Revisit only if the standby logic outgrows an Edge Function.
+## Config via a generated Kotlin file, not a plugin
 
-## Config injected via a generated Kotlin file, not a plugin
+A Gradle task reads build values (Supabase URL, publishable key, web app
+URL) from the environment, falling back to `local.properties`, and
+generates `app.muster.SupabaseConfig` into `commonMain`. Any future
+build-time value follows the same path. The web app's static pages are
+the one exception: plain HTML can't read Kotlin, so the web build fills
+their contact address and web link by filtering the files.
 
-A Gradle task in `shared/build.gradle.kts` reads `SUPABASE_URL` and
-`SUPABASE_PUBLISHABLE_KEY` from the environment, falling back to
-`local.properties` (gitignored), and generates `app.muster.SupabaseConfig`
-into `commonMain`.
+Rejected: `BuildConfig` (Android-only), `expect`/`actual` (a copy per
+target) and BuildKonfig (a third-party plugin whose Wasm support is one
+more thing to verify).
 
-`BuildConfig` is Android-only and `expect`/`actual` would mean four copies
-of two strings. BuildKonfig would work but is a third-party plugin whose
-Wasm support is one more thing to verify — exactly what the web-target
-rule in ARCHITECTURE.md exists to avoid.
-
-Any future build-time config value follows the same path rather than
-adding a plugin.
-
-The publishable key is not a secret — it ships in every APK and in the web
-bundle. Keeping it out of git is rotation convenience, not security; RLS
-is the trust boundary. The secret key never reaches the client.
+The publishable key is not a secret: it ships in every build, and RLS is
+the trust boundary. Keeping it out of git is rotation convenience, not
+security. The secret key never reaches the client.
 
 ## Email codes, no passwords
 
-Signup and sign-in are one flow: a six-digit code sent to the address.
-`signInWith(OTP)` creates the account if the address is new;
-`verifyEmailOtp` with `OtpType.Email.EMAIL` covers both the new and
-existing cases.
-
-No password means no reset flow to build, and every auth email carries
-`{{ .Token }}` rather than `{{ .ConfirmationURL }}`, so there are no deep
-links or redirect URLs on any of the four targets.
-
-It also hardens the invite model. SCHEMA.md lists "sign-in must prove the
-email is yours" as a known limit, because invitations match on address
-alone. With code-only sign-in a session is unreachable without receiving
-mail at that address, so confirmation stops being a toggle that could be
-turned off.
+Sign-up and sign-in are one flow: a six-digit code to the address.
+`signInWith(OTP)` creates the account if the address is new, and
+`verifyEmailOtp` with `OtpType.Email.EMAIL` covers both cases. Auth emails
+carry `{{ .Token }}`, never a confirmation link, so there is no reset
+flow and no deep links or redirect URLs on any target. A session also
+proves the user receives mail at that address, which the invite model
+relies on: invitations match on address alone.
 
 Cost: email delivery is the only way in, with no fallback if Resend is
-down. Sessions never expire, so this only bites on a new device or a
+down. Sessions never expire, so this only matters on a new device or a
 reinstall.
 
-## Resend on a domain, after Gmail SMTP
+## Resend on a verified domain
 
-Auth emails go through Resend from `send.musterapp.fyi`, with SPF and
-DKIM on a domain we control (`musterapp.fyi`, about $5.66/yr). Event
-invitations will go the same way, from an Edge Function.
+Auth and invitation emails go through Resend from a sending subdomain,
+with SPF and DKIM on a domain we control. Sign-in is code-only, so the
+sender is critical: if it fails, nobody can sign in.
 
-This is the second answer. Resend came first and was dropped: its free
-tier only delivers from a verified domain, and without one it falls back
-to a shared test sender that reaches nobody but the account holder. Gmail
-SMTP needed no domain, no DNS and no money, so it won — with two known
-costs recorded at the time: no SPF or DKIM under our control, and a
-sending cap around 500/day.
+Rejected: Gmail SMTP. No SPF or DKIM under our control, a cap around
+500/day, and the account can be disabled by the provider, taking sign-in
+down with it.
 
-That ended when Google disabled the dedicated account the app sent
-through. Sign-in is code-only, so a disabled sender is a total outage —
-nobody can sign in at all. A personal mailbox turned out to be the wrong
-foundation for the one thing the whole app depends on, and a domain at
-$5.66/yr was never the real obstacle.
-
-What the domain also buys: deliverability that does not depend on a
-consumer provider's spam heuristics, a sender address that is not
-someone's Gmail, and sending limits that fit a transactional provider
-rather than a personal account.
-
-Note the Supabase auth rate limit covers **sign-in codes only**.
-Invitations sent from an Edge Function never touch it.
+The Supabase auth rate limit covers sign-in codes only; invitation emails
+from Edge Functions never touch it.
 
 ## Sessions never expire
 
-Time-boxing and inactivity timeout stay off in Auth → Sessions. Only
-signing out or losing local storage returns someone to the login screen.
+Time-boxing and inactivity timeout stay off. Only signing out or losing
+local storage returns someone to sign-in.
 
-supabase-kt keeps the session in `SharedPreferences` on Android and
-`NSUserDefaults` on iOS — not Keychain, not encrypted. Accepted for a
-private app; a Keychain-backed `SessionManager` is a maybe, later.
+supabase-kt stores the session unencrypted (`SharedPreferences`,
+`NSUserDefaults`, not the Keychain). Accepted for a private app; a
+Keychain-backed session store is a maybe, later.
 
-## Inviter name on invitations: a security definer read, not a wider policy
+## Inviter name via a security definer read
 
-Home's invitation card names who invited you (DESIGN.md 1d). `profiles_select`
-only allows reading your own profile or a co-member's — an invitee has no
-`group_members` row yet, so a plain join from `group_invitations` to
-`profiles` returns nothing.
+An invitee has no membership yet, so `profiles_select` hides the inviter.
+`get_my_pending_invitations()` is `security definer` and reads the name
+live; its own guard (`gi.email = my_email()`) is the access control, the
+same pattern as `accept_group_invitation`.
 
-Two other fixes were on the table: widen `profiles_select` to cover this
-case, or denormalize the inviter's name onto `group_invitations` at insert
-time. Widening the policy means a new, narrower exception on `profiles` —
-the one table where every read rule doubles as the trust boundary, so
-loosening it wants real caution. Denormalizing avoids touching RLS but
-leaves a stored copy that goes stale if the inviter renames themselves
-later.
+Rejected: widening `profiles_select` (a new exception on the table where
+every read rule is the trust boundary) and copying the name onto the
+invitation (goes stale on rename).
 
-`get_my_pending_invitations()` reads live and touches no policy: `security
-definer` means it runs as its owner, so it can join to `profiles`
-regardless of the caller's own row visibility, and its own guard
-(`gi.email = my_email()`) is the entire access control — same discipline
-as `accept_group_invitation`, so no new pattern in the schema.
+## Email change keeps identity and memberships
 
-## Email change: identity and memberships survive
+A trigger copies Auth-side email changes into `profiles`, so memberships
+survive and invite matching follows the new address. The app has no
+email-change screen and `set_profile_name` changes only the name; the
+trigger covers changes made in the dashboard or via the Auth API.
 
-An earlier rule said an email change meant a new user. It was
-unenforceable: nothing in the schema could stop Auth from changing the
-address, and leaving `profiles` stale would have pointed invitation
-matching at an address the user no longer owns.
+Rejected: treating a new email as a new user. Nothing could stop Auth
+changing the address, and a stale `profiles` email would match invites
+to an address the user no longer owns.
 
-So a trigger copies any Auth-side change into `profiles`. Identity and
-memberships survive; only the invite lookup key moves.
+## The group invite email goes through pg_net
 
-The app still builds no email-change screen, and `set_profile_name`
-allows only name changes. The trigger exists for changes made from
-the Supabase dashboard or the Auth API — both outside these tables.
+`invite_group_member_by_email` inserts, then calls
+`send_group_invitation_email`, which queues the request with `pg_net`. The
+send is visible in the code that causes it, can back a resend later, and
+goes out only after commit.
 
-## The invite email goes through pg_net, not a database webhook
+Rejected: a Database Webhook. It fires on any insert, including from the
+dashboard or a migration, and lives in dashboard config, not the repo.
 
-The first design was a Database Webhook on `group_invitations` insert.
-Replaced with an explicit call: `invite_group_member_by_email` inserts,
-then calls `send_group_invitation_email`, which queues the request with
-`pg_net`.
-
-An explicit call makes the send visible in the code that causes it, and
-the same function can back a resend action later. A webhook fires on any
-insert however it happens — including from the dashboard or a future
-migration — and lives in dashboard configuration rather than the repo.
-
-`pg_net` sends only after the transaction commits, so a rolled-back
-invite sends nothing.
-
-Cost: the invite now depends on the email's configuration. With either
-Vault entry missing the function raises and takes the invitation with
-it. Accepted, and made a hard setup step rather than softened, because a
-silently skipped email is worse to debug than a failed invite.
+Cost: a missing Vault entry fails the invite itself. Accepted: a failed
+invite is easier to debug than a silently skipped email.
 
 ## The event invite email skips on missing config
 
-The opposite of the group invite, on purpose. Event invitations are also
-created by standby promotion, and promotion runs inside whoever freed
-the slot — often a member setting their own RSVP to `out`. Raising there
-would mean a missing Vault entry stops members dropping out, which is
-far worse than a missing email.
+Event invitations are also created by standby promotion, inside another
+member's RSVP change. Raising there would stop members dropping out, so
+`send_event_invitation_email` logs a warning and returns instead.
 
-So `send_event_invitation_email` warns in the database log and returns.
-The config is still a setup step, not optional; this only chooses which
-failure a mistake produces.
+It can't check for an admin caller, because a member's RSVP calls it; it
+has no grants, so only the database's own functions reach it. One request
+per add or promotion, not per player: Resend limits requests per second
+and nothing retries throttled ones.
 
-The same reason rules out a caller check: the function can't require an
-admin when a member's RSVP is what calls it. It's safe instead by having
-no grants, so only the database's own functions reach it.
+## Writes go through RPCs
 
-One request per add or promotion, not per player: Resend limits
-requests per second, and pg_net would fire a 20-player add as 20
-parallel requests with nothing retrying the throttled ones.
+Table writes move behind definer RPCs, one at a time, and then the
+table's write grants are revoked. An RPC checks the caller, normalises
+input and does related work in one transaction: `invite_group_member_by_email`
+checks the caller is an admin of a live group, normalises the address,
+sets `invited_by` itself and queues the email. SCHEMA.md → Grants has the
+order the revoke step needs.
 
-## Invitations are an RPC, not a direct insert
-
-The app used to insert into `group_invitations` directly, relying on RLS.
-`invite_group_member_by_email` replaced that: it checks the caller is an
-admin of a live group, normalises the address, sets `invited_by` itself,
-and queues the email in the same transaction.
-
-Part of a wider direction — moving writes behind RPCs one at a time, then
-revoking the broad table grants. SCHEMA.md → Grants has why that last
-step needs care.
+Rejected: direct inserts guarded only by RLS, which can check a row but
+can't normalise input or queue the email in the same step.
 
 ## Functions revoke PUBLIC themselves
 
-Postgres grants `EXECUTE` on every new function to `PUBLIC`, which
-`anon` inherits. A hardening migration revoked it everywhere, and every
-function since revokes it in its own migration.
+Postgres grants `EXECUTE` on every new function to `PUBLIC`, which `anon`
+inherits, so every migration that creates a function revokes it there.
+Revoking from `anon` alone isn't enough.
 
-Revoking from `anon` alone looks right and isn't — the `PUBLIC` grant
-still reaches it.
+RLS helpers live in a `private` schema PostgREST doesn't expose;
+`authenticated` keeps `EXECUTE` on them because RLS evaluates them as the
+caller.
 
-The six RLS helpers also moved to a `private` schema PostgREST doesn't
-expose, so they stop appearing as callable RPCs. `authenticated` keeps
-`EXECUTE` on them, since RLS evaluates them as the caller.
-
-The four existing `security definer` RPCs stay that way: each needs
-access ordinary RLS doesn't give, and each has reviewed checks of its
-own.
+`security definer` is used only where a function needs access ordinary
+RLS doesn't give, and each such function carries its own checks.
 
 ## Two repos: Muster and Muster-env
 
-Everything non-secret is in Muster — migrations, Edge Function source,
-`config.toml`, setup docs, scripts. Real values are in a separate local
-repo, `Muster-env`, one folder per environment.
+Everything non-secret is in Muster. Real values live in a separate local
+repo, `Muster-env`, one folder per environment, with `env` for build
+values and records and `edge.env` for Edge Function secrets only, since
+`supabase secrets set --env-file` uploads every line.
 
-Each environment has two files: `env` for the build and your own records,
-`edge.env` for Edge Function secrets only. Separate because `supabase
-secrets set --env-file` uploads every line it's given, and the database
-password has no business being a function secret.
+Every name carries its environment's prefix (`DEV_`, `PROD_`), and the
+scripts refuse a mismatched line. They also take the project ref from the
+same folder as the values, so the dev file can't be pushed to prod.
 
-Every name carries its environment's prefix — `DEV_RESEND_API_KEY`,
-`PROD_RESEND_API_KEY`. The scripts refuse any line with the wrong one, so
-a prod value pasted into the dev file is caught before it's uploaded.
+Rejected: a prefix-checking Edge Function. Two Supabase projects are
+already separate stores; it would add detection, not isolation.
 
-The scripts take the project ref from the same folder as the values
-rather than as an argument. Typing the ref is where the mistake would
-happen — the dev file uploaded to the prod ref — and a check afterwards
-would catch it only once the damage was done. Removing the second input
-makes it impossible instead.
+## Account deletion: cascade, not a tombstone
 
-A prefix-checking Edge Function was considered and rejected: secrets in
-two Supabase projects are already fully separate stores, so it would have
-added detection, not isolation, and left stray values behind.
+Play requires account deletion in the app and via a web link. Settings
+has Delete account; the web link is a static `/delete-account` page.
 
-## Account deletion: cascade, not a tombstone profile
+One RPC, `delete_account(force)`. Without `force` it returns the groups
+where the caller is the only admin and deletes nothing if there are any;
+the app lists them and asks to confirm. With `force`, or when there are
+none, it archives those groups, deletes invitations sent to the caller's
+address, and deletes the `auth.users` row. Cascades remove the profile,
+memberships and RSVPs; `created_by` and `invited_by` columns are set to
+null.
 
-Play requires apps with sign-up to offer account deletion, in the app and
-via a web link. The web app's Settings screen is the web link.
+`ensure_admin_remains` skips archived groups so the cascade can pass; a
+group restored from the dashboard needs an admin set by hand. The event
+freeze lets an update through when only `created_by` changes, or deleting
+anyone who created a past event would fail. `get_my_pending_invitations`
+left-joins the inviter, so an invitation from a deleted admin still
+shows.
 
-Deleting removes the `auth.users` row and lets cascades clear the
-profile, memberships and RSVPs. `groups.created_by`, `events.created_by`
-and `group_invitations.invited_by` become nullable with `ON DELETE SET
-NULL`, so authorship doesn't block deletion.
+Rejected: a tombstone profile. It needs cleanup the cascades already do
+and a placeholder email, and it disguises data instead of removing it.
+Nothing needs the author kept: there is no history, and the one inviter
+name shown has a fallback.
 
-A tombstone — dropping the `profiles` → `auth.users` key and keeping an
-anonymised profile — was rejected. It needs explicit cleanup the
-cascades already do, a placeholder email to satisfy the unique
-constraint, and it disguises data rather than removing it. Nothing reads
-authorship: there is no history (CONTEXT.md), and the one inviter name
-shown already has a fallback.
+## Web text input uses an HTML `<input>` on Apple platforms
 
-Groups where the user is the only admin are archived, not orphaned. The
-app lists them and asks to continue or cancel first.
-`ensure_admin_remains` skips archived groups so the membership cascade
-can pass; a group restored from the dashboard then needs an admin set by
-hand.
+Compose for Web can't open the software keyboard in iOS 27 Safari, and a
+typing problem was reported on a Mac too. On Apple platforms (iPhone,
+iPad, Mac, any browser), the email, code and name fields render a real
+`<input>` through `HtmlElementView`; every other platform keeps the
+Compose field. The input is hidden while its screen isn't `RESUMED`, or
+it floats over the next screen during transitions.
 
-Planned, one step at a time:
+A workaround: remove it (`Adapted*` components) once Compose fixes the
+bug.
 
-1. Migration: the three nullable `SET NULL` columns;
-   `ensure_admin_remains` skips archived groups;
-   `get_my_pending_invitations` left-joins the inviter so an invitation
-   from a deleted admin still shows.
-2. Migration: `list_sole_admin_groups()` for the confirmation, and
-   `delete_account()` — archive those groups, delete pending invitations
-   to the user's email, delete the `auth.users` row, in one transaction.
-   Verify first that a definer function may delete from `auth.users`;
-   if not, deletion moves to an Edge Function.
-3. App: Delete account in Settings, the confirmation listing the groups,
-   then sign-out.
-4. Docs: SCHEMA.md, CONTEXT.md, SCREENS.md.
+## The privacy policy has one source
+
+The policy is `privacy.html`, served by the web app at `/privacy`, which
+is also the URL Play asks for. The app's Privacy policy screen embeds
+that page in a web view, so there is one copy to keep current.
+
+Rejected: a second copy in the app (drifts), an in-app browser sheet
+(leaves the app on some devices), and a Markdown source with generated
+outputs (two converters to maintain).
+
+## The web app ships as a compatibility build
+
+`composeCompatibilityBrowserDistribution` packs the Wasm and JS builds;
+browsers without Wasm GC (Safari before 18.2) fall back to JS.
+
+Rejected: a Wasm-only build, which shows those browsers a spinner forever.

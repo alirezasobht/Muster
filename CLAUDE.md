@@ -19,6 +19,7 @@ editing** — they change often, and other sessions edit them too.
 | `docs/design/DESIGN.md` | Visual design of record, frames 1a–1t and 2a–2d |
 | `docs/design/muster-screens-v6.html` | The frames — open in a browser. v1–v5 superseded, kept as history |
 | `supabase/docs/environment_setup.md` | Bringing up an environment: Vault, secrets, Resend, Auth |
+| `supabase/docs/deploying.md` | Deploy scripts, one line each, and how the CLI is authorised |
 
 Keep them updated when decisions change.
 
@@ -40,9 +41,9 @@ notifications deferred past MVP.
 
 iOS builds from Xcode: open `iosApp/`.
 
-Migrations in `supabase/migrations/`, applied with the Supabase CLI.
-Edge Function secrets and deploys go through `supabase/scripts/`, never
-by hand — see `supabase/docs/environment_setup.md`.
+Migrations in `supabase/migrations/`. Migrations, Edge Function secrets
+and deploys go through `supabase/scripts/`, never by hand; a full prod
+deploy is `scripts/deploy-prod.sh`. See `supabase/docs/deploying.md`.
 
 ## How to work
 
@@ -62,8 +63,9 @@ by hand — see `supabase/docs/environment_setup.md`.
   promotion, the last-admin invariant and the event freeze all live in
   Postgres. A second copy drifts and the client cannot enforce it anyway.
 - **Never commit secrets.** `local.properties` is gitignored and holds the
-  Supabase URL and publishable key. Everything else lives in the separate
-  `Muster-env` repo. The service role key belongs nowhere in this repo.
+  build values (Supabase URL and publishable key, web app URL, contact
+  email). Everything else lives in the separate `Muster-env` repo. The
+  service role key belongs nowhere in this repo.
 - **Every new function revokes `EXECUTE` from `public` and `anon` in its
   own migration.** Postgres grants it to `PUBLIC` by default, so one that
   forgets is callable by anyone with the publishable key. SCHEMA.md →
@@ -86,14 +88,14 @@ Built: auth (email code, set-name gate), Home (1d/1e/1s/1t), Settings
 app bar overflow — Leave group for everyone, Archive for admins (1j),
 Add by email with the invitation email sent end to end, Events tab, New
 event, Event — roster with RSVP and per-row admin actions, standby
-queue with drag-to-reorder, Add players.
+queue with drag-to-reorder, Add players, account deletion (Settings and
+the web app's `/delete-account` page), Privacy policy (embedded
+`privacy.html`).
 
-Only **dev** exists; production is a separate project, not yet created.
+**Dev** and **prod** both exist; the prod web app is live.
 
-Writes to `groups`, `profiles`, `events`, `group_members` and
-`group_invitations` go through definer RPCs, and those tables' write
-grants are revoked. `event_invitations` and `event_standby` are not done
-— SCHEMA.md → Grants.
+All writes go through definer RPCs, and every table's write grants are
+revoked — SCHEMA.md → Grants.
 
 Not built:
 - **Edit group** — renaming a group. No screen or entry point, and
@@ -107,8 +109,5 @@ Not built:
   the field.
 - **Resending an invitation.** `send_group_invitation_email` exists but is
   not granted; it needs a throttle before it is.
-- **Finishing the grant revocation** — `event_invitations` and
-  `event_standby`. `disinvite_player` is `security invoker`, so it must
-  become definer first or revoking breaks it. SCHEMA.md → Grants.
 
 Next: Edit group and Edit event, then the invitation throttle.

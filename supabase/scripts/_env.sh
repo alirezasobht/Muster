@@ -20,8 +20,10 @@ PROJECT_REF=$(grep "^${PREFIX}SUPABASE_PROJECT_REF=" "$ENV_DIR/env" | cut -d= -f
 [ -n "$PROJECT_REF" ] || { echo "no ${PREFIX}SUPABASE_PROJECT_REF in $ENV_DIR/env" >&2; exit 1; }
 
 # Production takes a typed confirmation: every script here changes a live
-# project, and prod is the one where a slip reaches real users.
-if [ "$1" = "prod" ]; then
+# project, and prod is the one where a slip reaches real users. A wrapper
+# that already confirmed (deploy-backend.sh) sets MUSTER_CONFIRMED_ENV so the
+# scripts it runs don't ask again.
+if [ "$1" = "prod" ] && [ "${MUSTER_CONFIRMED_ENV:-}" != "prod" ]; then
   printf "About to change PRODUCTION (%s). Type prod to continue: " "$PROJECT_REF"
   read -r answer
   [ "$answer" = "prod" ] || { echo "aborted" >&2; exit 1; }

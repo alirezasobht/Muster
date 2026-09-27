@@ -6,8 +6,11 @@ they live in `Muster-env/<env>/`, with every name prefixed `DEV_` or
 
 | File in `Muster-env/<env>/` | Holds | Example |
 |---|---|---|
-| `env` | app build values, project ref, DB password | `.env.example` |
-| `edge.env` | Edge Function secrets only | `edge.env.example` |
+| `env` | app build values, project ref, DB password (direct Postgres access only; no script uses it) | `.env.example` |
+| `edge.env` | Edge Function secrets, and the contact email and web URL the web build also reads | `edge.env.example` |
+
+The scripts used below, and how the Supabase CLI is authorised to run
+them: `deploying.md`.
 
 ## 1. Supabase project
 
@@ -31,8 +34,7 @@ the Data API refuses it.
 ## 2. Database
 
 ```
-supabase link --project-ref <ref>
-supabase db push
+supabase/scripts/push-migrations.sh <env>
 ```
 
 Applies every migration, including `pg_net`. Nothing in the schema is
@@ -83,6 +85,9 @@ they can't target the wrong project. `prod` asks for confirmation.
 
 Push secrets first: a function refuses to start if any required one is
 missing. `ANDROID_APP_URL` is optional and falls back to the web URL.
+
+`supabase/scripts/deploy-backend.sh <env>` runs steps 2 and 5 together:
+migrations, secrets, then functions.
 
 Confirm `verify_jwt = false` took effect on
 `send-group-invitation-email` and `send-event-invitation-email` —
@@ -136,11 +141,10 @@ limit 5;
 
 ## 8. Web app (prod only)
 
-The web app is the prod site, `https://www.musterapp.fyi`, and the
-value of `WEB_APP_URL` and the Auth Site URL. It's a Cloudflare
-**Pages** project, `muster-prod`, on direct upload. Not a Worker: a
-Worker's custom domain needs Cloudflare to run DNS, and DNS stays at
-Porkbun.
+The prod web app is served at prod's `WEB_APP_URL`, which is also its
+Auth Site URL. It's a Cloudflare **Pages** project on direct upload. Not
+a Worker: a Worker's custom domain needs Cloudflare to run the domain's
+DNS, and DNS stays with the domain registrar.
 
 Build from clean, or a stale development wasm (over 30 MB) can end up
 in the output — over Pages' 25 MiB per-file limit:
@@ -150,12 +154,16 @@ in the output — over Pages' 25 MiB per-file limit:
 ./gradlew :webApp:clean :webApp:composeCompatibilityBrowserDistribution
 ```
 
+`scripts/deploy-prod.sh` does all of this in one go: the backend
+(`deploy-backend.sh prod`), then this build, and it prints the folder to
+upload.
+
 The compatibility build packs the Wasm and JS builds together and falls
 back to JS where Wasm GC is missing (Safari before 18.2, so iOS 17 and
 older). A Wasm-only build shows those browsers a spinner forever.
 
 Upload `webApp/build/dist/composeWebCompatibility/productionExecutable/`
-in the project's **Create deployment**. `composeResources` must be
+in the Pages project's **Create deployment**. `composeResources` must be
 included.
 
 `delete-account.html` and `privacy.html` ride along and are served at
@@ -164,12 +172,14 @@ privacy policy URL. The app's Privacy policy screen shows
 `privacy.html` too. The build fills their contact address and web link
 from `CONTACT_EMAIL` and `WEB_APP_URL`, and fails without them.
 
-Domain, set once:
+Domain, set once, with `<domain>` the web domain and `<project>` the
+Pages project name:
 
-- Pages → Custom domains: `www.musterapp.fyi`.
-- Porkbun DNS: `CNAME www → muster-prod.pages.dev`.
-- Porkbun URL forwarding: root → `https://www.musterapp.fyi`, 301, path
-  included, no wildcard. A wildcard would also catch `send`.
+- Pages → Custom domains: `www.<domain>`.
+- Registrar DNS: `CNAME www → <project>.pages.dev`.
+- Registrar URL forwarding: root → `https://www.<domain>`, 301, path
+  included, no wildcard. A wildcard would also catch the Resend sending
+  subdomain.
 
-Leave the MX and TXT records alone: they carry `support@musterapp.fyi`
+Leave the MX and TXT records alone: they carry the support address's mail
 forwarding and Resend's SPF and DKIM.

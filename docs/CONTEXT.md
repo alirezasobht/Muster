@@ -33,19 +33,17 @@ Explicitly out of scope:
 |---|---|---|
 | UI | Compose Multiplatform | Android + iOS from one Kotlin codebase |
 | Shared code | Kotlin Multiplatform | `commonMain` for models, logic, data access |
-| Targets | Android, iOS, Web | Desktop and Server off. Web is exploratory |
+| Targets | Android, iOS, Web | Desktop and Server off |
 | Backend | Supabase | Postgres, Auth, RLS, Edge Functions |
 | Region | Sydney (`ap-southeast-2`) | Users are AU-based |
 | Auth | Email codes | No passwords anywhere |
-| Email | Resend | `send.musterapp.fyi`, SPF and DKIM verified |
+| Email | Resend | A sending subdomain of the app's domain, SPF and DKIM verified |
 | Push (post-MVP) | FCM | Delivers to both Android and iOS (via APNs) |
 
 Every row here was a choice with an argument behind it — see
 DECISIONS.md.
 
-Cost: Supabase free tier, Resend free tier, `musterapp.fyi` at about
-$5.66/yr. Apple Developer account ($99/yr) needed only when shipping to
-iPhones.
+Cost: Supabase free tier, Resend free tier. Domain fee (yearly). Apple Developer account(yearly).
 
 ## Known risks
 
@@ -198,8 +196,8 @@ per-event would only matter for a tour.
 
 ## Environments
 
-**Dev** is the current hosted Supabase project. **Production** will be a
-separate project, created later. No staging. Each has its own data,
+**Dev** and **Production** are separate hosted Supabase projects. No
+staging. Each has its own data,
 users, URLs, keys, Edge Function secrets and Vault entries.
 
 The Muster repo holds everything non-secret — migrations, Edge Function

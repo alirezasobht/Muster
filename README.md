@@ -52,16 +52,19 @@ Edge Function secrets and Auth — all in
 [supabase/docs/environment_setup.md](supabase/docs/environment_setup.md).
 Invitations won't work until every step there is done.
 
-**2. Add your credentials** to `local.properties` (gitignored):
+**2. Add your build values** to `local.properties` (gitignored):
 
 ```
-supabase.url=https://<project>.supabase.co
-supabase.publishableKey=<publishable key>
+SUPABASE_URL=https://<project>.supabase.co
+SUPABASE_PUBLISHABLE_KEY=<publishable key>
+WEB_APP_URL=<where the web app is served>
+CONTACT_EMAIL=<support address; needed for web build only>
 ```
 
-`SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` as environment variables
-work too and take precedence. Without either, the build fails and tells
-you which is missing.
+The same names as environment variables take precedence;
+`. scripts/set-env-vars.sh <env>` exports them from that environment's
+`Muster-env` folder. Without them, the build fails and tells you which is
+missing.
 
 The publishable key ships in every build and is meant to — RLS is what
 protects the data. The service role key belongs nowhere near this repo.
@@ -84,6 +87,13 @@ and every ViewModel. `:shared:iosSimulatorArm64Test` and
 `:shared:wasmJsTest` run the same common tests on those targets.
 `:shared:connectedAndroidTest` needs a running emulator.
 
+## Deploying
+
+Backend changes go out with `supabase/scripts/deploy-backend.sh <env>`;
+a full production deploy is `scripts/deploy-prod.sh`, then a manual upload
+of the folder it prints. Every script, and how the Supabase CLI is
+authorised: [supabase/docs/deploying.md](supabase/docs/deploying.md).
+
 ## Layout
 
 ```
@@ -91,7 +101,8 @@ shared/       Compose UI, domain, data — nearly all the code
 androidApp/   Android host, MainActivity only
 iosApp/       Xcode project, thin SwiftUI wrapper
 webApp/       web host
-supabase/     migrations, Edge Functions, setup scripts and docs
+supabase/     migrations, Edge Functions, deploy scripts and docs
+scripts/      app build environment and the prod deploy
 buildSrc/     build-time Supabase config generation
 docs/         see below
 ```
@@ -112,6 +123,8 @@ could ask for too.
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Why closed choices were closed |
 | [docs/design/DESIGN.md](docs/design/DESIGN.md) | Visual design of record |
 | [docs/design/muster-screens-v6.html](docs/design/muster-screens-v6.html) | The frames — open in a browser |
+| [supabase/docs/environment_setup.md](supabase/docs/environment_setup.md) | Bringing up an environment |
+| [supabase/docs/deploying.md](supabase/docs/deploying.md) | Deploy scripts and how they are authorised |
 
 [CLAUDE.md](CLAUDE.md) at the root holds the same map plus conventions
 and current state, read automatically by Claude Code.
