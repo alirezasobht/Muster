@@ -15,11 +15,11 @@ import app.muster.domain.usecase.PromoteMemberUseCase
 import app.muster.domain.usecase.RemoveMemberUseCase
 import app.muster.domain.usecase.ResendInvitationUseCase
 import app.muster.domain.usecase.RevokeInvitationUseCase
+import app.muster.ui.common.util.updateSuccess
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class MembersViewModel(
@@ -90,11 +90,11 @@ class MembersViewModel(
     }
 
     private fun refresh(showIndicator: Boolean) {
-        if (showIndicator) updateSuccess { it.copy(isRefreshing = true) }
+        if (showIndicator) _state.updateSuccess { it.copy(isRefreshing = true) }
         viewModelScope.launch {
             try {
                 val fetched = fetchSuccess()
-                updateSuccess {
+                _state.updateSuccess {
                     it.copy(
                         rows = fetched.rows,
                         canAddMembers = fetched.canAddMembers,
@@ -102,7 +102,7 @@ class MembersViewModel(
                     )
                 }
             } catch (_: DomainError) {
-                updateSuccess { it.copy(isRefreshing = false) }
+                _state.updateSuccess { it.copy(isRefreshing = false) }
             }
         }
     }
@@ -112,13 +112,13 @@ class MembersViewModel(
     private fun performAction(targetId: String, action: suspend () -> Unit) {
         val current = _state.value as? MembersUiState.Success ?: return
         if (current.actionTargetId != null) return
-        updateSuccess { it.copy(actionTargetId = targetId, actionError = null, failedActionId = null) }
+        _state.updateSuccess { it.copy(actionTargetId = targetId, actionError = null, failedActionId = null) }
         viewModelScope.launch {
             try {
                 action()
-                updateSuccess { it.copy(actionTargetId = null) }
+                _state.updateSuccess { it.copy(actionTargetId = null) }
             } catch (e: DomainError) {
-                updateSuccess { it.copy(actionTargetId = null, actionError = e, failedActionId = targetId) }
+                _state.updateSuccess { it.copy(actionTargetId = null, actionError = e, failedActionId = targetId) }
             }
         }
     }
@@ -173,11 +173,5 @@ class MembersViewModel(
             .sortedBy { it.displayName.lowercase() }
         val pending = pendingRows.sortedBy { it.displayName.lowercase() }
         return selfRows + admins + members + pending
-    }
-
-    // Reads the latest state at write time. Capturing it before a suspend and
-    // copying afterwards loses whatever another in-flight call wrote meanwhile.
-    private fun updateSuccess(block: (MembersUiState.Success) -> MembersUiState.Success) {
-        _state.update { current -> if (current is MembersUiState.Success) block(current) else current }
     }
 }

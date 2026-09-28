@@ -5,13 +5,13 @@ import androidx.lifecycle.viewModelScope
 import app.muster.domain.error.DomainError
 import app.muster.domain.usecase.GetMyProfileUseCase
 import app.muster.domain.usecase.UpdateNameUseCase
+import app.muster.ui.common.util.updateSuccess
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class SettingsViewModel(
@@ -35,7 +35,7 @@ class SettingsViewModel(
     fun onRetryLoad() = load()
 
     fun onNameChange(name: String) {
-        updateSuccess { it.copy(name = name, saveError = null) }
+        _state.updateSuccess { it.copy(name = name, saveError = null) }
     }
 
     fun onSave() {
@@ -43,11 +43,11 @@ class SettingsViewModel(
         if (current.name.isBlank() || current.saving || current.isSameName) return
         // Set before launching, not inside: the guard above must see it on a
         // second tap in the same frame, whatever dispatcher is in play.
-        updateSuccess { it.copy(saving = true, saveError = null) }
+        _state.updateSuccess { it.copy(saving = true, saveError = null) }
         viewModelScope.launch {
             try {
                 val profile = updateName(current.name)
-                updateSuccess {
+                _state.updateSuccess {
                     it.copy(
                         name = profile.name.orEmpty(),
                         savedName = profile.name.orEmpty(),
@@ -57,7 +57,7 @@ class SettingsViewModel(
                 }
                 _saved.send(Unit)
             } catch (e: DomainError) {
-                updateSuccess { it.copy(saving = false, saveError = e) }
+                _state.updateSuccess { it.copy(saving = false, saveError = e) }
             }
         }
     }
@@ -76,9 +76,5 @@ class SettingsViewModel(
                 _state.value = SettingsUiState.Error(e)
             }
         }
-    }
-
-    private fun updateSuccess(block: (SettingsUiState.Success) -> SettingsUiState.Success) {
-        _state.update { current -> if (current is SettingsUiState.Success) block(current) else current }
     }
 }

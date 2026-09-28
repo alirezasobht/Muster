@@ -1,6 +1,7 @@
 package app.muster.ui.screens.group.members
 
 import app.muster.domain.error.DomainError
+import app.muster.ui.common.util.UiState
 import app.muster.ui.common.util.initials
 
 enum class MemberStatus { Admin, Member, Pending }
@@ -20,7 +21,7 @@ data class MemberRow(
     val hasMenu: Boolean get() = canPromote || canDemote || canRemove || canRevokeInvitation || canResendInvitation
 }
 
-sealed interface MembersUiState {
+sealed interface MembersUiState : UiState<MembersUiState.Success> {
 
     data object Loading : MembersUiState
 
@@ -32,6 +33,7 @@ sealed interface MembersUiState {
         val failedActionId: String? = null,
         val canAddMembers: Boolean = false
     ) : MembersUiState {
+        override fun asSuccessOrNull(): Success = this
         val isEmpty: Boolean get() = rows.none { !it.isSelf }
     }
 

@@ -18,11 +18,11 @@ import app.muster.domain.usecase.ResendEventInvitationUseCase
 import app.muster.domain.usecase.SetRsvpUseCase
 import app.muster.ui.common.util.toDisplayDate
 import app.muster.ui.common.util.toDisplayTime
+import app.muster.ui.common.util.updateSuccess
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
 
@@ -83,13 +83,13 @@ class EventViewModel(
         val current = _state.value as? EventUiState.Success ?: return
         val myId = myProfileId ?: return
         if (current.rsvpInFlight) return
-        updateSuccess { it.copy(rsvpInFlight = true, rsvpError = null) }
+        _state.updateSuccess { it.copy(rsvpInFlight = true, rsvpError = null) }
         viewModelScope.launch {
             try {
                 setRsvp(eventId, myId, status)
-                updateSuccess { it.copy(rsvpInFlight = false) }
+                _state.updateSuccess { it.copy(rsvpInFlight = false) }
             } catch (e: DomainError) {
-                updateSuccess { it.copy(rsvpInFlight = false, rsvpError = e) }
+                _state.updateSuccess { it.copy(rsvpInFlight = false, rsvpError = e) }
             }
         }
     }
@@ -106,13 +106,13 @@ class EventViewModel(
     private fun onChangeRowStatus(playerId: String, status: RsvpStatus) {
         val current = _state.value as? EventUiState.Success ?: return
         if (current.rowActionTargetId != null) return
-        updateSuccess { it.copy(rowActionTargetId = playerId, rowActionError = null, rowActionErrorId = null) }
+        _state.updateSuccess { it.copy(rowActionTargetId = playerId, rowActionError = null, rowActionErrorId = null) }
         viewModelScope.launch {
             try {
                 setRsvp(eventId, playerId, status)
-                updateSuccess { it.copy(rowActionTargetId = null) }
+                _state.updateSuccess { it.copy(rowActionTargetId = null) }
             } catch (e: DomainError) {
-                updateSuccess { it.copy(rowActionTargetId = null, rowActionError = e, rowActionErrorId = playerId) }
+                _state.updateSuccess { it.copy(rowActionTargetId = null, rowActionError = e, rowActionErrorId = playerId) }
             }
         }
     }
@@ -120,13 +120,13 @@ class EventViewModel(
     private fun onDisinvite(playerId: String) {
         val current = _state.value as? EventUiState.Success ?: return
         if (current.rowActionTargetId != null) return
-        updateSuccess { it.copy(rowActionTargetId = playerId, rowActionError = null, rowActionErrorId = null) }
+        _state.updateSuccess { it.copy(rowActionTargetId = playerId, rowActionError = null, rowActionErrorId = null) }
         viewModelScope.launch {
             try {
                 disinvitePlayer(eventId = eventId, groupId = groupId, profileId = playerId)
-                updateSuccess { it.copy(rowActionTargetId = null) }
+                _state.updateSuccess { it.copy(rowActionTargetId = null) }
             } catch (e: DomainError) {
-                updateSuccess { it.copy(rowActionTargetId = null, rowActionError = e, rowActionErrorId = playerId) }
+                _state.updateSuccess { it.copy(rowActionTargetId = null, rowActionError = e, rowActionErrorId = playerId) }
             }
         }
     }
@@ -134,13 +134,13 @@ class EventViewModel(
     private fun onResendInvitation(playerId: String) {
         val current = _state.value as? EventUiState.Success ?: return
         if (current.rowActionTargetId != null) return
-        updateSuccess { it.copy(rowActionTargetId = playerId, rowActionError = null, rowActionErrorId = null) }
+        _state.updateSuccess { it.copy(rowActionTargetId = playerId, rowActionError = null, rowActionErrorId = null) }
         viewModelScope.launch {
             try {
                 resendEventInvitation(eventId, playerId)
-                updateSuccess { it.copy(rowActionTargetId = null) }
+                _state.updateSuccess { it.copy(rowActionTargetId = null) }
             } catch (e: DomainError) {
-                updateSuccess { it.copy(rowActionTargetId = null, rowActionError = e, rowActionErrorId = playerId) }
+                _state.updateSuccess { it.copy(rowActionTargetId = null, rowActionError = e, rowActionErrorId = playerId) }
             }
         }
     }
@@ -150,17 +150,17 @@ class EventViewModel(
         if (current.standbyReordering) return
         val previousOrder = current.standby
         val optimisticOrder = orderedProfileIds.mapNotNull { id -> previousOrder.find { it.id == id } }
-        updateSuccess { it.copy(standby = optimisticOrder, standbyReordering = true, standbyError = null) }
+        _state.updateSuccess { it.copy(standby = optimisticOrder, standbyReordering = true, standbyError = null) }
         viewModelScope.launch {
             try {
                 reorderStandby(eventId, orderedProfileIds)
                 // Already showing the new order; the repository's
                 // DataChange.Roster notification and the refresh it triggers
                 // only need to confirm it, not apply it.
-                updateSuccess { it.copy(standbyReordering = false) }
+                _state.updateSuccess { it.copy(standbyReordering = false) }
             } catch (e: DomainError) {
                 // The write was rejected — back it out
-                updateSuccess { it.copy(standby = previousOrder, standbyReordering = false, standbyError = e) }
+                _state.updateSuccess { it.copy(standby = previousOrder, standbyReordering = false, standbyError = e) }
             }
         }
     }
@@ -178,13 +178,13 @@ class EventViewModel(
     }
 
     private fun refresh(showIndicator: Boolean) {
-        if (showIndicator) updateSuccess { it.copy(isRefreshing = true) }
+        if (showIndicator) _state.updateSuccess { it.copy(isRefreshing = true) }
         viewModelScope.launch {
             try {
                 val fetched = fetchSuccess(_state.value.summary)
-                updateSuccess { fetched.copy(isRefreshing = false) }
+                _state.updateSuccess { fetched.copy(isRefreshing = false) }
             } catch (_: DomainError) {
-                updateSuccess { it.copy(isRefreshing = false) }
+                _state.updateSuccess { it.copy(isRefreshing = false) }
             }
         }
     }
@@ -211,12 +211,6 @@ class EventViewModel(
             isFrozen = isFrozen,
             startTime = detail.event.startsAt.toDisplayTime()
         )
-    }
-
-    // Reads the latest state at write time. Capturing it before a suspend and
-    // copying afterwards loses whatever another in-flight call wrote meanwhile.
-    private fun updateSuccess(block: (EventUiState.Success) -> EventUiState.Success) {
-        _state.update { current -> if (current is EventUiState.Success) block(current) else current }
     }
 }
 

@@ -6,10 +6,10 @@ import app.muster.domain.error.DomainError
 import app.muster.domain.usecase.ArchiveGroupUseCase
 import app.muster.domain.usecase.GetMyGroupRoleUseCase
 import app.muster.domain.usecase.LeaveGroupUseCase
+import app.muster.ui.common.util.updateSuccess
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class GroupViewModel(
@@ -30,31 +30,31 @@ class GroupViewModel(
     fun onRetry() = load()
 
     fun onTabSelected(tab: GroupTab) {
-        updateSuccess { it.copy(selectedTab = tab) }
+        _state.updateSuccess { it.copy(selectedTab = tab) }
     }
 
     // A fresh OverflowDialogState replaces whatever was there, so a stale
     // in-flight flag or error can't outlive its own dialog.
     fun onOverflowActionRequested(action: GroupOverflowAction) {
-        updateSuccess { it.copy(overflowDialog = OverflowDialogState(action)) }
+        _state.updateSuccess { it.copy(overflowDialog = OverflowDialogState(action)) }
     }
 
     fun onOverflowDialogDismissed() {
-        updateSuccess { it.copy(overflowDialog = null) }
+        _state.updateSuccess { it.copy(overflowDialog = null) }
     }
 
     fun onOverflowConfirmed() {
         val current = _state.value as? GroupUiState.Success ?: return
         val dialog = current.overflowDialog ?: return
         if (dialog.inFlight) return
-        updateSuccess { it.copy(overflowDialog = dialog.copy(inFlight = true, error = null)) }
+        _state.updateSuccess { it.copy(overflowDialog = dialog.copy(inFlight = true, error = null)) }
         viewModelScope.launch {
             try {
                 when (dialog.action) {
                     GroupOverflowAction.Leave -> leaveGroup(groupId)
                     GroupOverflowAction.Archive -> archiveGroup(groupId)
                 }
-                updateSuccess { it.copy(overflowDialog = null, exitedGroup = true) }
+                _state.updateSuccess { it.copy(overflowDialog = null, exitedGroup = true) }
             } catch (e: DomainError) {
                 updateOverflowDialog { it.copy(inFlight = false, error = e) }
             }
@@ -62,7 +62,7 @@ class GroupViewModel(
     }
 
     fun onExitedHandled() {
-        updateSuccess { it.copy(exitedGroup = false) }
+        _state.updateSuccess { it.copy(exitedGroup = false) }
     }
 
     private fun load() {
@@ -77,14 +77,10 @@ class GroupViewModel(
         }
     }
 
-    private fun updateSuccess(block: (GroupUiState.Success) -> GroupUiState.Success) {
-        _state.update { current -> if (current is GroupUiState.Success) block(current) else current }
-    }
-
     // Reads the dialog at write time: if it was dismissed while the call was
     // in flight, there is no dialog left to report the failure to.
     private fun updateOverflowDialog(block: (OverflowDialogState) -> OverflowDialogState) {
-        updateSuccess { current ->
+        _state.updateSuccess { current ->
             val dialog = current.overflowDialog ?: return@updateSuccess current
             current.copy(overflowDialog = block(dialog))
         }

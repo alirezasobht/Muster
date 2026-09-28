@@ -2,6 +2,7 @@ package app.muster.ui.screens.event
 
 import app.muster.domain.error.DomainError
 import app.muster.domain.model.RsvpStatus
+import app.muster.ui.common.util.UiState
 import app.muster.ui.common.util.initials
 import app.muster.ui.screens.group.events.EventRow
 
@@ -51,7 +52,7 @@ data class EventSummary(
      }
 }
 
-sealed interface EventUiState {
+sealed interface EventUiState : UiState<EventUiState.Success> {
     val summary: EventSummary
 
     data class Loading(override val summary: EventSummary) : EventUiState
@@ -74,6 +75,7 @@ sealed interface EventUiState {
         val standbyReordering: Boolean = false,
         val standbyError: DomainError? = null
     ) : EventUiState {
+        override fun asSuccessOrNull(): Success = this
         val isRosterEmpty: Boolean get() = roster.isEmpty()
     }
 

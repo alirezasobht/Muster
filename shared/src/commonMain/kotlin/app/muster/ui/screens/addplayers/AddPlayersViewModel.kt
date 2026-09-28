@@ -5,13 +5,13 @@ import androidx.lifecycle.viewModelScope
 import app.muster.domain.error.DomainError
 import app.muster.domain.usecase.AddPlayersUseCase
 import app.muster.domain.usecase.GetInviteeCandidatesUseCase
+import app.muster.ui.common.util.updateSuccess
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class AddPlayersViewModel(
@@ -33,7 +33,7 @@ class AddPlayersViewModel(
 
     fun onRetry() = load()
 
-    fun onToggle(profileId: String) = updateSuccess { current ->
+    fun onToggle(profileId: String) = _state.updateSuccess { current ->
         if (current.adding) {
             current
         } else {
@@ -45,14 +45,14 @@ class AddPlayersViewModel(
     fun onConfirm() {
         val current = _state.value as? AddPlayersUiState.Success ?: return
         if (!current.canConfirm) return
-        updateSuccess { it.copy(adding = true, error = null) }
+        _state.updateSuccess { it.copy(adding = true, error = null) }
         viewModelScope.launch {
             try {
                 addPlayers(eventId, groupId, current.selectedIds)
-                updateSuccess { it.copy(adding = false) }
+                _state.updateSuccess { it.copy(adding = false) }
                 _exit.emit(Unit)
             } catch (e: DomainError) {
-                updateSuccess { it.copy(adding = false, error = e) }
+                _state.updateSuccess { it.copy(adding = false, error = e) }
             }
         }
     }
@@ -78,9 +78,5 @@ class AddPlayersViewModel(
             freeSlots = result.freeSlots,
             queueLength = result.queueLength
         )
-    }
-
-    private fun updateSuccess(block: (AddPlayersUiState.Success) -> AddPlayersUiState.Success) {
-        _state.update { current -> if (current is AddPlayersUiState.Success) block(current) else current }
     }
 }

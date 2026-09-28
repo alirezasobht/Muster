@@ -2,6 +2,7 @@ package app.muster.ui.screens.group
 
 import app.muster.domain.error.DomainError
 import app.muster.domain.model.GroupRole
+import app.muster.ui.common.util.UiState
 
 enum class GroupTab { Events, Members }
 
@@ -13,7 +14,7 @@ data class OverflowDialogState(
     val error: DomainError? = null
 )
 
-sealed interface GroupUiState {
+sealed interface GroupUiState : UiState<GroupUiState.Success> {
 
     val groupName: String
 
@@ -26,6 +27,7 @@ sealed interface GroupUiState {
         val overflowDialog: OverflowDialogState? = null,
         val exitedGroup: Boolean = false
     ) : GroupUiState {
+        override fun asSuccessOrNull(): Success = this
         val isAdmin: Boolean get() = myRole == GroupRole.Admin
 
         val overflowActions: List<GroupOverflowAction>

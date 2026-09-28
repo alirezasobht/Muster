@@ -10,11 +10,11 @@ import app.muster.domain.usecase.DeclineGroupInvitationUseCase
 import app.muster.domain.usecase.GetMyProfileUseCase
 import app.muster.domain.usecase.ListMyGroupsUseCase
 import app.muster.domain.usecase.ListPendingInvitationsUseCase
+import app.muster.ui.common.util.updateSuccess
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class HomeViewModel(
@@ -82,7 +82,7 @@ class HomeViewModel(
     }
 
     private fun refresh(showIndicator: Boolean) {
-        if (showIndicator) updateSuccess { it.copy(isRefreshing = true) }
+        if (showIndicator) _state.updateSuccess { it.copy(isRefreshing = true) }
         viewModelScope.launch {
             try {
                 // The profile too: can_create_groups is flipped by hand in the
@@ -90,7 +90,7 @@ class HomeViewModel(
                 val profile = getMyProfile()
                 val groups = listMyGroups()
                 val invitations = listPendingInvitations()
-                updateSuccess {
+                _state.updateSuccess {
                     it.copy(
                         groups = groups,
                         invitations = invitations,
@@ -100,7 +100,7 @@ class HomeViewModel(
                     )
                 }
             } catch (_: DomainError) {
-                updateSuccess { it.copy(isRefreshing = false) }
+                _state.updateSuccess { it.copy(isRefreshing = false) }
             }
         }
     }
@@ -108,26 +108,20 @@ class HomeViewModel(
     private fun respond(invitationId: String, action: suspend (String) -> Unit) {
         val current = _state.value as? HomeUiState.Success ?: return
         if (current.respondingTo != null) return
-        updateSuccess { it.copy(respondingTo = invitationId, actionError = null, failedInvitationId = null) }
+        _state.updateSuccess { it.copy(respondingTo = invitationId, actionError = null, failedInvitationId = null) }
         viewModelScope.launch {
             try {
                 action(invitationId)
                 val groups = listMyGroups()
                 val invitations = listPendingInvitations()
-                updateSuccess {
+                _state.updateSuccess {
                     it.copy(groups = groups, invitations = invitations, respondingTo = null)
                 }
             } catch (e: DomainError) {
-                updateSuccess {
+                _state.updateSuccess {
                     it.copy(respondingTo = null, actionError = e, failedInvitationId = invitationId)
                 }
             }
         }
-    }
-
-    // Reads the latest state at write time. Capturing it before a suspend and
-    // copying afterwards loses whatever another in-flight call wrote meanwhile.
-    private fun updateSuccess(block: (HomeUiState.Success) -> HomeUiState.Success) {
-        _state.update { current -> if (current is HomeUiState.Success) block(current) else current }
     }
 }

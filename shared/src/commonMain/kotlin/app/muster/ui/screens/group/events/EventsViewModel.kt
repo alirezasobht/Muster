@@ -12,11 +12,11 @@ import app.muster.domain.model.emptyEvent
 import app.muster.domain.usecase.GetMyGroupRoleUseCase
 import app.muster.domain.usecase.ListUpcomingEventsUseCase
 import app.muster.ui.common.util.toDisplayDate
+import app.muster.ui.common.util.updateSuccess
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class EventsViewModel(
@@ -72,11 +72,11 @@ class EventsViewModel(
     }
 
     private fun refresh(showIndicator: Boolean) {
-        if (showIndicator) updateSuccess { it.copy(isRefreshing = true) }
+        if (showIndicator) _state.updateSuccess { it.copy(isRefreshing = true) }
         viewModelScope.launch {
             try {
                 val fetched = fetchSuccess()
-                updateSuccess {
+                _state.updateSuccess {
                     it.copy(
                         eventRows = fetched.eventRows,
                         canCreateEvent = fetched.canCreateEvent,
@@ -84,7 +84,7 @@ class EventsViewModel(
                     )
                 }
             } catch (_: DomainError) {
-                updateSuccess { it.copy(isRefreshing = false) }
+                _state.updateSuccess { it.copy(isRefreshing = false) }
             }
         }
     }
@@ -96,12 +96,6 @@ class EventsViewModel(
             eventRows = events.map { it.toRow() },
             canCreateEvent = isAdmin
         )
-    }
-
-    // Reads the latest state at write time. Capturing it before a suspend and
-    // copying afterwards loses whatever another in-flight call wrote meanwhile.
-    private fun updateSuccess(block: (EventsUiState.Success) -> EventsUiState.Success) {
-        _state.update { current -> if (current is EventsUiState.Success) block(current) else current }
     }
 }
 

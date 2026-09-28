@@ -1,6 +1,7 @@
 package app.muster.ui.screens.addplayers
 
 import app.muster.domain.error.DomainError
+import app.muster.ui.common.util.UiState
 import app.muster.ui.common.util.initials
 
 data class CandidateRow(
@@ -15,7 +16,7 @@ sealed interface PickDestination {
     data class Standby(val position: Int) : PickDestination
 }
 
-sealed interface AddPlayersUiState {
+sealed interface AddPlayersUiState : UiState<AddPlayersUiState.Success> {
 
     data object Loading : AddPlayersUiState
 
@@ -31,6 +32,7 @@ sealed interface AddPlayersUiState {
         val adding: Boolean = false,
         val error: DomainError? = null
     ) : AddPlayersUiState {
+        override fun asSuccessOrNull(): Success = this
         val isEmpty: Boolean get() = candidates.isEmpty()
         val canConfirm: Boolean get() = selectedIds.isNotEmpty() && !adding
 
