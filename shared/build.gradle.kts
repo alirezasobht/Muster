@@ -14,6 +14,7 @@ plugins {
 // closed" for why it is a generated file and not a plugin.
 
 val localProperties = rootProject.layout.projectDirectory.file("local.properties")
+val versionProperties = rootProject.layout.projectDirectory.file("version.properties")
 
 val generateSupabaseConfig by tasks.registering(GenerateSupabaseConfig::class) {
     url.set(buildSetting(providers, localProperties, "SUPABASE_URL"))
@@ -22,6 +23,11 @@ val generateSupabaseConfig by tasks.registering(GenerateSupabaseConfig::class) {
     )
     webAppUrl.set(buildSetting(providers, localProperties, "WEB_APP_URL"))
     outputDir.set(layout.buildDirectory.dir("generated/supabase"))
+}
+
+val generateAppInfo by tasks.registering(GenerateAppInfo::class) {
+    versionName.set(versionSetting(providers, versionProperties, "VERSION_NAME"))
+    outputDir.set(layout.buildDirectory.dir("generated/appInfo"))
 }
 
 kotlin {
@@ -73,6 +79,7 @@ kotlin {
         }
         commonMain {
             kotlin.srcDir(generateSupabaseConfig)
+            kotlin.srcDir(generateAppInfo)
             dependencies {
                 implementation(libs.compose.runtime)
                 implementation(libs.compose.foundation)

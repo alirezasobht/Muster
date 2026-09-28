@@ -20,6 +20,8 @@ dependencies {
     debugImplementation(libs.compose.uiTooling)
 }
 
+val versionProperties = rootProject.layout.projectDirectory.file("version.properties")
+
 android {
     namespace = "app.muster"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
@@ -28,8 +30,8 @@ android {
         applicationId = "app.muster"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = versionSetting(providers, versionProperties, "VERSION_CODE").get().toInt()
+        versionName = versionSetting(providers, versionProperties, "VERSION_NAME").get()
     }
     packaging {
         resources {

@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.muster.APP_VERSION
 import app.muster.domain.error.DomainError
 import app.muster.ui.common.components.AdaptedNameField
 import app.muster.ui.common.components.ConfirmDialog
@@ -56,6 +57,7 @@ import muster.shared.generated.resources.settings_privacy_policy
 import muster.shared.generated.resources.settings_saved
 import muster.shared.generated.resources.settings_title
 import muster.shared.generated.resources.settings_try_again
+import muster.shared.generated.resources.settings_version
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -260,6 +262,14 @@ private fun FormContent(
                 style = MaterialTheme.typography.bodySmall,
                 textDecoration = TextDecoration.Underline)
         }
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = stringResource(Res.string.settings_version, APP_VERSION),
+            style = MaterialTheme.typography.bodySmall,
+            color = MusterColors.Muted,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+        )
     }
 }
 

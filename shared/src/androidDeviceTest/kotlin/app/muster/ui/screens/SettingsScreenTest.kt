@@ -10,6 +10,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import app.muster.APP_VERSION
 import app.muster.domain.error.DomainError
 import app.muster.ui.screens.settings.SettingsActions
 import app.muster.ui.screens.settings.SettingsScreen
@@ -184,5 +185,11 @@ class SettingsScreenTest {
             )
         )
         composeRule.onNodeWithText("Save").assertDoesNotExist()
+    }
+
+    @Test
+    fun theVersionIsShown() {
+        show(state = SettingsUiState.Success(name = "Alex Doyle", email = "alex.doyle@gmail.com"))
+        composeRule.onNodeWithText("Version $APP_VERSION").assertIsDisplayed()
     }
 }
