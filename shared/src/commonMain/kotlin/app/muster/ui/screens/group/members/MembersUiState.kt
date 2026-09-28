@@ -1,6 +1,7 @@
 package app.muster.ui.screens.group.members
 
 import app.muster.domain.error.DomainError
+import app.muster.ui.common.util.initials
 
 enum class MemberStatus { Admin, Member, Pending }
 
@@ -13,7 +14,8 @@ data class MemberRow(
     val canDemote: Boolean = false,
     val canRemove: Boolean = false,
     val canRevokeInvitation: Boolean = false,
-    val canResendInvitation: Boolean = false
+    val canResendInvitation: Boolean = false,
+    val initials: String = displayName.initials()
 ) {
     val hasMenu: Boolean get() = canPromote || canDemote || canRemove || canRevokeInvitation || canResendInvitation
 }

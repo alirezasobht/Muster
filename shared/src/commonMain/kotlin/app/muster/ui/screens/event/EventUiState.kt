@@ -2,6 +2,7 @@ package app.muster.ui.screens.event
 
 import app.muster.domain.error.DomainError
 import app.muster.domain.model.RsvpStatus
+import app.muster.ui.common.util.initials
 import app.muster.ui.screens.group.events.EventRow
 
 enum class RosterAction { SetIn, SetOut, CancelInvite, RemoveFromEvent, RemoveFromList, ResendInvite }
@@ -12,7 +13,8 @@ data class RosterRow(
     val name: String,
     val status: RsvpStatus,
     val isSelf: Boolean = false,
-    val actions: List<RosterAction> = emptyList()
+    val actions: List<RosterAction> = emptyList(),
+    val initials: String = name.initials()
 )
 
 data class StandbyRow(

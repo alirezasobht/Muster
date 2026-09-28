@@ -351,7 +351,7 @@ private fun MemberRowItem(
 
     Column(modifier = modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            if (isPending) PendingAvatar() else InitialsAvatar(row.displayName)
+            if (isPending) PendingAvatar() else InitialsAvatar(row.initials)
             Spacer(Modifier.width(12.dp))
             if (isPending) {
                 Text(
@@ -478,7 +478,7 @@ private fun RowMenu(
 }
 
 @Composable
-private fun InitialsAvatar(name: String, modifier: Modifier = Modifier) {
+private fun InitialsAvatar(initials: String, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier.size(40.dp),
         shape = RoundedCornerShape(percent = 50),
@@ -486,7 +486,7 @@ private fun InitialsAvatar(name: String, modifier: Modifier = Modifier) {
     ) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(
-                text = initials(name),
+                text = initials,
                 style = MaterialTheme.typography.labelMedium.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
                 color = MusterColors.Secondary
             )
@@ -527,16 +527,6 @@ private fun InvitedBadge(modifier: Modifier = Modifier) {
             color = MusterColors.Muted,
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
         )
-    }
-}
-
-// Cosmetic only (avatar initials) — not a permission, safe to compute here.
-private fun initials(name: String): String {
-    val parts = name.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
-    return when {
-        parts.isEmpty() -> ""
-        parts.size == 1 -> parts[0].take(2).uppercase()
-        else -> (parts[0].take(1) + parts[1].take(1)).uppercase()
     }
 }
 

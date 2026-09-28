@@ -237,7 +237,7 @@ private fun CandidateRowItem(
     ) {
         SelectionBox(selected = selected)
         Spacer(Modifier.width(14.dp))
-        InitialsAvatar(candidate.name)
+        InitialsAvatar(candidate.initials)
         Spacer(Modifier.width(12.dp))
         Text(
             text = candidate.name,
@@ -287,7 +287,7 @@ private fun SelectionBox(selected: Boolean, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun InitialsAvatar(name: String, modifier: Modifier = Modifier) {
+private fun InitialsAvatar(initials: String, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier.size(34.dp),
         shape = RoundedCornerShape(percent = 50),
@@ -295,22 +295,11 @@ private fun InitialsAvatar(name: String, modifier: Modifier = Modifier) {
     ) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(
-                text = initials(name),
+                text = initials,
                 style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold),
                 color = MusterColors.Secondary
             )
         }
-    }
-}
-
-// Cosmetic only — not a permission, safe to compute here. Duplicated from
-// MembersTab/EventScreen rather than shared: same reasoning as their own copies.
-private fun initials(name: String): String {
-    val parts = name.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
-    return when {
-        parts.isEmpty() -> ""
-        parts.size == 1 -> parts[0].take(2).uppercase()
-        else -> (parts[0].take(1) + parts[1].take(1)).uppercase()
     }
 }
 

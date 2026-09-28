@@ -1,10 +1,12 @@
 package app.muster.ui.screens.addplayers
 
 import app.muster.domain.error.DomainError
+import app.muster.ui.common.util.initials
 
 data class CandidateRow(
     val id: String,
-    val name: String
+    val name: String,
+    val initials: String = name.initials()
 )
 
 // tells ui that checked is invite or standby
