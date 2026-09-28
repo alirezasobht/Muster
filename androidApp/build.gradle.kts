@@ -21,6 +21,11 @@ dependencies {
 }
 
 val versionProperties = rootProject.layout.projectDirectory.file("version.properties")
+val localProperties = rootProject.layout.projectDirectory.file("local.properties")
+val uploadKeystorePath = buildSetting(providers, localProperties, "UPLOAD_KEYSTORE_PATH").get()
+val uploadKeystorePassword =
+    buildSetting(providers, localProperties, "UPLOAD_KEYSTORE_PASSWORD").get()
+val isProd = buildSetting(providers, localProperties, "MUSTER_ENV").get() == "prod"
 
 android {
     namespace = "app.muster"
@@ -28,10 +33,22 @@ android {
 
     defaultConfig {
         applicationId = "app.muster"
+        applicationIdSuffix = if (isProd) ".prod" else ".dev"
+        manifestPlaceholders["appLabel"] = if (isProd) "Muster" else "Muster Dev"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = versionSetting(providers, versionProperties, "VERSION_CODE").get().toInt()
         versionName = versionSetting(providers, versionProperties, "VERSION_NAME").get()
+    }
+    signingConfigs {
+        if (uploadKeystorePath.isNotEmpty()) {
+            create("release") {
+                storeFile = file(uploadKeystorePath)
+                storePassword = uploadKeystorePassword
+                keyAlias = "upload"
+                keyPassword = uploadKeystorePassword
+            }
+        }
     }
     packaging {
         resources {
@@ -41,6 +58,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.findByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

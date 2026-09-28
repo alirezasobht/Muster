@@ -34,7 +34,7 @@ else
       "${_prefix}CONTACT_EMAIL, ${_prefix}WEB_APP_URL (edge.env)" >&2
   else
     export SUPABASE_URL="$_url" SUPABASE_PUBLISHABLE_KEY="$_key" \
-      CONTACT_EMAIL="$_contact" WEB_APP_URL="$_web"
+      CONTACT_EMAIL="$_contact" WEB_APP_URL="$_web" MUSTER_ENV="$1"
     echo "App build now targets $1 ($SUPABASE_URL)"
   fi
 fi
