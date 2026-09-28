@@ -14,6 +14,7 @@ import app.muster.domain.usecase.GetEventUseCase
 import app.muster.domain.usecase.GetMyGroupRoleUseCase
 import app.muster.domain.usecase.GetMyProfileUseCase
 import app.muster.domain.usecase.ReorderStandbyUseCase
+import app.muster.domain.usecase.ResendEventInvitationUseCase
 import app.muster.domain.usecase.SetRsvpUseCase
 import app.muster.ui.common.util.toDisplayDate
 import app.muster.ui.common.util.toDisplayTime
@@ -33,6 +34,7 @@ class EventViewModel(
     private val setRsvp: SetRsvpUseCase,
     private val reorderStandby: ReorderStandbyUseCase,
     private val disinvitePlayer: DisinvitePlayerUseCase,
+    private val resendEventInvitation: ResendEventInvitationUseCase,
     dataChanges: DataChanges
 ) : ViewModel() {
 
@@ -98,6 +100,7 @@ class EventViewModel(
         RosterAction.CancelInvite,
         RosterAction.RemoveFromEvent,
         RosterAction.RemoveFromList -> onDisinvite(playerId)
+        RosterAction.ResendInvite -> onResendInvitation(playerId)
     }
 
     private fun onChangeRowStatus(playerId: String, status: RsvpStatus) {
@@ -121,6 +124,20 @@ class EventViewModel(
         viewModelScope.launch {
             try {
                 disinvitePlayer(eventId = eventId, groupId = groupId, profileId = playerId)
+                updateSuccess { it.copy(rowActionTargetId = null) }
+            } catch (e: DomainError) {
+                updateSuccess { it.copy(rowActionTargetId = null, rowActionError = e, rowActionErrorId = playerId) }
+            }
+        }
+    }
+
+    private fun onResendInvitation(playerId: String) {
+        val current = _state.value as? EventUiState.Success ?: return
+        if (current.rowActionTargetId != null) return
+        updateSuccess { it.copy(rowActionTargetId = playerId, rowActionError = null, rowActionErrorId = null) }
+        viewModelScope.launch {
+            try {
+                resendEventInvitation(eventId, playerId)
                 updateSuccess { it.copy(rowActionTargetId = null) }
             } catch (e: DomainError) {
                 updateSuccess { it.copy(rowActionTargetId = null, rowActionError = e, rowActionErrorId = playerId) }
@@ -248,13 +265,14 @@ private fun availableActions(
         }
     }
     if (isAdmin) {
-        add(
-            when (entry.status) {
-                RsvpStatus.Pending -> RosterAction.CancelInvite
-                RsvpStatus.In -> RosterAction.RemoveFromEvent
-                RsvpStatus.Out -> RosterAction.RemoveFromList
+        when (entry.status) {
+            RsvpStatus.Pending -> {
+                add(RosterAction.ResendInvite)
+                add(RosterAction.CancelInvite)
             }
-        )
+            RsvpStatus.In -> add(RosterAction.RemoveFromEvent)
+            RsvpStatus.Out -> add(RosterAction.RemoveFromList)
+        }
     }
 }
 

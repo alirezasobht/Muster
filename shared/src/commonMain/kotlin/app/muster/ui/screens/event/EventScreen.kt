@@ -1,9 +1,7 @@
 package app.muster.ui.screens.event
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -44,7 +42,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -55,6 +52,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.muster.domain.error.DomainError
 import app.muster.domain.model.RsvpStatus
+import app.muster.ui.common.components.ConfirmDialog
 import app.muster.ui.common.components.FormError
 import app.muster.ui.common.components.MessageState
 import app.muster.ui.common.components.MusterIcons
@@ -76,11 +74,28 @@ import muster.shared.generated.resources.content_description_more
 import muster.shared.generated.resources.event_action_cancel_invite
 import muster.shared.generated.resources.event_action_remove_from_event
 import muster.shared.generated.resources.event_action_remove_from_list
+import muster.shared.generated.resources.event_action_resend_invite
 import muster.shared.generated.resources.event_add
 import muster.shared.generated.resources.event_add_players
+import muster.shared.generated.resources.event_cancel_invite_body
+import muster.shared.generated.resources.event_cancel_invite_cancel
+import muster.shared.generated.resources.event_cancel_invite_confirm
+import muster.shared.generated.resources.event_cancel_invite_title
 import muster.shared.generated.resources.event_failed_title
 import muster.shared.generated.resources.event_frozen_strip
 import muster.shared.generated.resources.event_players_header
+import muster.shared.generated.resources.event_remove_from_event_body
+import muster.shared.generated.resources.event_remove_from_event_cancel
+import muster.shared.generated.resources.event_remove_from_event_confirm
+import muster.shared.generated.resources.event_remove_from_event_title
+import muster.shared.generated.resources.event_remove_from_list_body
+import muster.shared.generated.resources.event_remove_from_list_cancel
+import muster.shared.generated.resources.event_remove_from_list_confirm
+import muster.shared.generated.resources.event_remove_from_list_title
+import muster.shared.generated.resources.event_resend_invite_body
+import muster.shared.generated.resources.event_resend_invite_cancel
+import muster.shared.generated.resources.event_resend_invite_confirm
+import muster.shared.generated.resources.event_resend_invite_title
 import muster.shared.generated.resources.event_roster_empty_body
 import muster.shared.generated.resources.event_roster_empty_title
 import muster.shared.generated.resources.event_rsvp_frozen_in
@@ -103,6 +118,7 @@ import muster.shared.generated.resources.event_try_again
 import muster.shared.generated.resources.events_status_in
 import muster.shared.generated.resources.events_status_out
 import muster.shared.generated.resources.events_status_pending
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -247,12 +263,60 @@ private fun EventAppBar(
     }
 }
 
+private data class DialogStrings(
+    val title: StringResource,
+    val body: StringResource,
+    val confirm: StringResource,
+    val cancel: StringResource
+)
+
+private val CancelInviteDialog = DialogStrings(
+    Res.string.event_cancel_invite_title,
+    Res.string.event_cancel_invite_body,
+    Res.string.event_cancel_invite_confirm,
+    Res.string.event_cancel_invite_cancel
+)
+private val RemoveFromEventDialog = DialogStrings(
+    Res.string.event_remove_from_event_title,
+    Res.string.event_remove_from_event_body,
+    Res.string.event_remove_from_event_confirm,
+    Res.string.event_remove_from_event_cancel
+)
+private val RemoveFromListDialog = DialogStrings(
+    Res.string.event_remove_from_list_title,
+    Res.string.event_remove_from_list_body,
+    Res.string.event_remove_from_list_confirm,
+    Res.string.event_remove_from_list_cancel
+)
+private val ResendInviteDialog = DialogStrings(
+    Res.string.event_resend_invite_title,
+    Res.string.event_resend_invite_body,
+    Res.string.event_resend_invite_confirm,
+    Res.string.event_resend_invite_cancel
+)
+
+private fun RosterAction.confirmationDialog(): DialogStrings? = when (this) {
+    RosterAction.CancelInvite -> CancelInviteDialog
+    RosterAction.RemoveFromEvent -> RemoveFromEventDialog
+    RosterAction.RemoveFromList -> RemoveFromListDialog
+    RosterAction.ResendInvite -> ResendInviteDialog
+    RosterAction.SetIn, RosterAction.SetOut -> null
+}
+
+private data class PendingRosterConfirmation(
+    val row: RosterRow,
+    val dialog: DialogStrings,
+    val onConfirm: () -> Unit
+)
+
 @Composable
 private fun EventContent(
     state: EventUiState.Success,
     actions: EventActions,
     modifier: Modifier = Modifier
 ) {
+    var pendingConfirmation by remember { mutableStateOf<PendingRosterConfirmation?>(null) }
+
     Column(modifier = modifier.fillMaxSize()) {
         if (state.isFrozen) {
             Surface(color = MusterColors.QuietSurface) {
@@ -340,7 +404,16 @@ private fun EventContent(
                             errorMessage = state.rowActionError?.toMessage()
                                 ?.takeIf { state.rowActionErrorId == row.id },
                             showDivider = index < state.roster.lastIndex,
-                            onAction = { action -> actions.onRosterAction(row.id, action) },
+                            onAction = { action ->
+                                val dialog = action.confirmationDialog()
+                                if (dialog != null) {
+                                    pendingConfirmation = PendingRosterConfirmation(row, dialog) {
+                                        actions.onRosterAction(row.id, action)
+                                    }
+                                } else {
+                                    actions.onRosterAction(row.id, action)
+                                }
+                            },
                             modifier = Modifier.animateItem()
                         )
                     }
@@ -360,6 +433,20 @@ private fun EventContent(
                 item { Spacer(Modifier.height(24.dp)) }
             }
         }
+    }
+
+    pendingConfirmation?.let { pending ->
+        ConfirmDialog(
+            title = stringResource(pending.dialog.title, pending.row.name),
+            body = stringResource(pending.dialog.body),
+            confirmText = stringResource(pending.dialog.confirm),
+            cancelText = stringResource(pending.dialog.cancel),
+            onConfirm = {
+                pendingConfirmation = null
+                pending.onConfirm()
+            },
+            onDismiss = { pendingConfirmation = null }
+        )
     }
 }
 
@@ -834,6 +921,7 @@ private fun RosterAction.label() = when (this) {
     RosterAction.CancelInvite -> Res.string.event_action_cancel_invite
     RosterAction.RemoveFromEvent -> Res.string.event_action_remove_from_event
     RosterAction.RemoveFromList -> Res.string.event_action_remove_from_list
+    RosterAction.ResendInvite -> Res.string.event_action_resend_invite
 }
 
 @Composable

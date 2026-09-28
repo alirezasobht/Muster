@@ -27,6 +27,10 @@ interface EventRepository {
     // event and player alone.
     suspend fun disinvitePlayer(eventId: String, groupId: String, profileId: String)
 
+    // No DataChanges notification: status and last_sent_at aren't reflected
+    // in the roster row, so there is nothing to refetch.
+    suspend fun resendInvitation(eventId: String, profileId: String)
+
     // The whole ordered queue, set_standby_order rewrites positions 1..n
     suspend fun reorderStandby(eventId: String, orderedProfileIds: List<String>)
 

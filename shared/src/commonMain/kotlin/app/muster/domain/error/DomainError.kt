@@ -58,7 +58,7 @@ sealed class DomainError(message: String, cause: Throwable? = null) : Exception(
     class StandbyQueueStale : DomainError("standby queue changed, reload")
 
     // resend_group_invitation's own guard (P0001): last_sent_at falls within
-    // today calendar day. Keyed to the invitation row alone, not the
+    // today's calendar day. Keyed to the invitation row alone, not the
     // caller or the group.
     class InvitationSentTooRecently : DomainError("invitation sent too recently")
 

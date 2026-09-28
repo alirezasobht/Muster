@@ -16,6 +16,7 @@ import app.muster.domain.event.DataChange
 import app.muster.domain.event.DataChanges
 import app.muster.domain.model.Event
 import app.muster.domain.model.EventDetail
+import app.muster.domain.model.MusterTimeZone
 import app.muster.domain.model.RsvpStatus
 import app.muster.domain.repository.EventRepository
 import io.github.jan.supabase.SupabaseClient
@@ -91,6 +92,17 @@ internal class EventRepositoryImpl(
         dataChanges.notify(DataChange.Events(groupId))
     }
 
+    override suspend fun resendInvitation(eventId: String, profileId: String): Unit = mapErrors {
+        client.postgrest.rpc(
+            RESEND_EVENT_INVITATION_FUNCTION,
+            buildJsonObject {
+                put("event_id", eventId)
+                put("profile_id", profileId)
+                put("tz", MusterTimeZone.id)
+            }
+        )
+    }
+
     override suspend fun reorderStandby(eventId: String, orderedProfileIds: List<String>): Unit = mapErrors {
         client.postgrest.rpc(
             SET_STANDBY_ORDER_FUNCTION,
@@ -121,6 +133,7 @@ internal class EventRepositoryImpl(
         const val SET_EVENT_RSVP_FUNCTION = "set_event_rsvp"
         const val SET_STANDBY_ORDER_FUNCTION = "set_standby_order"
         const val DISINVITE_PLAYER_FUNCTION = "disinvite_player"
+        const val RESEND_EVENT_INVITATION_FUNCTION = "resend_event_invitation"
         const val ADD_PLAYERS_TO_EVENT_FUNCTION = "add_players_to_event"
     }
 }

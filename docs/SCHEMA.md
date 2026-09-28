@@ -122,6 +122,7 @@ Event-level RSVP. A row means the player has been invited.
 | group_id | uuid | denormalised from events |
 | profile_id | uuid | |
 | status | text | `pending` \| `in` \| `out` |
+| last_sent_at | timestamptz | nullable. Set by `send_event_invitation_email` on every send it makes — add, promotion, or resend. Backs the resend throttle |
 
 - UNIQUE `(event_id, profile_id)`
 - FK `(event_id, group_id)` → `events (id, group_id)` `ON DELETE CASCADE`
@@ -306,6 +307,7 @@ calls one by name must qualify it, `private.is_group_admin(...)`.
 | `invite_group_member_by_email(group_id, email)` | the only way to create an invitation. `security definer`: locks the live group before checking admin authority, normalises the address, sets `invited_by`, inserts, then queues the email |
 | `set_event_rsvp(event_id, profile_id, status)` | `security definer`: live-group members may change their own RSVP, admins anyone's; locks group then event and returns the invitation's group ID for app notifications. Raises if no invitation matched |
 | `disinvite_player(event_id, profile_id)` | `security definer`: requires an admin of a live group, locks group then event, and deletes the invitation. Returns true on success; raises if nothing matched. Deletes remain exempt from the event freeze |
+| `resend_event_invitation(event_id, profile_id, tz)` | admins only, on a still-pending event invitation of an event that hasn't started. Same lock order as `disinvite_player` (group, then event), then the invitation row. Throttled to once per calendar day in the caller-supplied `tz`, checked against the invitation's own `last_sent_at` — no per-admin or per-group limit; same throttle helper and app-side `MusterTimeZone` source as `resend_group_invitation`. Calls `private.send_event_invitation_email` with a single-element array |
 | `add_players_to_event(event_id, uuid[])` | invites while slots remain, queues the rest, in the given order, one transaction. `security definer` with an explicit session check and empty search path: requires an admin of a live group and an event that hasn't started. **Skips** anyone whose row went stale between the picker loading and the admin confirming — already invited or queued, or since removed from the group. Raising on one player would roll back the batch and add nobody |
 | `set_group_member_role(group_id, profile_id, role)` | promote or demote. Locks the live group before checking admin authority and updating the member |
 | `remove_group_member(group_id, profile_id)` | locks the live group before checking admin authority and deleting the member. Refuses the caller's own id — that's `leave_group` |
@@ -384,8 +386,8 @@ is stale. These existing whole-queue and batch semantics are preserved.
 | `promote_standby(eid)` | the promotion body itself |
 | `trigger_promote_standby()` | thin wrapper, passes the event id from the changed row |
 | `send_group_invitation_email(invitation_id)` | queues the invite email through `pg_net` and stamps `last_sent_at`. Called by `invite_group_member_by_email` on creation and by `resend_group_invitation`, which owns the throttle check. Not itself granted to `authenticated` — only reachable through those two `security definer` callers, so nothing can call it in a loop and bypass the throttle |
-| `private.sent_within_today(last_sent_at, tz)` | pure date math, no table access — `last_sent_at` falls within today's calendar day in the given IANA zone `tz`. `stable`, not `security definer`: it needs no elevated privilege. Called by `resend_group_invitation`, passing through whatever `tz` its own caller sent; a future `resend_event_invitation`, or any other calendar-day throttle, shares it rather than duplicating the boundary math. Reachable only from within a `security definer` caller's context, like `send_group_invitation_email` above |
-| `private.send_event_invitation_email(uuid[])` | queues one request for a batch of event invitations. Called by `add_players_to_event` and `promote_standby`. No caller check — promotion runs inside whoever freed the slot, often a member — so no grants at all, `authenticated` included |
+| `private.sent_within_today(last_sent_at, tz)` | pure date math, no table access — `last_sent_at` falls within today's calendar day in the given IANA zone `tz`. `stable`, not `security definer`: it needs no elevated privilege. Called by both `resend_group_invitation` and `resend_event_invitation`, each passing through whatever `tz` its own caller sent, so the boundary math exists once. Reachable only from within a `security definer` caller's context, like `send_group_invitation_email` above |
+| `private.send_event_invitation_email(uuid[])` | queues one request for a batch of event invitations and stamps `last_sent_at` on all of them. Called by `add_players_to_event`, `promote_standby`, and `resend_event_invitation` (with a one-element array). No caller check — promotion runs inside whoever freed the slot, often a member — so no grants at all, `authenticated` included; `resend_event_invitation` owns its own admin check before calling in |
 
 Every other function above is a trigger function and is likewise
 unreachable from the API.

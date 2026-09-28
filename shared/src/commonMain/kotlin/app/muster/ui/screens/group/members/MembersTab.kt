@@ -183,9 +183,51 @@ fun MembersTab(
     }
 }
 
-private enum class PendingRowAction { Promote, Demote, Remove, Revoke, Resend }
+private data class DialogStrings(
+    val title: StringResource,
+    val body: StringResource,
+    val confirm: StringResource,
+    val cancel: StringResource
+)
 
-private data class PendingConfirmation(val row: MemberRow, val action: PendingRowAction)
+private val PromoteDialog = DialogStrings(
+    Res.string.members_promote_title,
+    Res.string.members_promote_body,
+    Res.string.members_promote_confirm,
+    Res.string.members_promote_cancel
+)
+private val DemoteDialog = DialogStrings(
+    Res.string.members_demote_title,
+    Res.string.members_demote_body,
+    Res.string.members_demote_confirm,
+    Res.string.members_demote_cancel
+)
+private val RemoveDialog = DialogStrings(
+    Res.string.members_remove_title,
+    Res.string.members_remove_body,
+    Res.string.members_remove_confirm,
+    Res.string.members_remove_cancel
+)
+private val RevokeDialog = DialogStrings(
+    Res.string.members_revoke_title,
+    Res.string.members_revoke_body,
+    Res.string.members_revoke_confirm,
+    Res.string.members_revoke_cancel
+)
+private val ResendDialog = DialogStrings(
+    Res.string.members_resend_title,
+    Res.string.members_resend_body,
+    Res.string.members_resend_confirm,
+    Res.string.members_resend_cancel
+)
+
+// The dialog carries the call to make on confirm, not an action tag to map
+// back to one afterwards.
+private data class PendingConfirmation(
+    val row: MemberRow,
+    val dialog: DialogStrings,
+    val onConfirm: () -> Unit
+)
 
 @Composable
 private fun MembersContent(
@@ -229,11 +271,23 @@ private fun MembersContent(
                             row = row,
                             inFlight = state.actionTargetId == row.id,
                             errorMessage = actionErrorMessage.takeIf { state.failedActionId == row.id },
-                            onPromote = { pendingConfirmation = PendingConfirmation(row, PendingRowAction.Promote) },
-                            onDemote = { pendingConfirmation = PendingConfirmation(row, PendingRowAction.Demote) },
-                            onRequestRemove = { pendingConfirmation = PendingConfirmation(row, PendingRowAction.Remove) },
-                            onRevokeInvitation = { pendingConfirmation = PendingConfirmation(row, PendingRowAction.Revoke) },
-                            onResendInvitation = { pendingConfirmation = PendingConfirmation(row, PendingRowAction.Resend) },
+                            onPromote = {
+                                pendingConfirmation = PendingConfirmation(row, PromoteDialog) { actions.onPromote(row.id) }
+                            },
+                            onDemote = {
+                                pendingConfirmation = PendingConfirmation(row, DemoteDialog) { actions.onDemote(row.id) }
+                            },
+                            onRequestRemove = {
+                                pendingConfirmation = PendingConfirmation(row, RemoveDialog) { actions.onRemove(row.id) }
+                            },
+                            onRevokeInvitation = {
+                                pendingConfirmation =
+                                    PendingConfirmation(row, RevokeDialog) { actions.onRevokeInvitation(row.id) }
+                            },
+                            onResendInvitation = {
+                                pendingConfirmation =
+                                    PendingConfirmation(row, ResendDialog) { actions.onResendInvitation(row.id) }
+                            },
                             modifier = Modifier.animateItem()
                         )
                     }
@@ -243,67 +297,18 @@ private fun MembersContent(
     }
 
     pendingConfirmation?.let { pending ->
-        val (titleRes, bodyRes, confirmRes, cancelRes) = pending.action.dialogStrings()
         ConfirmDialog(
-            title = stringResource(titleRes, pending.row.displayName),
-            body = stringResource(bodyRes),
-            confirmText = stringResource(confirmRes),
-            cancelText = stringResource(cancelRes),
+            title = stringResource(pending.dialog.title, pending.row.displayName),
+            body = stringResource(pending.dialog.body),
+            confirmText = stringResource(pending.dialog.confirm),
+            cancelText = stringResource(pending.dialog.cancel),
             onConfirm = {
                 pendingConfirmation = null
-                pending.act(actions)
+                pending.onConfirm()
             },
             onDismiss = { pendingConfirmation = null }
         )
     }
-}
-
-private data class DialogStrings(
-    val title: StringResource,
-    val body: StringResource,
-    val confirm: StringResource,
-    val cancel: StringResource
-)
-
-private fun PendingRowAction.dialogStrings(): DialogStrings = when (this) {
-    PendingRowAction.Promote -> DialogStrings(
-        Res.string.members_promote_title,
-        Res.string.members_promote_body,
-        Res.string.members_promote_confirm,
-        Res.string.members_promote_cancel
-    )
-    PendingRowAction.Demote -> DialogStrings(
-        Res.string.members_demote_title,
-        Res.string.members_demote_body,
-        Res.string.members_demote_confirm,
-        Res.string.members_demote_cancel
-    )
-    PendingRowAction.Remove -> DialogStrings(
-        Res.string.members_remove_title,
-        Res.string.members_remove_body,
-        Res.string.members_remove_confirm,
-        Res.string.members_remove_cancel
-    )
-    PendingRowAction.Revoke -> DialogStrings(
-        Res.string.members_revoke_title,
-        Res.string.members_revoke_body,
-        Res.string.members_revoke_confirm,
-        Res.string.members_revoke_cancel
-    )
-    PendingRowAction.Resend -> DialogStrings(
-        Res.string.members_resend_title,
-        Res.string.members_resend_body,
-        Res.string.members_resend_confirm,
-        Res.string.members_resend_cancel
-    )
-}
-
-private fun PendingConfirmation.act(actions: MembersActions) = when (action) {
-    PendingRowAction.Promote -> actions.onPromote(row.id)
-    PendingRowAction.Demote -> actions.onDemote(row.id)
-    PendingRowAction.Remove -> actions.onRemove(row.id)
-    PendingRowAction.Revoke -> actions.onRevokeInvitation(row.id)
-    PendingRowAction.Resend -> actions.onResendInvitation(row.id)
 }
 
 @Composable

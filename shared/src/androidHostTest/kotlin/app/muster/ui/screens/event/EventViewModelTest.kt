@@ -18,6 +18,7 @@ import app.muster.domain.usecase.GetEventUseCase
 import app.muster.domain.usecase.GetMyGroupRoleUseCase
 import app.muster.domain.usecase.GetMyProfileUseCase
 import app.muster.domain.usecase.ReorderStandbyUseCase
+import app.muster.domain.usecase.ResendEventInvitationUseCase
 import app.muster.domain.usecase.SetRsvpUseCase
 import app.muster.testing.MainDispatcherRule
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -97,6 +98,7 @@ class EventViewModelTest {
         setRsvp = SetRsvpUseCase(events),
         reorderStandby = ReorderStandbyUseCase(events),
         disinvitePlayer = DisinvitePlayerUseCase(events),
+        resendEventInvitation = ResendEventInvitationUseCase(events),
         dataChanges = dataChanges
     )
 
@@ -373,7 +375,7 @@ class EventViewModelTest {
         val state = viewModel.state.value
 
         assertEquals(
-            listOf(RosterAction.SetIn, RosterAction.SetOut, RosterAction.CancelInvite),
+            listOf(RosterAction.SetIn, RosterAction.SetOut, RosterAction.ResendInvite, RosterAction.CancelInvite),
             state.actionsFor(FAKE_USER_ID)
         )
         assertEquals(
@@ -463,6 +465,37 @@ class EventViewModelTest {
         val state = assertIs<EventUiState.Success>(viewModel.state.value)
         assertIs<DomainError.Network>(state.rowActionError)
         assertNull(state.rowActionTargetId)
+    }
+
+    @Test
+    fun `resending an event invitation calls through`() = runTest {
+        val events = FakeEventRepository(eventDetail = detail())
+        val viewModel = viewModel(events = events)
+        advanceUntilIdle()
+
+        viewModel.onRosterAction(FAKE_USER_ID, RosterAction.ResendInvite)
+        advanceUntilIdle()
+
+        assertEquals(listOf(FAKE_USER_ID), events.resentInvitationProfileIds)
+        val state = assertIs<EventUiState.Success>(viewModel.state.value)
+        assertNull(state.rowActionError)
+    }
+
+    @Test
+    fun `a throttled resend surfaces rowActionError for that row`() = runTest {
+        val events = FakeEventRepository(
+            eventDetail = detail(),
+            resendInvitationError = DomainError.InvitationSentTooRecently()
+        )
+        val viewModel = viewModel(events = events)
+        advanceUntilIdle()
+
+        viewModel.onRosterAction(FAKE_USER_ID, RosterAction.ResendInvite)
+        advanceUntilIdle()
+
+        val state = assertIs<EventUiState.Success>(viewModel.state.value)
+        assertIs<DomainError.InvitationSentTooRecently>(state.rowActionError)
+        assertEquals(FAKE_USER_ID, state.rowActionErrorId)
     }
 
     @Test

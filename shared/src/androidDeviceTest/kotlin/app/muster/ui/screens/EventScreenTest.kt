@@ -312,8 +312,10 @@ class EventScreenTest {
         composeRule.onNodeWithText("Cancel invite").assertIsDisplayed()
     }
 
+    // Cancel, remove and resend all ask for confirmation first — the RSVP
+    // toggles above are the only roster actions that fire straight away.
     @Test
-    fun aRemovalActionReachesTheCallback() {
+    fun cancellingAnInviteAsksForConfirmationBeforeCallingBack() {
         var picked: Pair<String, RosterAction>? = null
         show(
             state = successState.copy(roster = listOf(pendingRow(listOf(RosterAction.CancelInvite)))),
@@ -321,7 +323,88 @@ class EventScreenTest {
         )
         composeRule.onNodeWithText("Pending").performClick()
         composeRule.onNodeWithText("Cancel invite").performClick()
+
+        composeRule.onNodeWithText("Cancel invite to Tomás Neale?").assertIsDisplayed()
+        assert(picked == null)
+
+        composeRule.onNodeWithText("Cancel invite").performClick()
         assert(picked == "p2" to RosterAction.CancelInvite)
+    }
+
+    @Test
+    fun dismissingTheCancelInviteConfirmationDoesNotCallBack() {
+        var picked: Pair<String, RosterAction>? = null
+        show(
+            state = successState.copy(roster = listOf(pendingRow(listOf(RosterAction.CancelInvite)))),
+            onRosterAction = { id, action -> picked = id to action }
+        )
+        composeRule.onNodeWithText("Pending").performClick()
+        composeRule.onNodeWithText("Cancel invite").performClick()
+        // "Keep invite", not "Cancel": both buttons would otherwise read
+        // "Cancel", one for the invite and one for the dialog itself.
+        composeRule.onNodeWithText("Keep invite").performClick()
+
+        composeRule.onNodeWithText("Cancel invite to Tomás Neale?").assertDoesNotExist()
+        assert(picked == null)
+    }
+
+    @Test
+    fun removingFromTheEventAsksForConfirmationBeforeCallingBack() {
+        var picked: Pair<String, RosterAction>? = null
+        show(
+            state = successState.copy(
+                roster = listOf(
+                    RosterRow(id = "p1", name = "Alex Doyle", status = RsvpStatus.In, actions = listOf(RosterAction.RemoveFromEvent))
+                )
+            ),
+            onRosterAction = { id, action -> picked = id to action }
+        )
+        composeRule.onNodeWithText("In").performClick()
+        composeRule.onNodeWithText("Remove from event").performClick()
+
+        composeRule.onNodeWithText("Remove Alex Doyle from this event?").assertIsDisplayed()
+        assert(picked == null)
+
+        composeRule.onNodeWithText("Remove").performClick()
+        assert(picked == "p1" to RosterAction.RemoveFromEvent)
+    }
+
+    @Test
+    fun removingFromTheListAsksForConfirmationBeforeCallingBack() {
+        var picked: Pair<String, RosterAction>? = null
+        show(
+            state = successState.copy(
+                roster = listOf(
+                    RosterRow(id = "p3", name = "Marcus Keane", status = RsvpStatus.Out, actions = listOf(RosterAction.RemoveFromList))
+                )
+            ),
+            onRosterAction = { id, action -> picked = id to action }
+        )
+        composeRule.onNodeWithText("Out").performClick()
+        composeRule.onNodeWithText("Remove from list").performClick()
+
+        composeRule.onNodeWithText("Remove Marcus Keane from this event?").assertIsDisplayed()
+        assert(picked == null)
+
+        composeRule.onNodeWithText("Remove").performClick()
+        assert(picked == "p3" to RosterAction.RemoveFromList)
+    }
+
+    @Test
+    fun resendingAnInviteAsksForConfirmationBeforeCallingBack() {
+        var picked: Pair<String, RosterAction>? = null
+        show(
+            state = successState.copy(roster = listOf(pendingRow(listOf(RosterAction.ResendInvite)))),
+            onRosterAction = { id, action -> picked = id to action }
+        )
+        composeRule.onNodeWithText("Pending").performClick()
+        composeRule.onNodeWithText("Resend invite").performClick()
+
+        composeRule.onNodeWithText("Resend invite to Tomás Neale?").assertIsDisplayed()
+        assert(picked == null)
+
+        composeRule.onNodeWithText("Resend").performClick()
+        assert(picked == "p2" to RosterAction.ResendInvite)
     }
 
     @Test

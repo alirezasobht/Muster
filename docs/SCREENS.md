@@ -177,10 +177,15 @@ Details on top, then the roster, then the standby queue.
 
 Everyone sees the whole roster and each player's RSVP. Players can
 change only their own. Admins can change anyone's, reorder the queue,
-and add players.
+add players, and cancel, remove or resend a pending player's invitation.
 
 The roster is one list sorted in, then pending, then out — not grouped
 into sections.
+
+Setting a status (In/Out) fires straight away — same as a player's own
+RSVP. Cancel invite, remove from event, remove from list and resend
+invite all confirm first, naming the player, the same treatment Members
+gives its own row actions.
 
 Once `starts_at` passes the event freezes: every control disappears and
 the screen reads the same for admins and members. DESIGN.md frame 1n has

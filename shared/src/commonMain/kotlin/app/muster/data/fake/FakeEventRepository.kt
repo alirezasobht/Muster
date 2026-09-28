@@ -37,6 +37,7 @@ class FakeEventRepository(
     var reorderStandbyError: DomainError? = null,
     var disinvitePlayerError: DomainError? = null,
     var addPlayersError: DomainError? = null,
+    var resendInvitationError: DomainError? = null,
     var profileNames: Map<String, String> = emptyMap(),
     private val dataChanges: DataChanges? = null,
     private val latency: Long = FAKE_LATENCY_MS
@@ -52,6 +53,9 @@ class FakeEventRepository(
         private set
 
     var addPlayersCalls = listOf<List<String>>()
+        private set
+
+    var resentInvitationProfileIds = listOf<String>()
         private set
 
     override suspend fun listUpcomingEvents(groupId: String): List<Event> {
@@ -140,6 +144,12 @@ class FakeEventRepository(
         }
         dataChanges?.notify(DataChange.Roster(eventId))
         dataChanges?.notify(DataChange.Events(groupId))
+    }
+
+    override suspend fun resendInvitation(eventId: String, profileId: String) {
+        delay(latency.milliseconds)
+        resendInvitationError?.let { throw it }
+        resentInvitationProfileIds = resentInvitationProfileIds + profileId
     }
 
     override suspend fun reorderStandby(eventId: String, orderedProfileIds: List<String>) {

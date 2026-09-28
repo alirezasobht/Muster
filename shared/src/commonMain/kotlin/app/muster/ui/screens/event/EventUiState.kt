@@ -4,7 +4,7 @@ import app.muster.domain.error.DomainError
 import app.muster.domain.model.RsvpStatus
 import app.muster.ui.screens.group.events.EventRow
 
-enum class RosterAction { SetIn, SetOut, CancelInvite, RemoveFromEvent, RemoveFromList }
+enum class RosterAction { SetIn, SetOut, CancelInvite, RemoveFromEvent, RemoveFromList, ResendInvite }
 
 // A standby player has no event_invitations row
 data class RosterRow(

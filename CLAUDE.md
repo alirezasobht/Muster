@@ -87,11 +87,11 @@ Built: auth (email code, set-name gate), Home (1d/1e/1s/1t), Settings
 (1f), New group (1g), Group shell with tabs (1h), Members tab (1i/1j),
 app bar overflow — Leave group for everyone, Archive for admins (1j),
 Add by email with the invitation email sent end to end, resending a group
-invitation (throttled to once per Sydney calendar day), Events tab, New
-event, Event — roster with RSVP and per-row admin actions, standby
-queue with drag-to-reorder, Add players, account deletion (Settings and
-the web app's `/delete-account` page), Privacy policy (embedded
-`privacy.html`).
+or event invitation (both throttled to once per calendar day), Events
+tab, New event, Event — roster with RSVP and per-row admin actions, all
+of which confirm first, standby queue with drag-to-reorder, Add players,
+account deletion (Settings and the web app's `/delete-account` page),
+Privacy policy (embedded `privacy.html`).
 
 **Dev** and **prod** both exist; the prod web app is live.
 
@@ -108,8 +108,5 @@ Not built:
   Still outstanding on 1c and 1f, which carry a single `error` field and
   put everything in the field's slot, including errors that aren't about
   the field.
-- **Resending an event invitation.** Same shape as the group-invitation
-  resend, on `event_invitations`/`private.send_event_invitation_email`
-  instead — not built yet.
 
-Next: resending an event invitation, then Edit group and Edit event.
+Next: Edit group and Edit event.
