@@ -140,7 +140,11 @@ name: admin, member, or pending.
   resolve to a person is clutter, not a secret — so this is a display
   choice in the app, not a policy change. `group_invitations_select`
   stays as it is.
-- Admins: add by email (top of the tab), promote, demote, remove.
+- Admins: add by email (top of the tab), promote, demote, remove, cancel
+  or resend a pending invitation.
+- Every one of those row actions confirms first — a dialog naming the
+  person or address, dismissible with no side effect. None of them fire
+  straight off the menu tap.
 - Anyone: leave the group.
 - Archiving the group lives in the Group app bar overflow, admins only,
   above Leave group.

@@ -146,8 +146,9 @@ class MembersTabTest {
         composeRule.onNodeWithText("Invited").assertIsDisplayed()
     }
 
+    // Every admin action on a row asks for confirmation first
     @Test
-    fun promotingAMemberReachesTheCallback() {
+    fun promotingAMemberAsksForConfirmationBeforeCallingBack() {
         var promoted: String? = null
         show(
             state = MembersUiState.Success(
@@ -166,11 +167,42 @@ class MembersTabTest {
         )
         composeRule.onNodeWithContentDescription("More options").performClick()
         composeRule.onNodeWithText("Make admin").performClick()
+
+        composeRule.onNodeWithText("Make Sam Okafor an admin?").assertIsDisplayed()
+        assert(promoted == null)
+
+        composeRule.onNodeWithText("Make admin").performClick()
         assert(promoted == "2")
     }
 
     @Test
-    fun demotingAnAdminReachesTheCallback() {
+    fun dismissingThePromoteConfirmationDoesNotCallBack() {
+        var promoted: String? = null
+        show(
+            state = MembersUiState.Success(
+                rows = listOf(
+                    self,
+                    MemberRow(
+                        id = "2",
+                        displayName = "Sam Okafor",
+                        status = MemberStatus.Member,
+                        canPromote = true,
+                        canRemove = true
+                    )
+                )
+            ),
+            onPromote = { promoted = it }
+        )
+        composeRule.onNodeWithContentDescription("More options").performClick()
+        composeRule.onNodeWithText("Make admin").performClick()
+        composeRule.onNodeWithText("Cancel").performClick()
+
+        composeRule.onNodeWithText("Make Sam Okafor an admin?").assertDoesNotExist()
+        assert(promoted == null)
+    }
+
+    @Test
+    fun demotingAnAdminAsksForConfirmationBeforeCallingBack() {
         var demoted: String? = null
         show(
             state = MembersUiState.Success(
@@ -189,11 +221,42 @@ class MembersTabTest {
         )
         composeRule.onNodeWithContentDescription("More options").performClick()
         composeRule.onNodeWithText("Make member").performClick()
+
+        composeRule.onNodeWithText("Make Dan Whelan a member?").assertIsDisplayed()
+        assert(demoted == null)
+
+        composeRule.onNodeWithText("Make member").performClick()
         assert(demoted == "2")
     }
 
     @Test
-    fun revokingAnInvitationReachesTheCallback() {
+    fun dismissingTheDemoteConfirmationDoesNotCallBack() {
+        var demoted: String? = null
+        show(
+            state = MembersUiState.Success(
+                rows = listOf(
+                    self,
+                    MemberRow(
+                        id = "2",
+                        displayName = "Dan Whelan",
+                        status = MemberStatus.Admin,
+                        canDemote = true,
+                        canRemove = true
+                    )
+                )
+            ),
+            onDemote = { demoted = it }
+        )
+        composeRule.onNodeWithContentDescription("More options").performClick()
+        composeRule.onNodeWithText("Make member").performClick()
+        composeRule.onNodeWithText("Cancel").performClick()
+
+        composeRule.onNodeWithText("Make Dan Whelan a member?").assertDoesNotExist()
+        assert(demoted == null)
+    }
+
+    @Test
+    fun revokingAnInvitationAsksForConfirmationBeforeCallingBack() {
         var revoked: String? = null
         show(
             state = MembersUiState.Success(
@@ -212,11 +275,42 @@ class MembersTabTest {
         )
         composeRule.onNodeWithContentDescription("More options").performClick()
         composeRule.onNodeWithText("Cancel invitation").performClick()
+
+        composeRule.onNodeWithText("Cancel invitation to j.moriarty@outlook.com?").assertIsDisplayed()
+        assert(revoked == null)
+
+        composeRule.onNodeWithText("Cancel invitation").performClick()
         assert(revoked == "2")
     }
 
     @Test
-    fun resendingAnInvitationReachesTheCallback() {
+    fun dismissingTheRevokeConfirmationDoesNotCallBack() {
+        var revoked: String? = null
+        show(
+            state = MembersUiState.Success(
+                rows = listOf(
+                    self,
+                    MemberRow(
+                        id = "2",
+                        displayName = "j.moriarty@outlook.com",
+                        status = MemberStatus.Pending,
+                        canRevokeInvitation = true
+                    )
+                ),
+                canAddMembers = true
+            ),
+            onRevokeInvitation = { revoked = it }
+        )
+        composeRule.onNodeWithContentDescription("More options").performClick()
+        composeRule.onNodeWithText("Cancel invitation").performClick()
+        composeRule.onNodeWithText("Keep invitation").performClick()
+
+        composeRule.onNodeWithText("Cancel invitation to j.moriarty@outlook.com?").assertDoesNotExist()
+        assert(revoked == null)
+    }
+
+    @Test
+    fun resendingAnInvitationAsksForConfirmationBeforeCallingBack() {
         var resent: String? = null
         show(
             state = MembersUiState.Success(
@@ -236,11 +330,41 @@ class MembersTabTest {
         )
         composeRule.onNodeWithContentDescription("More options").performClick()
         composeRule.onNodeWithText("Resend invitation").performClick()
+
+        composeRule.onNodeWithText("Resend invitation to j.moriarty@outlook.com?").assertIsDisplayed()
+        assert(resent == null)
+
+        composeRule.onNodeWithText("Resend").performClick()
         assert(resent == "2")
     }
 
-    // Remove is destructive: the menu item must open a confirm dialog, not
-    // call back immediately.
+    @Test
+    fun dismissingTheResendConfirmationDoesNotCallBack() {
+        var resent: String? = null
+        show(
+            state = MembersUiState.Success(
+                rows = listOf(
+                    self,
+                    MemberRow(
+                        id = "2",
+                        displayName = "j.moriarty@outlook.com",
+                        status = MemberStatus.Pending,
+                        canRevokeInvitation = true,
+                        canResendInvitation = true
+                    )
+                ),
+                canAddMembers = true
+            ),
+            onResendInvitation = { resent = it }
+        )
+        composeRule.onNodeWithContentDescription("More options").performClick()
+        composeRule.onNodeWithText("Resend invitation").performClick()
+        composeRule.onNodeWithText("Cancel").performClick()
+
+        composeRule.onNodeWithText("Resend invitation to j.moriarty@outlook.com?").assertDoesNotExist()
+        assert(resent == null)
+    }
+
     @Test
     fun removingAMemberAsksForConfirmationBeforeCallingBack() {
         var removed: String? = null

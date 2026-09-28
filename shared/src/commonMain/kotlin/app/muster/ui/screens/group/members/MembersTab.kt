@@ -66,18 +66,35 @@ import muster.shared.generated.resources.members_action_remove
 import muster.shared.generated.resources.members_action_resend
 import muster.shared.generated.resources.members_action_revoke
 import muster.shared.generated.resources.members_add_by_email
+import muster.shared.generated.resources.members_demote_body
+import muster.shared.generated.resources.members_demote_cancel
+import muster.shared.generated.resources.members_demote_confirm
+import muster.shared.generated.resources.members_demote_title
 import muster.shared.generated.resources.members_empty_body
 import muster.shared.generated.resources.members_empty_title
 import muster.shared.generated.resources.members_failed_title
+import muster.shared.generated.resources.members_promote_body
+import muster.shared.generated.resources.members_promote_cancel
+import muster.shared.generated.resources.members_promote_confirm
+import muster.shared.generated.resources.members_promote_title
 import muster.shared.generated.resources.members_remove_body
 import muster.shared.generated.resources.members_remove_cancel
 import muster.shared.generated.resources.members_remove_confirm
 import muster.shared.generated.resources.members_remove_title
+import muster.shared.generated.resources.members_resend_body
+import muster.shared.generated.resources.members_resend_cancel
+import muster.shared.generated.resources.members_resend_confirm
+import muster.shared.generated.resources.members_resend_title
+import muster.shared.generated.resources.members_revoke_body
+import muster.shared.generated.resources.members_revoke_cancel
+import muster.shared.generated.resources.members_revoke_confirm
+import muster.shared.generated.resources.members_revoke_title
 import muster.shared.generated.resources.members_status_admin
 import muster.shared.generated.resources.members_status_invited
 import muster.shared.generated.resources.members_status_member
 import muster.shared.generated.resources.members_try_again
 import muster.shared.generated.resources.members_you_suffix
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -166,6 +183,10 @@ fun MembersTab(
     }
 }
 
+private enum class PendingRowAction { Promote, Demote, Remove, Revoke, Resend }
+
+private data class PendingConfirmation(val row: MemberRow, val action: PendingRowAction)
+
 @Composable
 private fun MembersContent(
     state: MembersUiState.Success,
@@ -173,7 +194,7 @@ private fun MembersContent(
     actionErrorMessage: String?,
     modifier: Modifier = Modifier
 ) {
-    var pendingRemoval by remember { mutableStateOf<MemberRow?>(null) }
+    var pendingConfirmation by remember { mutableStateOf<PendingConfirmation?>(null) }
 
     Column(modifier = modifier.fillMaxSize()) {
         if (state.canAddMembers) {
@@ -208,11 +229,11 @@ private fun MembersContent(
                             row = row,
                             inFlight = state.actionTargetId == row.id,
                             errorMessage = actionErrorMessage.takeIf { state.failedActionId == row.id },
-                            onPromote = { actions.onPromote(row.id) },
-                            onDemote = { actions.onDemote(row.id) },
-                            onRequestRemove = { pendingRemoval = row },
-                            onRevokeInvitation = { actions.onRevokeInvitation(row.id) },
-                            onResendInvitation = { actions.onResendInvitation(row.id) },
+                            onPromote = { pendingConfirmation = PendingConfirmation(row, PendingRowAction.Promote) },
+                            onDemote = { pendingConfirmation = PendingConfirmation(row, PendingRowAction.Demote) },
+                            onRequestRemove = { pendingConfirmation = PendingConfirmation(row, PendingRowAction.Remove) },
+                            onRevokeInvitation = { pendingConfirmation = PendingConfirmation(row, PendingRowAction.Revoke) },
+                            onResendInvitation = { pendingConfirmation = PendingConfirmation(row, PendingRowAction.Resend) },
                             modifier = Modifier.animateItem()
                         )
                     }
@@ -221,19 +242,68 @@ private fun MembersContent(
         }
     }
 
-    pendingRemoval?.let { row ->
+    pendingConfirmation?.let { pending ->
+        val (titleRes, bodyRes, confirmRes, cancelRes) = pending.action.dialogStrings()
         ConfirmDialog(
-            title = stringResource(Res.string.members_remove_title, row.displayName),
-            body = stringResource(Res.string.members_remove_body),
-            confirmText = stringResource(Res.string.members_remove_confirm),
-            cancelText = stringResource(Res.string.members_remove_cancel),
+            title = stringResource(titleRes, pending.row.displayName),
+            body = stringResource(bodyRes),
+            confirmText = stringResource(confirmRes),
+            cancelText = stringResource(cancelRes),
             onConfirm = {
-                pendingRemoval = null
-                actions.onRemove(row.id)
+                pendingConfirmation = null
+                pending.act(actions)
             },
-            onDismiss = { pendingRemoval = null }
+            onDismiss = { pendingConfirmation = null }
         )
     }
+}
+
+private data class DialogStrings(
+    val title: StringResource,
+    val body: StringResource,
+    val confirm: StringResource,
+    val cancel: StringResource
+)
+
+private fun PendingRowAction.dialogStrings(): DialogStrings = when (this) {
+    PendingRowAction.Promote -> DialogStrings(
+        Res.string.members_promote_title,
+        Res.string.members_promote_body,
+        Res.string.members_promote_confirm,
+        Res.string.members_promote_cancel
+    )
+    PendingRowAction.Demote -> DialogStrings(
+        Res.string.members_demote_title,
+        Res.string.members_demote_body,
+        Res.string.members_demote_confirm,
+        Res.string.members_demote_cancel
+    )
+    PendingRowAction.Remove -> DialogStrings(
+        Res.string.members_remove_title,
+        Res.string.members_remove_body,
+        Res.string.members_remove_confirm,
+        Res.string.members_remove_cancel
+    )
+    PendingRowAction.Revoke -> DialogStrings(
+        Res.string.members_revoke_title,
+        Res.string.members_revoke_body,
+        Res.string.members_revoke_confirm,
+        Res.string.members_revoke_cancel
+    )
+    PendingRowAction.Resend -> DialogStrings(
+        Res.string.members_resend_title,
+        Res.string.members_resend_body,
+        Res.string.members_resend_confirm,
+        Res.string.members_resend_cancel
+    )
+}
+
+private fun PendingConfirmation.act(actions: MembersActions) = when (action) {
+    PendingRowAction.Promote -> actions.onPromote(row.id)
+    PendingRowAction.Demote -> actions.onDemote(row.id)
+    PendingRowAction.Remove -> actions.onRemove(row.id)
+    PendingRowAction.Revoke -> actions.onRevokeInvitation(row.id)
+    PendingRowAction.Resend -> actions.onResendInvitation(row.id)
 }
 
 @Composable
