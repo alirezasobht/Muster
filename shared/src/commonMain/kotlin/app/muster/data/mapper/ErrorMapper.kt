@@ -61,6 +61,7 @@ private fun PostgrestRestException.toDomainError(): DomainError = when (code) {
         "already a member of this group" in error -> DomainError.AlreadyMember()
         "event is full" in error -> DomainError.EventFull()
         "event has already started" in error -> DomainError.EventFrozen()
+        "invitation sent too recently" in error -> DomainError.InvitationSentTooRecently()
         else -> DomainError.Unknown(this)
     }
     // create_group's allowlist guard preserves groups_insert's permission error.

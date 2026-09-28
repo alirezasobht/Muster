@@ -12,6 +12,7 @@ import muster.shared.generated.resources.error_invalid_code
 import muster.shared.generated.resources.error_invalid_email
 import muster.shared.generated.resources.error_invalid_name
 import muster.shared.generated.resources.error_invitation_not_pending
+import muster.shared.generated.resources.error_invitation_sent_too_recently
 import muster.shared.generated.resources.error_last_admin
 import muster.shared.generated.resources.error_network
 import muster.shared.generated.resources.error_not_allowed_to_create_groups
@@ -39,6 +40,7 @@ fun DomainError.toMessage(): String = stringResource(
         is DomainError.EventFull -> Res.string.error_event_full
         is DomainError.EventFrozen -> Res.string.error_event_frozen
         is DomainError.StandbyQueueStale -> Res.string.error_standby_queue_stale
+        is DomainError.InvitationSentTooRecently -> Res.string.error_invitation_sent_too_recently
         is DomainError.Network -> Res.string.error_network
         is DomainError.NotSignedIn -> Res.string.error_not_signed_in
         is DomainError.Unknown -> Res.string.error_unknown

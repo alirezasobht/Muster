@@ -97,6 +97,7 @@
     <string name="members_action_demote">Make member</string>
     <string name="members_action_remove">Remove from group</string>
     <string name="members_action_revoke">Cancel invitation</string>
+    <string name="members_action_resend">Resend invitation</string>
     <string name="members_remove_title">Remove %1$s?</string>
     <string name="members_remove_body">They’ll lose access to this group and any RSVPs they’ve made will be removed.</string>
     <string name="members_remove_confirm">Remove</string>
@@ -206,6 +207,7 @@
     <string name="error_event_full">This event is full.</string>
     <string name="error_event_frozen">This event has already started.</string>
     <string name="error_standby_queue_stale">Someone was promoted while you were reordering. Refresh and try again.</string>
+    <string name="error_invitation_sent_too_recently">Already sent today — try again tomorrow.</string>
     <string name="error_network">Can’t connect. Check your connection and try again.</string>
     <string name="error_not_signed_in">You’ve been signed out. Sign in again.</string>
     <string name="error_unknown">Something went wrong. Try again.</string>

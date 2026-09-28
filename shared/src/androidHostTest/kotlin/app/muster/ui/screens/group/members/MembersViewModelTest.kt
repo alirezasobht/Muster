@@ -15,6 +15,7 @@ import app.muster.domain.usecase.GetMyProfileUseCase
 import app.muster.domain.usecase.ListGroupMembersUseCase
 import app.muster.domain.usecase.PromoteMemberUseCase
 import app.muster.domain.usecase.RemoveMemberUseCase
+import app.muster.domain.usecase.ResendInvitationUseCase
 import app.muster.domain.usecase.RevokeInvitationUseCase
 import app.muster.testing.MainDispatcherRule
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -56,6 +57,7 @@ class MembersViewModelTest {
         demoteMember = DemoteMemberUseCase(members),
         removeMember = RemoveMemberUseCase(members),
         revokeInvitation = RevokeInvitationUseCase(members),
+        resendInvitation = ResendInvitationUseCase(members),
         dataChanges = dataChanges
     )
 
@@ -96,6 +98,7 @@ class MembersViewModelTest {
         assertEquals(MemberStatus.Pending, pendingRow.status)
         assertEquals(pending.email, pendingRow.displayName)
         assertEquals(true, pendingRow.canRevokeInvitation)
+        assertEquals(true, pendingRow.canResendInvitation)
     }
 
     @Test
@@ -252,6 +255,39 @@ class MembersViewModelTest {
         assertEquals(listOf(pending.id), members.revokedInvitationIds)
         val state = assertIs<MembersUiState.Success>(viewModel.state.value)
         assertEquals(true, state.rows.none { it.id == pending.id })
+    }
+
+    @Test
+    fun `resending an invitation calls through and keeps its row`() = runTest {
+        val members = FakeMemberRepository(members = listOf(self), pendingInvitations = listOf(pending))
+        val viewModel = viewModel(members = members)
+        advanceUntilIdle()
+
+        viewModel.onResendInvitation(pending.id)
+        advanceUntilIdle()
+
+        assertEquals(listOf(pending.id), members.resentInvitationIds)
+        val state = assertIs<MembersUiState.Success>(viewModel.state.value)
+        assertNull(state.actionError)
+        assertEquals(true, state.rows.any { it.id == pending.id })
+    }
+
+    @Test
+    fun `resending too soon surfaces the throttle error on the row`() = runTest {
+        val members = FakeMemberRepository(
+            members = listOf(self),
+            pendingInvitations = listOf(pending),
+            resendError = DomainError.InvitationSentTooRecently()
+        )
+        val viewModel = viewModel(members = members)
+        advanceUntilIdle()
+
+        viewModel.onResendInvitation(pending.id)
+        advanceUntilIdle()
+
+        val state = assertIs<MembersUiState.Success>(viewModel.state.value)
+        assertIs<DomainError.InvitationSentTooRecently>(state.actionError)
+        assertEquals(pending.id, state.failedActionId)
     }
 
     @Test

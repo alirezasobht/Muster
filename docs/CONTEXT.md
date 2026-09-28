@@ -176,12 +176,20 @@ is 9pm at the pitch, wherever the admin happened to be when they created
 it.
 
 **For now every group plays in Sydney.** `Australia/Sydney` is a
-constant, used in exactly two places — converting the picker's
-`LocalDateTime` to an instant on the way in, and back again for display.
-Never `TimeZone.currentSystemDefault()`: that is the obvious thing to
-reach for and it is wrong. An admin creating a fixture while travelling
-would silently set the wrong time, and nobody would notice until people
-turned up at the wrong hour.
+constant (`MusterTimeZone`), used in three places — converting the
+picker's `LocalDateTime` to an instant on the way in, back again for
+display, and as the day boundary an admin's resend of a group invitation
+is throttled against (SCHEMA.md, `resend_group_invitation`). Never
+`TimeZone.currentSystemDefault()`: that is the obvious thing to reach for
+and it is wrong. An admin creating a fixture while travelling would
+silently set the wrong time, and nobody would notice until people turned
+up at the wrong hour.
+
+The resend throttle takes `tz` as a parameter rather than assuming
+`Australia/Sydney` itself, so it needs no change on the day groups or
+events carry their own timezone column — the app would just start
+sending that instead of `MusterTimeZone`. Not built: no such column
+exists yet, and every group still plays in Sydney.
 
 The zone is not stored. The instant is already unambiguous, and while
 there is one city a constant does the rest of the job.

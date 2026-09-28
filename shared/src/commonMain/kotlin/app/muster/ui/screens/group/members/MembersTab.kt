@@ -63,6 +63,7 @@ import muster.shared.generated.resources.content_description_more
 import muster.shared.generated.resources.members_action_demote
 import muster.shared.generated.resources.members_action_promote
 import muster.shared.generated.resources.members_action_remove
+import muster.shared.generated.resources.members_action_resend
 import muster.shared.generated.resources.members_action_revoke
 import muster.shared.generated.resources.members_add_by_email
 import muster.shared.generated.resources.members_empty_body
@@ -87,6 +88,7 @@ data class MembersActions(
     val onDemote: (id: String) -> Unit,
     val onRemove: (id: String) -> Unit,
     val onRevokeInvitation: (id: String) -> Unit,
+    val onResendInvitation: (id: String) -> Unit,
     val onRetry: () -> Unit,
     val onRefresh: () -> Unit = {}
 )
@@ -109,6 +111,7 @@ fun MembersRoute(
             onDemote = viewModel::onDemote,
             onRemove = viewModel::onRemove,
             onRevokeInvitation = viewModel::onRevokeInvitation,
+            onResendInvitation = viewModel::onResendInvitation,
             onRetry = viewModel::onRetry,
             onRefresh = viewModel::onRefresh
         ),
@@ -209,6 +212,7 @@ private fun MembersContent(
                             onDemote = { actions.onDemote(row.id) },
                             onRequestRemove = { pendingRemoval = row },
                             onRevokeInvitation = { actions.onRevokeInvitation(row.id) },
+                            onResendInvitation = { actions.onResendInvitation(row.id) },
                             modifier = Modifier.animateItem()
                         )
                     }
@@ -265,6 +269,7 @@ private fun MemberRowItem(
     onDemote: () -> Unit,
     onRequestRemove: () -> Unit,
     onRevokeInvitation: () -> Unit,
+    onResendInvitation: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val isPending = row.status == MemberStatus.Pending
@@ -317,7 +322,8 @@ private fun MemberRowItem(
                     onPromote = onPromote,
                     onDemote = onDemote,
                     onRemove = onRequestRemove,
-                    onRevoke = onRevokeInvitation
+                    onRevoke = onRevokeInvitation,
+                    onResend = onResendInvitation
                 )
             }
         }
@@ -328,7 +334,7 @@ private fun MemberRowItem(
     }
 }
 
-// Reads row.canPromote/canDemote/canRemove/canRevokeInvitation as given —
+// Reads row.canPromote/canDemote/canRemove/canRevokeInvitation/canResendInvitation as given —
 // which of them is true was already decided by the ViewModel.
 @Composable
 private fun RowMenu(
@@ -338,6 +344,7 @@ private fun RowMenu(
     onDemote: () -> Unit,
     onRemove: () -> Unit,
     onRevoke: () -> Unit,
+    onResend: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -376,6 +383,12 @@ private fun RowMenu(
                             Text(text = stringResource(Res.string.members_action_remove), color = MusterColors.OutText)
                         },
                         onClick = { expanded = false; onRemove() }
+                    )
+                }
+                if (row.canResendInvitation) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(Res.string.members_action_resend)) },
+                        onClick = { expanded = false; onResend() }
                     )
                 }
                 if (row.canRevokeInvitation) {
@@ -458,6 +471,7 @@ private val PreviewActions = MembersActions(
     onDemote = {},
     onRemove = {},
     onRevokeInvitation = {},
+    onResendInvitation = {},
     onRetry = {}
 )
 
@@ -467,8 +481,20 @@ private val AdminPreviewRows = listOf(
     MemberRow(id = "3", displayName = "Marcus Keane", status = MemberStatus.Member, canPromote = true, canRemove = true),
     MemberRow(id = "4", displayName = "Sam Okafor", status = MemberStatus.Member, canPromote = true, canRemove = true),
     MemberRow(id = "5", displayName = "Tomás Neale", status = MemberStatus.Member, canPromote = true, canRemove = true),
-    MemberRow(id = "6", displayName = "j.moriarty@outlook.com", status = MemberStatus.Pending, canRevokeInvitation = true),
-    MemberRow(id = "7", displayName = "priya.n@gmail.com", status = MemberStatus.Pending, canRevokeInvitation = true)
+    MemberRow(
+        id = "6",
+        displayName = "j.moriarty@outlook.com",
+        status = MemberStatus.Pending,
+        canRevokeInvitation = true,
+        canResendInvitation = true
+    ),
+    MemberRow(
+        id = "7",
+        displayName = "priya.n@gmail.com",
+        status = MemberStatus.Pending,
+        canRevokeInvitation = true,
+        canResendInvitation = true
+    )
 )
 
 private val MemberPreviewRows = listOf(

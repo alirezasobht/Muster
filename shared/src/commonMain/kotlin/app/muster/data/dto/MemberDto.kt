@@ -47,6 +47,13 @@ internal data class RevokeGroupInvitationDto(
 )
 
 @Serializable
+internal data class ResendGroupInvitationDto(
+    @SerialName("group_id") val groupId: String,
+    @SerialName("invitation_id") val invitationId: String,
+    val tz: String
+)
+
+@Serializable
 internal data class LeaveGroupDto(
     @SerialName("group_id") val groupId: String
 )

@@ -17,6 +17,8 @@ interface MemberRepository {
 
     suspend fun revokeInvitation(groupId: String, invitationId: String)
 
+    suspend fun resendInvitation(groupId: String, invitationId: String)
+
     // Not wired to any screen yet: Leave group belongs in the Group app bar
     // overflow (SCREENS.md), which is still a stub.
     suspend fun leave(groupId: String)

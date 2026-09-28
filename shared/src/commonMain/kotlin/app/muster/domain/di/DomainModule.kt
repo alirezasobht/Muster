@@ -25,6 +25,7 @@ import app.muster.domain.usecase.PromoteMemberUseCase
 import app.muster.domain.usecase.RemoveMemberUseCase
 import app.muster.domain.usecase.ReorderStandbyUseCase
 import app.muster.domain.usecase.RequestSignInCodeUseCase
+import app.muster.domain.usecase.ResendInvitationUseCase
 import app.muster.domain.usecase.RetrySessionUseCase
 import app.muster.domain.usecase.RevokeInvitationUseCase
 import app.muster.domain.usecase.SetRsvpUseCase
@@ -61,6 +62,7 @@ val domainModule = module {
     factoryOf(::DemoteMemberUseCase)
     factoryOf(::RemoveMemberUseCase)
     factoryOf(::RevokeInvitationUseCase)
+    factoryOf(::ResendInvitationUseCase)
     factoryOf(::LeaveGroupUseCase)
     factoryOf(::ArchiveGroupUseCase)
     factoryOf(::DisinvitePlayerUseCase)

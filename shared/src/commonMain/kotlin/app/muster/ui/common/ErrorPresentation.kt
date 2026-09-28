@@ -48,7 +48,10 @@ val DomainError.presentation: ErrorPresentation
         is DomainError.EventFrozen,
         // Resubmitting the same stale list fails the same way — a refresh
         // has to happen first, not a bare retry.
-        is DomainError.StandbyQueueStale ->
+        is DomainError.StandbyQueueStale,
+        // Same reasoning as EventFull/EventFrozen above: retrying resend
+        // fails identically until the next day.
+        is DomainError.InvitationSentTooRecently ->
             ErrorPresentation.Form(ErrorPresentation.Severity.Terminal)
     }
 

@@ -30,6 +30,7 @@ class MembersTabTest {
         onDemote: (String) -> Unit = {},
         onRemove: (String) -> Unit = {},
         onRevokeInvitation: (String) -> Unit = {},
+        onResendInvitation: (String) -> Unit = {},
         onRetry: () -> Unit = {}
     ) {
         composeRule.setContent {
@@ -42,6 +43,7 @@ class MembersTabTest {
                         onDemote = onDemote,
                         onRemove = onRemove,
                         onRevokeInvitation = onRevokeInvitation,
+                        onResendInvitation = onResendInvitation,
                         onRetry = onRetry
                     ),
                     actionErrorMessage = actionErrorMessage,
@@ -211,6 +213,30 @@ class MembersTabTest {
         composeRule.onNodeWithContentDescription("More options").performClick()
         composeRule.onNodeWithText("Cancel invitation").performClick()
         assert(revoked == "2")
+    }
+
+    @Test
+    fun resendingAnInvitationReachesTheCallback() {
+        var resent: String? = null
+        show(
+            state = MembersUiState.Success(
+                rows = listOf(
+                    self,
+                    MemberRow(
+                        id = "2",
+                        displayName = "j.moriarty@outlook.com",
+                        status = MemberStatus.Pending,
+                        canRevokeInvitation = true,
+                        canResendInvitation = true
+                    )
+                ),
+                canAddMembers = true
+            ),
+            onResendInvitation = { resent = it }
+        )
+        composeRule.onNodeWithContentDescription("More options").performClick()
+        composeRule.onNodeWithText("Resend invitation").performClick()
+        assert(resent == "2")
     }
 
     // Remove is destructive: the menu item must open a confirm dialog, not

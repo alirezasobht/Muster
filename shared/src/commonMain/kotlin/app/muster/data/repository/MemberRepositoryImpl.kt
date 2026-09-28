@@ -5,6 +5,7 @@ import app.muster.data.dto.GroupMemberDto
 import app.muster.data.dto.InviteGroupMemberDto
 import app.muster.data.dto.LeaveGroupDto
 import app.muster.data.dto.RemoveGroupMemberDto
+import app.muster.data.dto.ResendGroupInvitationDto
 import app.muster.data.dto.RevokeGroupInvitationDto
 import app.muster.data.dto.SetGroupMemberRoleDto
 import app.muster.data.mapper.mapErrors
@@ -13,6 +14,7 @@ import app.muster.data.mapper.toPendingInvitation
 import app.muster.domain.event.DataChange
 import app.muster.domain.event.DataChanges
 import app.muster.domain.model.MemberListing
+import app.muster.domain.model.MusterTimeZone
 import app.muster.domain.repository.MemberRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
@@ -80,6 +82,13 @@ internal class MemberRepositoryImpl(
         dataChanges.notify(DataChange.Members(groupId))
     }
 
+    override suspend fun resendInvitation(groupId: String, invitationId: String): Unit = mapErrors {
+        client.postgrest.rpc(
+            RESEND_GROUP_INVITATION_FUNCTION,
+            ResendGroupInvitationDto(groupId, invitationId, tz = MusterTimeZone.id)
+        )
+    }
+
     // MyGroups only: this screen's Members list belongs to a group the caller
     // is no longer in, so refetching it could only fail.
     override suspend fun leave(groupId: String): Unit = mapErrors {
@@ -104,6 +113,7 @@ internal class MemberRepositoryImpl(
         const val SET_GROUP_MEMBER_ROLE_FUNCTION = "set_group_member_role"
         const val REMOVE_GROUP_MEMBER_FUNCTION = "remove_group_member"
         const val REVOKE_GROUP_INVITATION_FUNCTION = "revoke_group_invitation"
+        const val RESEND_GROUP_INVITATION_FUNCTION = "resend_group_invitation"
         const val LEAVE_GROUP_FUNCTION = "leave_group"
     }
 }

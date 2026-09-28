@@ -13,6 +13,7 @@ import app.muster.domain.usecase.GetMyProfileUseCase
 import app.muster.domain.usecase.ListGroupMembersUseCase
 import app.muster.domain.usecase.PromoteMemberUseCase
 import app.muster.domain.usecase.RemoveMemberUseCase
+import app.muster.domain.usecase.ResendInvitationUseCase
 import app.muster.domain.usecase.RevokeInvitationUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,6 +31,7 @@ class MembersViewModel(
     private val demoteMember: DemoteMemberUseCase,
     private val removeMember: RemoveMemberUseCase,
     private val revokeInvitation: RevokeInvitationUseCase,
+    private val resendInvitation: ResendInvitationUseCase,
     dataChanges: DataChanges
 ) : ViewModel() {
 
@@ -72,6 +74,9 @@ class MembersViewModel(
 
     fun onRevokeInvitation(invitationId: String) =
         performAction(invitationId) { revokeInvitation(groupId, invitationId) }
+
+    fun onResendInvitation(invitationId: String) =
+        performAction(invitationId) { resendInvitation(groupId, invitationId) }
 
     private fun load() {
         _state.value = MembersUiState.Loading
@@ -149,7 +154,8 @@ class MembersViewModel(
                     id = invitation.id,
                     displayName = invitation.email,
                     status = MemberStatus.Pending,
-                    canRevokeInvitation = true
+                    canRevokeInvitation = true,
+                    canResendInvitation = true
                 )
             }
         } else {

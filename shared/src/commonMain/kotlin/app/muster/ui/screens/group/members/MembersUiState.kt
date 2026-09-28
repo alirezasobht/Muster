@@ -12,9 +12,10 @@ data class MemberRow(
     val canPromote: Boolean = false,
     val canDemote: Boolean = false,
     val canRemove: Boolean = false,
-    val canRevokeInvitation: Boolean = false
+    val canRevokeInvitation: Boolean = false,
+    val canResendInvitation: Boolean = false
 ) {
-    val hasMenu: Boolean get() = canPromote || canDemote || canRemove || canRevokeInvitation
+    val hasMenu: Boolean get() = canPromote || canDemote || canRemove || canRevokeInvitation || canResendInvitation
 }
 
 sealed interface MembersUiState {

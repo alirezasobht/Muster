@@ -20,6 +20,7 @@ class FakeMemberRepository(
     var demoteError: DomainError? = null,
     var removeError: DomainError? = null,
     var revokeError: DomainError? = null,
+    var resendError: DomainError? = null,
     var leaveError: DomainError? = null,
     private val dataChanges: DataChanges? = null,
     private val latency: Long = FAKE_LATENCY_MS
@@ -44,6 +45,9 @@ class FakeMemberRepository(
         private set
 
     var revokedInvitationIds = listOf<String>()
+        private set
+
+    var resentInvitationIds = listOf<String>()
         private set
 
     var leftGroupIds = listOf<String>()
@@ -92,6 +96,12 @@ class FakeMemberRepository(
         pendingInvitations = pendingInvitations.filterNot { it.id == invitationId }
         revokedInvitationIds = revokedInvitationIds + invitationId
         dataChanges?.notify(DataChange.Members(groupId))
+    }
+
+    override suspend fun resendInvitation(groupId: String, invitationId: String) {
+        delay(latency.milliseconds)
+        resendError?.let { throw it }
+        resentInvitationIds = resentInvitationIds + invitationId
     }
 
     override suspend fun leave(groupId: String) {

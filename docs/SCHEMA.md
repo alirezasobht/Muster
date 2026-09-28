@@ -81,6 +81,7 @@ Keyed by email, not by profile.
 | invited_by | uuid | → profiles, nullable, set null when the account is deleted |
 | status | text | `pending` \| `accepted` \| `declined` |
 | created_at | timestamptz | |
+| last_sent_at | timestamptz | nullable. Set by `send_group_invitation_email` on every send — the initial one and every resend. Backs the resend throttle |
 
 No token column. The email is a notification only — nothing is redeemed,
 so there is nothing to authenticate. The invitee is matched by address.
@@ -309,6 +310,7 @@ calls one by name must qualify it, `private.is_group_admin(...)`.
 | `set_group_member_role(group_id, profile_id, role)` | promote or demote. Locks the live group before checking admin authority and updating the member |
 | `remove_group_member(group_id, profile_id)` | locks the live group before checking admin authority and deleting the member. Refuses the caller's own id — that's `leave_group` |
 | `revoke_group_invitation(group_id, invitation_id)` | admins only. Locks the invitation then its live group before checking authority and deleting; raises if nothing matched |
+| `resend_group_invitation(group_id, invitation_id, tz)` | admins only, on a still-pending invitation. Same lock order as revoke. Throttled to once per calendar day in the caller-supplied `tz`, checked against the invitation's own `last_sent_at` — no per-admin or per-group limit. The app sends `MusterTimeZone`'s id today; a per-group or per-event tz column would just change what it sends, not this function. Calls `send_group_invitation_email`, which stamps `last_sent_at` on every send it makes, including the one from `invite_group_member_by_email` |
 | `leave_group(group_id)` | locks the live group and removes only the signed-in caller's membership; raises if the group is missing/archived or the caller is not a member |
 | `delete_account(force)` | `security definer`. Without `force`, returns the live groups where the caller is the only admin and deletes nothing if there are any. With `force`, or when there are none, archives those groups, deletes invitations sent to the caller's address, and deletes the caller's `auth.users` row; cascades remove the profile, memberships and RSVPs |
 
@@ -381,7 +383,8 @@ is stale. These existing whole-queue and batch semantics are preserved.
 |---|---|
 | `promote_standby(eid)` | the promotion body itself |
 | `trigger_promote_standby()` | thin wrapper, passes the event id from the changed row |
-| `send_group_invitation_email(invitation_id)` | queues the invite email through `pg_net`. Called by the invite RPC. Kept for a future resend button, but not granted until resend has a throttle — otherwise any admin could email an address without limit |
+| `send_group_invitation_email(invitation_id)` | queues the invite email through `pg_net` and stamps `last_sent_at`. Called by `invite_group_member_by_email` on creation and by `resend_group_invitation`, which owns the throttle check. Not itself granted to `authenticated` — only reachable through those two `security definer` callers, so nothing can call it in a loop and bypass the throttle |
+| `private.sent_within_today(last_sent_at, tz)` | pure date math, no table access — `last_sent_at` falls within today's calendar day in the given IANA zone `tz`. `stable`, not `security definer`: it needs no elevated privilege. Called by `resend_group_invitation`, passing through whatever `tz` its own caller sent; a future `resend_event_invitation`, or any other calendar-day throttle, shares it rather than duplicating the boundary math. Reachable only from within a `security definer` caller's context, like `send_group_invitation_email` above |
 | `private.send_event_invitation_email(uuid[])` | queues one request for a batch of event invitations. Called by `add_players_to_event` and `promote_standby`. No caller check — promotion runs inside whoever freed the slot, often a member — so no grants at all, `authenticated` included |
 
 Every other function above is a trigger function and is likewise
