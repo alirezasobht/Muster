@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -19,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -53,30 +53,43 @@ fun LaunchScreen(
 ) {
     Surface(modifier = modifier.fillMaxSize(), color = MusterColors.Accent) {
         PhoneWidth(surround = Color.Transparent) {
-            Column(modifier = Modifier.safeDrawingPadding()) {
-                Column(
-                    modifier = Modifier.weight(1f).fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(22.dp, Alignment.CenterVertically),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    MusterMark(size = 88.dp)
-                    MusterWordmark(fontSize = 20)
-                }
-                Box(
-                    modifier = Modifier.height(260.dp).fillMaxWidth(),
-                    contentAlignment = if (failed) Alignment.TopCenter else Alignment.Center
-                ) {
-                    if (failed) {
-                        Failure(onRetry = onRetry, onSignOut = onSignOut)
-                    } else {
-                        MusterSpinner(
-                            delayMillis = spinnerDelayMillis,
-                            color = MusterColors.White,
-                            trackColor = MusterColors.White.copy(alpha = 0.35f)
-                        )
-                    }
+            MarkAndWordmark(modifier = Modifier.fillMaxSize())
+            Box(
+                modifier = Modifier.align(Alignment.BottomCenter).height(260.dp).fillMaxWidth(),
+                contentAlignment = if (failed) Alignment.TopCenter else Alignment.Center
+            ) {
+                if (failed) {
+                    Failure(onRetry = onRetry, onSignOut = onSignOut)
+                } else {
+                    MusterSpinner(
+                        delayMillis = spinnerDelayMillis,
+                        color = MusterColors.White,
+                        trackColor = MusterColors.White.copy(alpha = 0.35f)
+                    )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun MarkAndWordmark(modifier: Modifier = Modifier) {
+    val spacing = 22.dp
+    Layout(modifier = modifier, content = {
+        MusterMark(size = 88.dp)
+        MusterWordmark(fontSize = 20)
+    }) { measurables, constraints ->
+        val loose = constraints.copy(minWidth = 0, minHeight = 0)
+        val mark = measurables[0].measure(loose)
+        val wordmark = measurables[1].measure(loose)
+        val spacingPx = spacing.roundToPx()
+        layout(constraints.maxWidth, constraints.maxHeight) {
+            val markY = (constraints.maxHeight - mark.height) / 2
+            mark.place((constraints.maxWidth - mark.width) / 2, markY)
+            wordmark.place(
+                (constraints.maxWidth - wordmark.width) / 2,
+                markY + mark.height + spacingPx
+            )
         }
     }
 }

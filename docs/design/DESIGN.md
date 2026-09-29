@@ -1,4 +1,4 @@
-# Muster — Screen Design (v7)
+# Muster — Screen Design (v8)
 
 Design of record for the app's screens. Open `muster-screens-v7.html`
 in a browser: one canvas, pan and zoom. Turn 1 holds the twenty screens
@@ -6,7 +6,8 @@ in a browser: one canvas, pan and zoom. Turn 1 holds the twenty screens
 wide-viewport treatment (3a–3c); turn 4, at the top, the event screen
 re-layout (4a–4c), which supersedes 1l's layout. Frame ids are the reference
 names — use them in issues and commits. (`muster-screens-v1.html`
-through `-v5.html` are earlier snapshots, kept for reference.)
+through `-v7.html` are earlier snapshots, kept for reference. The app icon
+has its own file — see *App icon* below.)
 
 Companion to `SCREENS.md` (screen map, navigation) and `CONTEXT.md`
 (product decisions). Where this file and a screenshot disagree, this file wins.
@@ -135,7 +136,7 @@ message is about, not how bad it is.
 **Field error — about the contents of a field.** Unchanged: bare text
 under the field, 13px, `#9A3324`, no fill and no icon; the field's outline
 turns `#9A3324`. On the green ground (1a) the text inverts to `#FBE9E7`.
-Focus is not moved (see No autofocus). "Enter a name", "That code is only 5 digits",
+Focus moves to the field. "Enter a name", "That code is only 5 digits",
 "Keep it under 40 characters."
 
 **Form error — about the request.** A filled block sitting immediately
@@ -198,6 +199,43 @@ a different kind of thing.
 - **Standby**: sits on the same tint as the slots panel (it is that panel's
   overflow); numbered discs for queue position; drag handles as before.
 
+## App icon
+
+Chosen mark: **K, “Roster on the card”** — a white date card with two
+binding rings on Muster green, the M and a row of five dots (four in, one
+open) cut through it. Explorations and platform previews live in
+`Muster App Icon.dc.html` (turns 1–4, A–L, K1–K4); shipping files in
+`exports/app-icon/`, with a README mapping each to its KMP location.
+
+Why this one:
+
+- **Any event, not football.** The card says “event”, the dots say “who's
+  coming” — the app's actual job. Pitch imagery (D) was rejected for tying
+  the brand to one sport.
+- **One object.** A single silhouette inside Android's 66dp safe circle, so
+  every launcher mask (circle, squircle, teardrop) frames it the same way.
+  The alternative with dots below the card (L) crowded circle masks.
+- **Themes cleanly.** The card is the only filled shape; M, dots and ring
+  gaps are cut-outs. Android monochrome and iOS tinted are the same path
+  in one colour.
+
+Rules:
+
+- **Two drawings, never more.** The full mark, and a small mark for 32px
+  and below (card, M, and a bar replacing the dots — dots at that size
+  are texture). Everything else is a recolour or a mask of these two.
+- **The M is a drawn path**, not DM Sans set as text — no font dependency
+  in any build.
+- **Colours.** Light: ground `#2F7D4F`, card `#FFFFFF`. Dark (iOS): ground
+  `#14171A`, card `#5BAF7A`. Tinted (iOS): white on black, system applies
+  the hue. Themed (Android): monochrome layer, launcher-coloured.
+- **Corners belong to the platform.** iOS and Apple touch icons ship square
+  and opaque; the web favicon keeps a small radius; PWA ships a rounded
+  “any” icon and a full-bleed “maskable” one with the mark at 90%.
+- **Adaptive icon**: background is solid green, foreground is the card on a
+  transparent layer at 72% of the 108dp canvas, so the bleed zone is plain
+  green and parallax never reveals an edge.
+
 ## Decisions this design fixes
 
 - **Navigation** is a plain stack. No bottom nav. Group uses two tabs:
@@ -253,10 +291,6 @@ a different kind of thing.
   "No reply", the standby header reads "Standby · not called up". Identical
   for admins and members.
 - **Set name** reuses the Settings name field and has no back button.
-- **No autofocus.** No field is focused by the app, on open or on error;
-  the user taps it. iOS only opens the keyboard for focus that comes from
-  a tap, so app-driven focus can leave a field focused with no keyboard,
-  and tapping an already-focused field doesn't bring one up.
 - **Launch** is the one screen where accent fills the surface — it reads as
   the app icon, not UI. On Android it is the splashscreen theme
   (`windowBackground` `#2F7D4F`, the M as the icon), so there is no second
