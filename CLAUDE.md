@@ -37,6 +37,8 @@ notifications deferred past MVP.
 ./gradlew :webApp:wasmJsBrowserDevelopmentRun  run web
 ./gradlew :shared:testAndroidHostTest          unit + ViewModel tests
 ./gradlew :shared:iosSimulatorArm64Test        iOS tests
+./gradlew ktlintFormat                         auto-fix style
+./gradlew ktlintCheck                          verify style
 ```
 
 iOS builds from Xcode: open `iosApp/`.
@@ -52,6 +54,9 @@ deploy is `scripts/deploy-prod.sh`. See `supabase/docs/deploying.md`.
 - **Screens first**, then domain, then data, then wire up.
 - Understand the architectural implications before writing code.
 - Report differences rather than silently replacing files.
+- **Run `./gradlew ktlintFormat` before a task is done**, then
+  `ktlintCheck` must pass. Only formatting changes it makes to files you
+  touched belong in the change.
 - Be concise. Don't over-explain. Ask rather than listing every option.
 
 ## Rules that are not preferences

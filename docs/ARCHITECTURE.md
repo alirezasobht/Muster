@@ -17,7 +17,7 @@ shared/              shared module — UI + logic
                      androidDeviceTest (Compose UI tests), iosTest, webTest
 androidApp/          Android host — MainActivity only
 iosApp/              Xcode project, thin SwiftUI wrapper
-webApp/              Web host — main.kt, index.html, styles.css, and the
+webApp/              Web host — Main.kt, index.html, styles.css, and the
                      static delete-account.html and privacy.html
 ```
 
@@ -157,7 +157,7 @@ Plus a platform module per target for anything platform-specific.
 `initKoin()` loads them all. It lives at the root (`app/muster/Koin.kt`),
 as an entry point rather than a DI package — the one place that sees every
 layer. Each host calls it before any UI: `MusterApplication` on Android,
-`MainViewController` on iOS, `main.kt` on web.
+`MainViewController` on iOS, `Main.kt` on web.
 
 Android calls it from an `Application` subclass, not `MainActivity`:
 `onCreate` of an activity re-runs on every rotation and configuration
@@ -283,6 +283,13 @@ after a rotation or a return from background is state.
   list, or a collection literal. Android Studio's Kotlin formatter adds
   them by default — turn off Settings -> Editor -> Code Style -> Kotlin ->
   Other -> "Use trailing comma", or it will put them back on reformat.
+- **ktlint enforces the style.** Rules live in `.editorconfig` (same as
+  Vela's) and in the `:ktlint-rules` module, which holds two custom rules
+  that replace the disabled `multiline-expression-wrapping`. Run
+  `./gradlew ktlintFormat` to fix, `./gradlew ktlintCheck` to verify. The
+  plugin is applied to every module except `:ktlint-rules`, which gets it
+  from its own build file. `MainViewController.kt` is exempted from
+  `function-naming` because Swift calls it by that name.
 - **Comments are the exception, not the default.** Write one only for a
   detail that is not visible in the code: an edge case, a constraint from
   outside the file, or something that silently breaks if changed. No
