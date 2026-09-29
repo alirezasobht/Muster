@@ -7,8 +7,8 @@ import app.muster.domain.model.Group
 import app.muster.domain.model.GroupInvitation
 import app.muster.domain.model.GroupRole
 import app.muster.domain.repository.GroupRepository
-import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.delay
 
 class FakeGroupRepository(
     groups: List<Group> = emptyList(),

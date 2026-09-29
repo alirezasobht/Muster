@@ -2,11 +2,11 @@ package app.muster.data.mapper
 
 import app.muster.data.dto.EventDetailDto
 import app.muster.domain.model.RsvpStatus
-import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.time.Instant
+import kotlinx.serialization.json.Json
 
 class EventDetailMapperTest {
 

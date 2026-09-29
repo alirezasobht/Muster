@@ -4,11 +4,11 @@ import app.muster.domain.error.DomainError
 import app.muster.domain.model.Event
 import app.muster.domain.model.MusterTimeZone
 import app.muster.domain.repository.EventRepository
+import kotlin.time.Clock
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.toInstant
-import kotlin.time.Clock
 
 class CreateEventUseCase(private val events: EventRepository) {
 

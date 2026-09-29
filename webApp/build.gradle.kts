@@ -46,6 +46,8 @@ tasks.withType<ProcessResources>().configureEach {
         require(emailValue.isNotBlank() && urlValue.isNotBlank()) {
             "CONTACT_EMAIL and WEB_APP_URL must be set in local.properties or in the environment."
         }
-        filter { line -> line.replace("@CONTACT_EMAIL@", emailValue).replace("@WEB_APP_URL@", urlValue) }
+        filter { line ->
+            line.replace("@CONTACT_EMAIL@", emailValue).replace("@WEB_APP_URL@", urlValue)
+        }
     }
 }

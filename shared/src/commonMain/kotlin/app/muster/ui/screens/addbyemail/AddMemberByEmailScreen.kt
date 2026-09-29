@@ -158,14 +158,14 @@ fun AddMemberByEmailScreen(
     }
 }
 
-private const val PreviewGroupName = "Westgate Wednesday 7s"
+private const val PREVIEW_GROUP_NAME = "Westgate Wednesday 7s"
 
 @Preview
 @Composable
 private fun AddMemberByEmailScreenEmptyPreview() {
     MusterTheme {
         AddMemberByEmailScreen(
-            groupName = PreviewGroupName,
+            groupName = PREVIEW_GROUP_NAME,
             email = "",
             onEmailChange = {},
             onInvite = {},
@@ -179,7 +179,7 @@ private fun AddMemberByEmailScreenEmptyPreview() {
 private fun AddMemberByEmailScreenTypedPreview() {
     MusterTheme {
         AddMemberByEmailScreen(
-            groupName = PreviewGroupName,
+            groupName = PREVIEW_GROUP_NAME,
             email = "priya.n@gmail.com",
             onEmailChange = {},
             onInvite = {},
@@ -193,7 +193,7 @@ private fun AddMemberByEmailScreenTypedPreview() {
 private fun AddMemberByEmailScreenSendingPreview() {
     MusterTheme {
         AddMemberByEmailScreen(
-            groupName = PreviewGroupName,
+            groupName = PREVIEW_GROUP_NAME,
             email = "priya.n@gmail.com",
             onEmailChange = {},
             onInvite = {},
@@ -210,7 +210,7 @@ private fun AddMemberByEmailScreenSendingPreview() {
 private fun AddMemberByEmailScreenFieldErrorPreview() {
     MusterTheme {
         AddMemberByEmailScreen(
-            groupName = PreviewGroupName,
+            groupName = PREVIEW_GROUP_NAME,
             email = "not-an-email",
             onEmailChange = {},
             onInvite = {},
@@ -226,7 +226,7 @@ private fun AddMemberByEmailScreenFieldErrorPreview() {
 private fun AddMemberByEmailScreenFormErrorPreview() {
     MusterTheme {
         AddMemberByEmailScreen(
-            groupName = PreviewGroupName,
+            groupName = PREVIEW_GROUP_NAME,
             email = "priya.n@gmail.com",
             onEmailChange = {},
             onInvite = {},
@@ -241,7 +241,7 @@ private fun AddMemberByEmailScreenFormErrorPreview() {
 private fun AddMemberByEmailScreenDialogPreview() {
     MusterTheme {
         AddMemberByEmailScreen(
-            groupName = PreviewGroupName,
+            groupName = PREVIEW_GROUP_NAME,
             email = "priya.n@gmail.com",
             onEmailChange = {},
             onInvite = {},

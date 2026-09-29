@@ -14,8 +14,10 @@ object MusterColors {
     val QuietSurface = Color(0xFFF5F7F5)
     val Outline = Color(0xFFD7DCD8)
     val Hint = Color(0xFF8A918C)
+
     // Dashed border on the Home empty-state icon (1e) only.
     val DashedOutline = Color(0xFFCBD2CD)
+
     // Initials-avatar fill on member rows (1i/1j).
     val AvatarFill = Color(0xFFF0F2F0)
 

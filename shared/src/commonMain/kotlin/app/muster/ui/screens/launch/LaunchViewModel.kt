@@ -9,14 +9,14 @@ import app.muster.domain.usecase.GetMyProfileUseCase
 import app.muster.domain.usecase.ObserveSessionUseCase
 import app.muster.domain.usecase.RetrySessionUseCase
 import app.muster.domain.usecase.SignOutUseCase
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlin.time.Duration.Companion.seconds
-import kotlin.time.TimeSource
 
 class LaunchViewModel(
     private val observeSession: ObserveSessionUseCase,

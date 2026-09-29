@@ -7,10 +7,6 @@ import app.muster.domain.model.SessionState
 import app.muster.domain.usecase.RequestSignInCodeUseCase
 import app.muster.domain.usecase.VerifySignInCodeUseCase
 import app.muster.testing.MainDispatcherRule
-import kotlinx.coroutines.test.advanceTimeBy
-import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.coroutines.test.runTest
-import org.junit.Rule
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -18,18 +14,21 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
+import org.junit.Rule
 
 class EnterCodeViewModelTest {
 
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
-    private fun viewModel(auth: FakeAuthRepository = FakeAuthRepository()) =
-        EnterCodeViewModel(
-            email = FAKE_EMAIL,
-            requestSignInCode = RequestSignInCodeUseCase(auth),
-            verifySignInCode = VerifySignInCodeUseCase(auth)
-        )
+    private fun viewModel(auth: FakeAuthRepository = FakeAuthRepository()) = EnterCodeViewModel(
+        email = FAKE_EMAIL,
+        requestSignInCode = RequestSignInCodeUseCase(auth),
+        verifySignInCode = VerifySignInCodeUseCase(auth)
+    )
 
     @Test
     fun `keeps the address it was created with`() {

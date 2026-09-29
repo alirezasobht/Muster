@@ -11,9 +11,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class SetNameViewModel(
-    private val updateName: UpdateNameUseCase
-) : ViewModel() {
+class SetNameViewModel(private val updateName: UpdateNameUseCase) : ViewModel() {
 
     private val _state = MutableStateFlow(SetNameUiState())
     val state: StateFlow<SetNameUiState> = _state.asStateFlow()

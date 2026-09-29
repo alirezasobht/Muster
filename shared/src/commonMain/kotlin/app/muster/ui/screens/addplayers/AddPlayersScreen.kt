@@ -146,7 +146,10 @@ fun AddPlayersScreen(
 }
 
 @Composable
-private fun AddPlayersAppBar(onBack: () -> Unit, modifier: Modifier = Modifier) {
+private fun AddPlayersAppBar(
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Row(modifier = modifier.fillMaxWidth().height(56.dp), verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = onBack, modifier = Modifier.padding(horizontal = 16.dp)) {
             Icon(
@@ -261,7 +264,10 @@ private fun CandidateRowItem(
 }
 
 @Composable
-private fun SelectionBox(selected: Boolean, modifier: Modifier = Modifier) {
+private fun SelectionBox(
+    selected: Boolean,
+    modifier: Modifier = Modifier
+) {
     if (selected) {
         Surface(
             modifier = modifier.size(22.dp),
@@ -287,7 +293,10 @@ private fun SelectionBox(selected: Boolean, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun InitialsAvatar(initials: String, modifier: Modifier = Modifier) {
+private fun InitialsAvatar(
+    initials: String,
+    modifier: Modifier = Modifier
+) {
     Surface(
         modifier = modifier.size(34.dp),
         shape = RoundedCornerShape(percent = 50),

@@ -6,5 +6,6 @@ private external object JsJodaTimeZoneModule
 
 @OptIn(kotlin.js.ExperimentalWasmJsInterop::class)
 internal actual fun loadTimeZoneDatabase() {
-    @Suppress("unused") val forceImport = JsJodaTimeZoneModule
+    @Suppress("unused")
+    val forceImport = JsJodaTimeZoneModule
 }

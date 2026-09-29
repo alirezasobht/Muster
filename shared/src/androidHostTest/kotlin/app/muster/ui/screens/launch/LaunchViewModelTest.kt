@@ -11,14 +11,14 @@ import app.muster.domain.usecase.ObserveSessionUseCase
 import app.muster.domain.usecase.RetrySessionUseCase
 import app.muster.domain.usecase.SignOutUseCase
 import app.muster.testing.MainDispatcherRule
-import kotlinx.coroutines.test.advanceTimeBy
-import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.coroutines.test.runTest
-import org.junit.Rule
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
+import org.junit.Rule
 
 class LaunchViewModelTest {
 

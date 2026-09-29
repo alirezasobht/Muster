@@ -10,26 +10,18 @@ internal data class GroupDto(
 )
 
 @Serializable
-internal data class CreateGroupDto(
-    val name: String
-)
+internal data class CreateGroupDto(val name: String)
 
 @Serializable
-internal data class ArchiveGroupDto(
-    @SerialName("group_id") val groupId: String
-)
+internal data class ArchiveGroupDto(@SerialName("group_id") val groupId: String)
 
 // group_members joined to groups, for "my groups".
 @Serializable
-internal data class GroupMembershipDto(
-    val groups: GroupDto
-)
+internal data class GroupMembershipDto(val groups: GroupDto)
 
 // The caller's own group_members row, for their role in one group.
 @Serializable
-internal data class GroupMemberRoleDto(
-    val role: String
-)
+internal data class GroupMemberRoleDto(val role: String)
 
 // get_my_pending_invitations() RPC result — flat, not a table select.
 @Serializable

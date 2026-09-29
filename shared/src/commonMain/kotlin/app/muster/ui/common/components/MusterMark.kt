@@ -27,7 +27,10 @@ import app.muster.ui.theme.MusterTheme
 // The white "M" tile. 88 dp on launch (1q, 1r), 44 dp on sign-in (1a).
 // Corner radius and glyph size scale with it, per the frames.
 @Composable
-fun MusterMark(size: Dp, modifier: Modifier = Modifier) {
+fun MusterMark(
+    size: Dp,
+    modifier: Modifier = Modifier
+) {
     Box(
         modifier = modifier
             .sharedElementOrNone(SharedTransitionKeys.MARK)
@@ -49,7 +52,10 @@ fun MusterMark(size: Dp, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun MusterWordmark(fontSize: Int, modifier: Modifier = Modifier) {
+fun MusterWordmark(
+    fontSize: Int,
+    modifier: Modifier = Modifier
+) {
     Text(
         text = "MUSTER",
         style = MaterialTheme.typography.titleLarge.copy(

@@ -88,8 +88,7 @@ internal class GroupRepositoryImpl(
         put("invitation_id", invitationId)
     }
 
-    private fun myId(): String =
-        client.auth.currentUserOrNull()?.id ?: throw DomainError.NotSignedIn()
+    private fun myId(): String = client.auth.currentUserOrNull()?.id ?: throw DomainError.NotSignedIn()
 
     private companion object {
         const val GROUPS_TABLE = "groups"

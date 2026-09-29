@@ -10,15 +10,15 @@ import app.muster.domain.usecase.GetInviteeCandidatesUseCase
 import app.muster.testing.MainDispatcherRule
 import io.mockk.coEvery
 import io.mockk.mockk
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.coroutines.test.runTest
-import org.junit.Rule
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
+import org.junit.Rule
 
 class AddPlayersViewModelTest {
 
@@ -47,7 +47,10 @@ class AddPlayersViewModelTest {
     // and are tested there (GetInviteeCandidatesUseCaseTest). Mocking it here
     // keeps these tests to what the ViewModel itself does: mapping its result
     // to display state, selection order, and the confirm/write flow.
-    private fun mockCandidates(result: InviteeCandidates = result(), error: DomainError? = null): GetInviteeCandidatesUseCase {
+    private fun mockCandidates(
+        result: InviteeCandidates = result(),
+        error: DomainError? = null
+    ): GetInviteeCandidatesUseCase {
         val mock = mockk<GetInviteeCandidatesUseCase>()
         coEvery { mock(eventId, groupId) } answers { error?.let { throw it } ?: result }
         return mock

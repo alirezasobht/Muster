@@ -12,9 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class RequestCodeViewModel(
-    private val requestSignInCode: RequestSignInCodeUseCase
-) : ViewModel() {
+class RequestCodeViewModel(private val requestSignInCode: RequestSignInCodeUseCase) : ViewModel() {
 
     private val _state = MutableStateFlow(RequestCodeUiState())
     val state: StateFlow<RequestCodeUiState> = _state.asStateFlow()

@@ -4,6 +4,9 @@ import app.muster.domain.model.RsvpStatus
 import app.muster.domain.repository.EventRepository
 
 class SetRsvpUseCase(private val events: EventRepository) {
-    suspend operator fun invoke(eventId: String, profileId: String, status: RsvpStatus) =
-        events.setRsvp(eventId, profileId, status)
+    suspend operator fun invoke(
+        eventId: String,
+        profileId: String,
+        status: RsvpStatus
+    ) = events.setRsvp(eventId, profileId, status)
 }

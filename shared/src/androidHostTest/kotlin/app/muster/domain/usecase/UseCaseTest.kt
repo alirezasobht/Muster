@@ -4,10 +4,10 @@ import app.muster.data.fake.FAKE_EMAIL
 import app.muster.data.fake.FakeAuthRepository
 import app.muster.data.fake.FakeProfileRepository
 import app.muster.domain.model.SessionState
-import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlinx.coroutines.test.runTest
 
 // The use cases only delegate; the one thing they add is trimming, and a
 // stray space from a keyboard would otherwise reach the API.

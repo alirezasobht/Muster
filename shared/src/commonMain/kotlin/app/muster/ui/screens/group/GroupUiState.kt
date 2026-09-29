@@ -37,5 +37,8 @@ sealed interface GroupUiState : UiState<GroupUiState.Success> {
             }
     }
 
-    data class Error(override val groupName: String, val error: DomainError) : GroupUiState
+    data class Error(
+        override val groupName: String,
+        val error: DomainError
+    ) : GroupUiState
 }

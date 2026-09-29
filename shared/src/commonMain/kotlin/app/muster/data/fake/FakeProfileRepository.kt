@@ -3,8 +3,8 @@ package app.muster.data.fake
 import app.muster.domain.error.DomainError
 import app.muster.domain.model.Profile
 import app.muster.domain.repository.ProfileRepository
-import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.delay
 
 class FakeProfileRepository(
     name: String? = null,

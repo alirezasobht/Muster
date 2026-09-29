@@ -4,9 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-internal data class DeleteAccountDto(
-    val force: Boolean
-)
+internal data class DeleteAccountDto(val force: Boolean)
 
 // delete_account() RPC result: a group the caller is the only admin of.
 @Serializable

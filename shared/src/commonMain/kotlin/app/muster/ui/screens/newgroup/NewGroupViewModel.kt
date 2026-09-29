@@ -12,9 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class NewGroupViewModel(
-    private val createGroup: CreateGroupUseCase
-) : ViewModel() {
+class NewGroupViewModel(private val createGroup: CreateGroupUseCase) : ViewModel() {
 
     private val _state = MutableStateFlow(NewGroupUiState())
     val state: StateFlow<NewGroupUiState> = _state.asStateFlow()

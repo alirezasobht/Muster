@@ -10,7 +10,11 @@ import app.muster.domain.model.RsvpStatus
 import app.muster.domain.model.StandbyEntry
 import kotlin.time.Instant
 
-internal fun EventDto.toEvent(inCount: Int, pendingCount: Int, myStatus: RsvpStatus?) = Event(
+internal fun EventDto.toEvent(
+    inCount: Int,
+    pendingCount: Int,
+    myStatus: RsvpStatus?
+) = Event(
     id = id,
     groupId = groupId,
     title = title,

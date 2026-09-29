@@ -83,7 +83,11 @@ fun CodeInput(
 }
 
 @Composable
-private fun CodeBox(digit: Char?, active: Boolean, modifier: Modifier = Modifier) {
+private fun CodeBox(
+    digit: Char?,
+    active: Boolean,
+    modifier: Modifier = Modifier
+) {
     Box(
         modifier = modifier
             .height(64.dp)

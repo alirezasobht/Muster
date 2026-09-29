@@ -12,6 +12,4 @@ internal data class ProfileDto(
 )
 
 @Serializable
-internal data class SetProfileNameDto(
-    val name: String
-)
+internal data class SetProfileNameDto(val name: String)

@@ -35,21 +35,23 @@ data class EventSummary(
     val inCount: Int,
     val pendingCount: Int
 ) {
-     companion object {
-         fun from(groupId: String, groupName: String, eventRow: EventRow): EventSummary {
-             return EventSummary(
-                 groupId = groupId,
-                 groupName = groupName,
-                 eventId = eventRow.id,
-                 title = eventRow.title,
-                 date = eventRow.date,
-                 location = eventRow.location,
-                 capacity = eventRow.capacity,
-                 inCount = eventRow.inCount,
-                 pendingCount = eventRow.pendingCount
-             )
-         }
-     }
+    companion object {
+        fun from(
+            groupId: String,
+            groupName: String,
+            eventRow: EventRow
+        ): EventSummary = EventSummary(
+            groupId = groupId,
+            groupName = groupName,
+            eventId = eventRow.id,
+            title = eventRow.title,
+            date = eventRow.date,
+            location = eventRow.location,
+            capacity = eventRow.capacity,
+            inCount = eventRow.inCount,
+            pendingCount = eventRow.pendingCount
+        )
+    }
 }
 
 sealed interface EventUiState : UiState<EventUiState.Success> {
@@ -79,5 +81,8 @@ sealed interface EventUiState : UiState<EventUiState.Success> {
         val isRosterEmpty: Boolean get() = roster.isEmpty()
     }
 
-    data class Error(override val summary: EventSummary, val error: DomainError) : EventUiState
+    data class Error(
+        override val summary: EventSummary,
+        val error: DomainError
+    ) : EventUiState
 }

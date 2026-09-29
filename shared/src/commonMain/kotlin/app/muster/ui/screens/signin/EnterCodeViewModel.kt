@@ -7,6 +7,7 @@ import app.muster.domain.usecase.RequestSignInCodeUseCase
 import app.muster.domain.usecase.VerifySignInCodeUseCase
 import app.muster.ui.common.ErrorPresentation
 import app.muster.ui.common.presentation
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,7 +15,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlin.time.Duration.Companion.seconds
 
 class EnterCodeViewModel(
     email: String,

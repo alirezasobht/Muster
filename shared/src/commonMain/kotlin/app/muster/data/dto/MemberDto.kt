@@ -11,9 +11,7 @@ internal data class GroupMemberDto(
 )
 
 @Serializable
-internal data class MemberProfileDto(
-    val name: String? = null
-)
+internal data class MemberProfileDto(val name: String? = null)
 
 @Serializable
 internal data class GroupInvitationRowDto(
@@ -54,6 +52,4 @@ internal data class ResendGroupInvitationDto(
 )
 
 @Serializable
-internal data class LeaveGroupDto(
-    @SerialName("group_id") val groupId: String
-)
+internal data class LeaveGroupDto(@SerialName("group_id") val groupId: String)

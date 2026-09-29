@@ -4,5 +4,6 @@ package app.muster.domain.model
 private external object JsJodaTimeZoneModule
 
 internal actual fun loadTimeZoneDatabase() {
-    @Suppress("unused") val forceImport = JsJodaTimeZoneModule
+    @Suppress("unused")
+    val forceImport = JsJodaTimeZoneModule
 }

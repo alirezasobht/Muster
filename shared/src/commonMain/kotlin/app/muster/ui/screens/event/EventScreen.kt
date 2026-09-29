@@ -349,7 +349,6 @@ private fun EventContent(
                 contentPadding = PaddingValues(horizontal = 24.dp),
                 userScrollEnabled = !standbyDragging
             ) {
-
                 item { Spacer(Modifier.height(16.dp)) }
                 item { EventDetails(summary = state.summary, isFrozen = state.isFrozen, outCount = outCount) }
                 item { Spacer(Modifier.height(16.dp)) }
@@ -391,7 +390,9 @@ private fun EventContent(
                                             modifier = Modifier.fillMaxWidth()
                                         )
                                     }
-                                } else null
+                                } else {
+                                    null
+                                }
                             )
                         }
                     }
@@ -451,7 +452,11 @@ private fun EventContent(
 }
 
 @Composable
-private fun AddPill(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun AddPill(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Surface(
         onClick = onClick,
         modifier = modifier.height(36.dp),
@@ -560,7 +565,12 @@ private fun SlotsPanel(
 }
 
 @Composable
-private fun SlotsBar(open: Int, inCount: Int, pendingCount: Int, modifier: Modifier = Modifier) {
+private fun SlotsBar(
+    open: Int,
+    inCount: Int,
+    pendingCount: Int,
+    modifier: Modifier = Modifier
+) {
     Row(
         modifier = modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(percent = 50)).background(MusterColors.Hairline)
     ) {
@@ -571,7 +581,11 @@ private fun SlotsBar(open: Int, inCount: Int, pendingCount: Int, modifier: Modif
 }
 
 @Composable
-private fun LegendItem(color: Color, label: String, modifier: Modifier = Modifier) {
+private fun LegendItem(
+    color: Color,
+    label: String,
+    modifier: Modifier = Modifier
+) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
         Box(
             modifier = Modifier
@@ -638,12 +652,18 @@ private fun OwnRsvpBlock(
                 Row {
                     PrimaryButton(
                         text = stringResource(Res.string.action_im_in),
-                        onClick = { isChanging = false; onRsvp(RsvpStatus.In) },
+                        onClick = {
+                            isChanging = false
+                            onRsvp(RsvpStatus.In)
+                        },
                         modifier = Modifier.weight(1f)
                     )
                     Spacer(Modifier.width(12.dp))
                     OutlinedButton(
-                        onClick = { isChanging = false; onRsvp(RsvpStatus.Out) },
+                        onClick = {
+                            isChanging = false
+                            onRsvp(RsvpStatus.Out)
+                        },
                         shape = MaterialTheme.shapes.medium,
                         border = BorderStroke(1.dp, MusterColors.Outline),
                         modifier = Modifier.weight(1f).height(52.dp)
@@ -797,7 +817,10 @@ private fun LazyListScope.standbySection(
 }
 
 @Composable
-private fun StandbyPositionDisc(position: Int, modifier: Modifier = Modifier) {
+private fun StandbyPositionDisc(
+    position: Int,
+    modifier: Modifier = Modifier
+) {
     Surface(modifier = modifier.size(StandbyDiscSize), shape = CircleShape, color = MusterColors.White) {
         Box(contentAlignment = Alignment.Center) {
             Text(
@@ -810,7 +833,11 @@ private fun StandbyPositionDisc(position: Int, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun StandbyRowItem(position: Int, row: StandbyRow, modifier: Modifier = Modifier) {
+private fun StandbyRowItem(
+    position: Int,
+    row: StandbyRow,
+    modifier: Modifier = Modifier
+) {
     Row(
         modifier = modifier.fillMaxWidth().height(StandbyRowHeight).padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -906,7 +933,10 @@ private fun StatusMenu(
                 rowActions.forEach { action ->
                     DropdownMenuItem(
                         text = { Text(text = stringResource(action.label())) },
-                        onClick = { expanded = false; onAction(action) },
+                        onClick = {
+                            expanded = false
+                            onAction(action)
+                        },
                         enabled = !inFlight && !isFrozen
                     )
                 }
@@ -988,7 +1018,10 @@ private fun RsvpStatus.label() = when (this) {
 }
 
 @Composable
-private fun InitialsAvatar(initials: String, modifier: Modifier = Modifier) {
+private fun InitialsAvatar(
+    initials: String,
+    modifier: Modifier = Modifier
+) {
     Surface(
         modifier = modifier.size(40.dp),
         shape = RoundedCornerShape(percent = 50),

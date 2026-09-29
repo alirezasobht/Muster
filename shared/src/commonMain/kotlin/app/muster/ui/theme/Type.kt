@@ -24,14 +24,18 @@ private fun dmSans() = FontFamily(
 @Composable
 internal fun musterTypography(): Typography {
     val family = dmSans()
-    fun style(size: Int, weight: FontWeight, lineHeight: Double, tracking: Double = 0.0) =
-        TextStyle(
-            fontFamily = family,
-            fontSize = size.sp,
-            fontWeight = weight,
-            lineHeight = lineHeight.sp,
-            letterSpacing = tracking.sp
-        )
+    fun style(
+        size: Int,
+        weight: FontWeight,
+        lineHeight: Double,
+        tracking: Double = 0.0
+    ) = TextStyle(
+        fontFamily = family,
+        fontSize = size.sp,
+        fontWeight = weight,
+        lineHeight = lineHeight.sp,
+        letterSpacing = tracking.sp
+    )
 
     return Typography(
         // Screen titles — "Sign in", "Enter your code" (1a–1c)

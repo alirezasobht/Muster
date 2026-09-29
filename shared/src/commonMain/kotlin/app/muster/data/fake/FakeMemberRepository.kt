@@ -8,8 +8,8 @@ import app.muster.domain.model.Member
 import app.muster.domain.model.MemberListing
 import app.muster.domain.model.PendingInvitation
 import app.muster.domain.repository.MemberRepository
-import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.delay
 
 class FakeMemberRepository(
     members: List<Member> = emptyList(),
@@ -59,14 +59,20 @@ class FakeMemberRepository(
         return MemberListing(members = members, pendingInvitations = pendingInvitations)
     }
 
-    override suspend fun inviteByEmail(groupId: String, email: String) {
+    override suspend fun inviteByEmail(
+        groupId: String,
+        email: String
+    ) {
         delay(latency.milliseconds)
         inviteByEmailError?.let { throw it }
         invitedEmails = invitedEmails + email
         dataChanges?.notify(DataChange.Members(groupId))
     }
 
-    override suspend fun promote(groupId: String, profileId: String) {
+    override suspend fun promote(
+        groupId: String,
+        profileId: String
+    ) {
         delay(latency.milliseconds)
         promoteError?.let { throw it }
         members = members.map { if (it.profileId == profileId) it.copy(role = GroupRole.Admin) else it }
@@ -74,7 +80,10 @@ class FakeMemberRepository(
         dataChanges?.notify(DataChange.Members(groupId))
     }
 
-    override suspend fun demote(groupId: String, profileId: String) {
+    override suspend fun demote(
+        groupId: String,
+        profileId: String
+    ) {
         delay(latency.milliseconds)
         demoteError?.let { throw it }
         members = members.map { if (it.profileId == profileId) it.copy(role = GroupRole.Member) else it }
@@ -82,7 +91,10 @@ class FakeMemberRepository(
         dataChanges?.notify(DataChange.Members(groupId))
     }
 
-    override suspend fun remove(groupId: String, profileId: String) {
+    override suspend fun remove(
+        groupId: String,
+        profileId: String
+    ) {
         delay(latency.milliseconds)
         removeError?.let { throw it }
         members = members.filterNot { it.profileId == profileId }
@@ -90,7 +102,10 @@ class FakeMemberRepository(
         dataChanges?.notify(DataChange.Members(groupId))
     }
 
-    override suspend fun revokeInvitation(groupId: String, invitationId: String) {
+    override suspend fun revokeInvitation(
+        groupId: String,
+        invitationId: String
+    ) {
         delay(latency.milliseconds)
         revokeError?.let { throw it }
         pendingInvitations = pendingInvitations.filterNot { it.id == invitationId }
@@ -98,7 +113,10 @@ class FakeMemberRepository(
         dataChanges?.notify(DataChange.Members(groupId))
     }
 
-    override suspend fun resendInvitation(groupId: String, invitationId: String) {
+    override suspend fun resendInvitation(
+        groupId: String,
+        invitationId: String
+    ) {
         delay(latency.milliseconds)
         resendError?.let { throw it }
         resentInvitationIds = resentInvitationIds + invitationId

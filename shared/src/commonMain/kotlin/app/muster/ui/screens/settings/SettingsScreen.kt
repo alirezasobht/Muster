@@ -42,6 +42,7 @@ import app.muster.ui.common.components.PrimaryButton
 import app.muster.ui.common.toMessage
 import app.muster.ui.theme.MusterColors
 import app.muster.ui.theme.MusterTheme
+import kotlinx.coroutines.delay
 import muster.shared.generated.resources.Res
 import muster.shared.generated.resources.action_save
 import muster.shared.generated.resources.action_sign_out
@@ -58,7 +59,6 @@ import muster.shared.generated.resources.settings_saved
 import muster.shared.generated.resources.settings_title
 import muster.shared.generated.resources.settings_try_again
 import muster.shared.generated.resources.settings_version
-import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -181,7 +181,11 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun ErrorContent(error: DomainError, onRetry: () -> Unit, modifier: Modifier = Modifier) {
+private fun ErrorContent(
+    error: DomainError,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Column(
         modifier = modifier.padding(horizontal = 40.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -260,7 +264,8 @@ private fun FormContent(
                 text = stringResource(Res.string.settings_delete_account),
                 color = MusterColors.Ink,
                 style = MaterialTheme.typography.bodySmall,
-                textDecoration = TextDecoration.Underline)
+                textDecoration = TextDecoration.Underline
+            )
         }
         Spacer(Modifier.height(16.dp))
         Text(

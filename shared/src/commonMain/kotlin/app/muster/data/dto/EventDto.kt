@@ -14,9 +14,7 @@ internal data class EventDto(
 )
 
 @Serializable
-internal data class ListUpcomingEventsDto(
-    @SerialName("gid") val groupId: String
-)
+internal data class ListUpcomingEventsDto(@SerialName("gid") val groupId: String)
 
 @Serializable
 internal data class UpcomingEventDto(
@@ -41,9 +39,7 @@ internal data class CreateEventDto(
 )
 
 @Serializable
-internal data class GetEventDetailDto(
-    @SerialName("eid") val eventId: String
-)
+internal data class GetEventDetailDto(@SerialName("eid") val eventId: String)
 
 @Serializable
 internal data class EventDetailDto(
@@ -68,9 +64,7 @@ internal data class SetEventRsvpDto(
 )
 
 @Serializable
-internal data class EventInvitationGroupIdDto(
-    @SerialName("group_id") val groupId: String
-)
+internal data class EventInvitationGroupIdDto(@SerialName("group_id") val groupId: String)
 
 @Serializable
 internal data class EventStandbyEntryDto(

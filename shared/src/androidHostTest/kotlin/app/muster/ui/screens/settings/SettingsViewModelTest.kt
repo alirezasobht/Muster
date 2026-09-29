@@ -6,28 +6,27 @@ import app.muster.domain.error.DomainError
 import app.muster.domain.usecase.GetMyProfileUseCase
 import app.muster.domain.usecase.UpdateNameUseCase
 import app.muster.testing.MainDispatcherRule
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.withTimeoutOrNull
-import org.junit.Rule
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeoutOrNull
+import org.junit.Rule
 
 class SettingsViewModelTest {
 
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
-    private fun viewModel(profiles: FakeProfileRepository = FakeProfileRepository(name = "Alex Doyle")) =
-        SettingsViewModel(
-            getMyProfile = GetMyProfileUseCase(profiles),
-            updateName = UpdateNameUseCase(profiles)
-        )
+    private fun viewModel(profiles: FakeProfileRepository = FakeProfileRepository(name = "Alex Doyle")) = SettingsViewModel(
+        getMyProfile = GetMyProfileUseCase(profiles),
+        updateName = UpdateNameUseCase(profiles)
+    )
 
     @Test
     fun `starts loading`() {

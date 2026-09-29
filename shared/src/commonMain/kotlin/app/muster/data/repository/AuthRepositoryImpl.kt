@@ -39,7 +39,10 @@ internal class AuthRepositoryImpl(private val client: SupabaseClient) : AuthRepo
         }
     }
 
-    override suspend fun verifySignInCode(email: String, code: String) {
+    override suspend fun verifySignInCode(
+        email: String,
+        code: String
+    ) {
         mapErrors {
             auth.verifyEmailOtp(type = OtpType.Email.EMAIL, email = email, token = code)
         }

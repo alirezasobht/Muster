@@ -19,8 +19,10 @@ class SessionMapperTest {
         user = user
     )
 
-    private fun user(id: String = "id-1", email: String? = "alex.doyle@gmail.com") =
-        UserInfo(aud = "authenticated", id = id, email = email)
+    private fun user(
+        id: String = "id-1",
+        email: String? = "alex.doyle@gmail.com"
+    ) = UserInfo(aud = "authenticated", id = id, email = email)
 
     @Test
     fun `initializing is loading`() {

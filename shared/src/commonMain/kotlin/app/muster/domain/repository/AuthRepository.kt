@@ -12,7 +12,10 @@ interface AuthRepository {
     // Also creates the account if the address is new.
     suspend fun requestSignInCode(email: String)
 
-    suspend fun verifySignInCode(email: String, code: String)
+    suspend fun verifySignInCode(
+        email: String,
+        code: String
+    )
 
     suspend fun signOut()
 

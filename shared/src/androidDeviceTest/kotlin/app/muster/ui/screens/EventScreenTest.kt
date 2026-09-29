@@ -2,12 +2,12 @@ package app.muster.ui.screens
 
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
-import androidx.compose.ui.test.hasScrollAction
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
@@ -279,8 +279,7 @@ class EventScreenTest {
         composeRule.onNodeWithText("›").assertDoesNotExist()
     }
 
-    private fun pendingRow(actions: List<RosterAction>) =
-        RosterRow(id = "p2", name = "Tomás Neale", status = RsvpStatus.Pending, actions = actions)
+    private fun pendingRow(actions: List<RosterAction>) = RosterRow(id = "p2", name = "Tomás Neale", status = RsvpStatus.Pending, actions = actions)
 
     @Test
     fun selectingAStatusFromTheMenuReachesTheCallback() {

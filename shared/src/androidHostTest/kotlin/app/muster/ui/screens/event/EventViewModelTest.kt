@@ -21,15 +21,15 @@ import app.muster.domain.usecase.ReorderStandbyUseCase
 import app.muster.domain.usecase.ResendEventInvitationUseCase
 import app.muster.domain.usecase.SetRsvpUseCase
 import app.muster.testing.MainDispatcherRule
-import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.coroutines.test.runTest
-import org.junit.Rule
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
+import org.junit.Rule
 
 class EventViewModelTest {
 
@@ -365,8 +365,7 @@ class EventViewModelTest {
         assertEquals(1, events.rsvpUpdates.size)
     }
 
-    private fun EventUiState.actionsFor(id: String) =
-        assertIs<EventUiState.Success>(this).roster.single { it.id == id }.actions
+    private fun EventUiState.actionsFor(id: String) = assertIs<EventUiState.Success>(this).roster.single { it.id == id }.actions
 
     @Test
     fun `an admin gets status and removal actions per status`() = runTest {

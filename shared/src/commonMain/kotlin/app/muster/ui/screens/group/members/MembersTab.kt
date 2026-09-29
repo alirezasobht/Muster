@@ -1,6 +1,5 @@
 package app.muster.ui.screens.group.members
 
-import app.muster.ui.common.components.MusterPullToRefreshBox
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -54,6 +53,7 @@ import app.muster.domain.error.DomainError
 import app.muster.ui.common.components.ConfirmDialog
 import app.muster.ui.common.components.MessageState
 import app.muster.ui.common.components.MusterIcons
+import app.muster.ui.common.components.MusterPullToRefreshBox
 import app.muster.ui.common.components.MusterSpinner
 import app.muster.ui.common.toMessage
 import app.muster.ui.theme.MusterColors
@@ -281,12 +281,10 @@ private fun MembersContent(
                                 pendingConfirmation = PendingConfirmation(row, RemoveDialog) { actions.onRemove(row.id) }
                             },
                             onRevokeInvitation = {
-                                pendingConfirmation =
-                                    PendingConfirmation(row, RevokeDialog) { actions.onRevokeInvitation(row.id) }
+                                pendingConfirmation = PendingConfirmation(row, RevokeDialog) { actions.onRevokeInvitation(row.id) }
                             },
                             onResendInvitation = {
-                                pendingConfirmation =
-                                    PendingConfirmation(row, ResendDialog) { actions.onResendInvitation(row.id) }
+                                pendingConfirmation = PendingConfirmation(row, ResendDialog) { actions.onResendInvitation(row.id) }
                             },
                             modifier = Modifier.animateItem()
                         )
@@ -312,7 +310,10 @@ private fun MembersContent(
 }
 
 @Composable
-private fun AddMemberByEmailRow(onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun AddMemberByEmailRow(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Row(
         modifier = modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -443,13 +444,19 @@ private fun RowMenu(
                 if (row.canPromote) {
                     DropdownMenuItem(
                         text = { Text(stringResource(Res.string.members_action_promote)) },
-                        onClick = { expanded = false; onPromote() }
+                        onClick = {
+                            expanded = false
+                            onPromote()
+                        }
                     )
                 }
                 if (row.canDemote) {
                     DropdownMenuItem(
                         text = { Text(stringResource(Res.string.members_action_demote)) },
-                        onClick = { expanded = false; onDemote() }
+                        onClick = {
+                            expanded = false
+                            onDemote()
+                        }
                     )
                 }
                 if (row.canRemove) {
@@ -457,19 +464,28 @@ private fun RowMenu(
                         text = {
                             Text(text = stringResource(Res.string.members_action_remove), color = MusterColors.OutText)
                         },
-                        onClick = { expanded = false; onRemove() }
+                        onClick = {
+                            expanded = false
+                            onRemove()
+                        }
                     )
                 }
                 if (row.canResendInvitation) {
                     DropdownMenuItem(
                         text = { Text(stringResource(Res.string.members_action_resend)) },
-                        onClick = { expanded = false; onResend() }
+                        onClick = {
+                            expanded = false
+                            onResend()
+                        }
                     )
                 }
                 if (row.canRevokeInvitation) {
                     DropdownMenuItem(
                         text = { Text(stringResource(Res.string.members_action_revoke)) },
-                        onClick = { expanded = false; onRevoke() }
+                        onClick = {
+                            expanded = false
+                            onRevoke()
+                        }
                     )
                 }
             }
@@ -478,7 +494,10 @@ private fun RowMenu(
 }
 
 @Composable
-private fun InitialsAvatar(initials: String, modifier: Modifier = Modifier) {
+private fun InitialsAvatar(
+    initials: String,
+    modifier: Modifier = Modifier
+) {
     Surface(
         modifier = modifier.size(40.dp),
         shape = RoundedCornerShape(percent = 50),

@@ -105,7 +105,10 @@ class HomeViewModel(
         }
     }
 
-    private fun respond(invitationId: String, action: suspend (String) -> Unit) {
+    private fun respond(
+        invitationId: String,
+        action: suspend (String) -> Unit
+    ) {
         val current = _state.value as? HomeUiState.Success ?: return
         if (current.respondingTo != null) return
         _state.updateSuccess { it.copy(respondingTo = invitationId, actionError = null, failedInvitationId = null) }

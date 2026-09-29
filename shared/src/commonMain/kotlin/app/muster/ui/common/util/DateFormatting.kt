@@ -1,9 +1,9 @@
 package app.muster.ui.common.util
 
 import app.muster.domain.model.MusterTimeZone
+import kotlin.time.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Instant
 
 fun Instant.toDisplayDate(): String {
     val dateTime = toLocalDateTime(MusterTimeZone)

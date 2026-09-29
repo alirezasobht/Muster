@@ -72,11 +72,9 @@ class MembersViewModel(
 
     fun onRemove(profileId: String) = performAction(profileId) { removeMember(groupId, profileId) }
 
-    fun onRevokeInvitation(invitationId: String) =
-        performAction(invitationId) { revokeInvitation(groupId, invitationId) }
+    fun onRevokeInvitation(invitationId: String) = performAction(invitationId) { revokeInvitation(groupId, invitationId) }
 
-    fun onResendInvitation(invitationId: String) =
-        performAction(invitationId) { resendInvitation(groupId, invitationId) }
+    fun onResendInvitation(invitationId: String) = performAction(invitationId) { resendInvitation(groupId, invitationId) }
 
     private fun load() {
         _state.value = MembersUiState.Loading
@@ -109,7 +107,10 @@ class MembersViewModel(
 
     // No refetch here: the repository announces the write on DataChanges and the
     // subscription above reloads. Refetching as well would fetch twice.
-    private fun performAction(targetId: String, action: suspend () -> Unit) {
+    private fun performAction(
+        targetId: String,
+        action: suspend () -> Unit
+    ) {
         val current = _state.value as? MembersUiState.Success ?: return
         if (current.actionTargetId != null) return
         _state.updateSuccess { it.copy(actionTargetId = targetId, actionError = null, failedActionId = null) }
@@ -133,7 +134,11 @@ class MembersViewModel(
         )
     }
 
-    private fun buildRows(listing: MemberListing, myProfileId: String, isAdmin: Boolean): List<MemberRow> {
+    private fun buildRows(
+        listing: MemberListing,
+        myProfileId: String,
+        isAdmin: Boolean
+    ): List<MemberRow> {
         val memberRows = listing.members.map { member ->
             val isSelf = member.profileId == myProfileId
             MemberRow(
@@ -165,7 +170,10 @@ class MembersViewModel(
     }
 
     // Self first, then admins A-Z, then members A-Z, then pending A-Z.
-    private fun sortRows(memberRows: List<MemberRow>, pendingRows: List<MemberRow>): List<MemberRow> {
+    private fun sortRows(
+        memberRows: List<MemberRow>,
+        pendingRows: List<MemberRow>
+    ): List<MemberRow> {
         val (selfRows, otherRows) = memberRows.partition { it.isSelf }
         val admins = otherRows.filter { it.status == MemberStatus.Admin }
             .sortedBy { it.displayName.lowercase() }

@@ -1,6 +1,5 @@
 package app.muster.ui.screens.home
 
-import app.muster.ui.common.components.MusterPullToRefreshBox
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,6 +36,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.muster.domain.error.DomainError
 import app.muster.ui.common.components.MessageState
+import app.muster.ui.common.components.MusterPullToRefreshBox
 import app.muster.ui.common.components.MusterSpinner
 import app.muster.ui.common.components.PhoneWidth
 import app.muster.ui.common.components.PrimaryButton
@@ -59,8 +59,15 @@ import muster.shared.generated.resources.home_settings
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
-data class HomeGroup(val id: String, val name: String)
-data class HomeInvitation(val id: String, val groupName: String, val invitedByName: String? = null)
+data class HomeGroup(
+    val id: String,
+    val name: String
+)
+data class HomeInvitation(
+    val id: String,
+    val groupName: String,
+    val invitedByName: String? = null
+)
 
 data class HomeActions(
     val onGroupClick: (id: String, name: String) -> Unit,
@@ -110,7 +117,10 @@ fun HomeRoute(
 
 // App bar holds position across Loading (1s), Success (1d/1e) and Error (1t).
 @Composable
-private fun HomeAppBar(onSettingsClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun HomeAppBar(
+    onSettingsClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Column(modifier = modifier) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(20.dp),
@@ -267,7 +277,10 @@ fun HomeScreen(
 }
 
 @Composable
-private fun HomeEmptyState(signedInEmail: String, modifier: Modifier = Modifier) {
+private fun HomeEmptyState(
+    signedInEmail: String,
+    modifier: Modifier = Modifier
+) {
     MessageState(
         title = stringResource(Res.string.home_empty_title),
         body = stringResource(Res.string.home_empty_body),
@@ -292,7 +305,11 @@ private fun HomeEmptyState(signedInEmail: String, modifier: Modifier = Modifier)
 private val CardBorder = BorderStroke(1.dp, MusterColors.Hairline)
 
 @Composable
-private fun GroupCard(group: HomeGroup, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun GroupCard(
+    group: HomeGroup,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     // Surface's own onClick, not Modifier.clickable: a clickable passed in
     // through the modifier is applied before the shape clips, so the ripple
     // draws as a rectangle over the rounded corners.

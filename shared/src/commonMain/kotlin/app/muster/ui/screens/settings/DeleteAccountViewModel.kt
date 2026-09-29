@@ -9,9 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class DeleteAccountViewModel(
-    private val deleteAccount: DeleteAccountUseCase
-) : ViewModel() {
+class DeleteAccountViewModel(private val deleteAccount: DeleteAccountUseCase) : ViewModel() {
 
     private val _state = MutableStateFlow<DeleteAccountUiState>(DeleteAccountUiState.Hidden)
     val state: StateFlow<DeleteAccountUiState> = _state.asStateFlow()

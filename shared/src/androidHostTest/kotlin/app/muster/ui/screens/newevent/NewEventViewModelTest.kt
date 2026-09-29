@@ -4,16 +4,16 @@ import app.muster.data.fake.FakeEventRepository
 import app.muster.domain.error.DomainError
 import app.muster.domain.usecase.CreateEventUseCase
 import app.muster.testing.MainDispatcherRule
-import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.LocalTime
-import org.junit.Rule
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
+import org.junit.Rule
 
 class NewEventViewModelTest {
 
@@ -24,8 +24,7 @@ class NewEventViewModelTest {
     private val futureDate = LocalDate(2099, 1, 1)
     private val futureTime = LocalTime(19, 0)
 
-    private fun viewModel(events: FakeEventRepository = FakeEventRepository()) =
-        NewEventViewModel(groupId, CreateEventUseCase(events))
+    private fun viewModel(events: FakeEventRepository = FakeEventRepository()) = NewEventViewModel(groupId, CreateEventUseCase(events))
 
     private fun NewEventViewModel.fillValidForm() {
         onTitleChange("Weekly 7-a-side")

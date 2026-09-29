@@ -1,6 +1,9 @@
 package app.muster.domain.error
 
-sealed class DomainError(message: String, cause: Throwable? = null) : Exception(message, cause) {
+sealed class DomainError(
+    message: String,
+    cause: Throwable? = null
+) : Exception(message, cause) {
 
     class Network(cause: Throwable? = null) : DomainError("network unavailable", cause)
 

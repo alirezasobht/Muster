@@ -144,7 +144,10 @@ fun EnterCodeScreen(
 }
 
 @Composable
-private fun ResendLine(resendInSeconds: Int, onResend: () -> Unit) {
+private fun ResendLine(
+    resendInSeconds: Int,
+    onResend: () -> Unit
+) {
     val style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp)
     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         if (resendInSeconds > 0) {
@@ -165,8 +168,7 @@ private fun ResendLine(resendInSeconds: Int, onResend: () -> Unit) {
     }
 }
 
-private fun formatSeconds(total: Int): String =
-    "${total / 60}:${(total % 60).toString().padStart(2, '0')}"
+private fun formatSeconds(total: Int): String = "${total / 60}:${(total % 60).toString().padStart(2, '0')}"
 
 @Preview
 @Composable

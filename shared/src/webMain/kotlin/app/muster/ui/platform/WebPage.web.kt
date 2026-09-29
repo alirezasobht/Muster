@@ -12,7 +12,10 @@ import org.w3c.dom.HTMLIFrameElement
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-actual fun WebPage(url: String, modifier: Modifier) {
+actual fun WebPage(
+    url: String,
+    modifier: Modifier
+) {
     // The <iframe> sits above the canvas and can't join a screen transition, so
     // it would float over the next screen. Shown only while its screen is RESUMED.
     val lifecycleState = LocalLifecycleOwner.current.lifecycle.currentStateAsState()

@@ -56,6 +56,8 @@ import app.muster.ui.common.components.PrimaryButton
 import app.muster.ui.common.toMessage
 import app.muster.ui.theme.MusterColors
 import app.muster.ui.theme.MusterTheme
+import kotlin.time.Clock
+import kotlin.time.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
@@ -81,8 +83,6 @@ import muster.shared.generated.resources.new_event_title
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
-import kotlin.time.Clock
-import kotlin.time.Instant
 
 data class NewEventActions(
     val onTitleChange: (String) -> Unit,

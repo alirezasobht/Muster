@@ -29,8 +29,7 @@ internal class ProfileRepositoryImpl(private val client: SupabaseClient) : Profi
     }
 
     // RLS also returns co-members' profiles, so the id filter is required.
-    private fun myId(): String =
-        client.auth.currentUserOrNull()?.id ?: throw DomainError.NotSignedIn()
+    private fun myId(): String = client.auth.currentUserOrNull()?.id ?: throw DomainError.NotSignedIn()
 
     private companion object {
         const val TABLE = "profiles"

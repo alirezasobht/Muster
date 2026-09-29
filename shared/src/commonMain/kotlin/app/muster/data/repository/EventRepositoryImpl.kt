@@ -22,11 +22,11 @@ import app.muster.domain.repository.EventRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
+import kotlin.time.Instant
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
-import kotlin.time.Instant
 
 internal class EventRepositoryImpl(
     private val client: SupabaseClient,
@@ -68,7 +68,11 @@ internal class EventRepositoryImpl(
             .toEventDetail()
     }
 
-    override suspend fun setRsvp(eventId: String, profileId: String, status: RsvpStatus): Unit = mapErrors {
+    override suspend fun setRsvp(
+        eventId: String,
+        profileId: String,
+        status: RsvpStatus
+    ): Unit = mapErrors {
         val groupId = client.postgrest.rpc(
             SET_EVENT_RSVP_FUNCTION,
             SetEventRsvpDto(eventId = eventId, profileId = profileId, status = status.toDbValue())
@@ -80,7 +84,11 @@ internal class EventRepositoryImpl(
         dataChanges.notify(DataChange.Events(groupId))
     }
 
-    override suspend fun disinvitePlayer(eventId: String, groupId: String, profileId: String): Unit = mapErrors {
+    override suspend fun disinvitePlayer(
+        eventId: String,
+        groupId: String,
+        profileId: String
+    ): Unit = mapErrors {
         client.postgrest.rpc(
             DISINVITE_PLAYER_FUNCTION,
             buildJsonObject {
@@ -92,7 +100,10 @@ internal class EventRepositoryImpl(
         dataChanges.notify(DataChange.Events(groupId))
     }
 
-    override suspend fun resendInvitation(eventId: String, profileId: String): Unit = mapErrors {
+    override suspend fun resendInvitation(
+        eventId: String,
+        profileId: String
+    ): Unit = mapErrors {
         client.postgrest.rpc(
             RESEND_EVENT_INVITATION_FUNCTION,
             buildJsonObject {
@@ -103,7 +114,10 @@ internal class EventRepositoryImpl(
         )
     }
 
-    override suspend fun reorderStandby(eventId: String, orderedProfileIds: List<String>): Unit = mapErrors {
+    override suspend fun reorderStandby(
+        eventId: String,
+        orderedProfileIds: List<String>
+    ): Unit = mapErrors {
         client.postgrest.rpc(
             SET_STANDBY_ORDER_FUNCTION,
             buildJsonObject {
@@ -114,7 +128,11 @@ internal class EventRepositoryImpl(
         dataChanges.notify(DataChange.Roster(eventId))
     }
 
-    override suspend fun addPlayers(eventId: String, groupId: String, profileIds: List<String>): Unit = mapErrors {
+    override suspend fun addPlayers(
+        eventId: String,
+        groupId: String,
+        profileIds: List<String>
+    ): Unit = mapErrors {
         client.postgrest.rpc(
             ADD_PLAYERS_TO_EVENT_FUNCTION,
             buildJsonObject {

@@ -9,9 +9,9 @@ import app.muster.domain.model.RosterEntry
 import app.muster.domain.model.RsvpStatus
 import app.muster.domain.model.StandbyEntry
 import app.muster.domain.repository.EventRepository
-import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Instant
+import kotlinx.coroutines.delay
 
 class FakeEventRepository(
     var events: List<Event> = emptyList(),
@@ -105,7 +105,11 @@ class FakeEventRepository(
         return eventDetail.copy(event = event)
     }
 
-    override suspend fun setRsvp(eventId: String, profileId: String, status: RsvpStatus) {
+    override suspend fun setRsvp(
+        eventId: String,
+        profileId: String,
+        status: RsvpStatus
+    ) {
         delay(latency.milliseconds)
         setRsvpError?.let { throw it }
         rsvpUpdates = rsvpUpdates + Triple(eventId, profileId, status)
@@ -118,7 +122,11 @@ class FakeEventRepository(
         dataChanges?.notify(DataChange.Events(eventDetail.event.groupId))
     }
 
-    override suspend fun disinvitePlayer(eventId: String, groupId: String, profileId: String) {
+    override suspend fun disinvitePlayer(
+        eventId: String,
+        groupId: String,
+        profileId: String
+    ) {
         delay(latency.milliseconds)
         disinvitePlayerError?.let { throw it }
 
@@ -146,13 +154,19 @@ class FakeEventRepository(
         dataChanges?.notify(DataChange.Events(groupId))
     }
 
-    override suspend fun resendInvitation(eventId: String, profileId: String) {
+    override suspend fun resendInvitation(
+        eventId: String,
+        profileId: String
+    ) {
         delay(latency.milliseconds)
         resendInvitationError?.let { throw it }
         resentInvitationProfileIds = resentInvitationProfileIds + profileId
     }
 
-    override suspend fun reorderStandby(eventId: String, orderedProfileIds: List<String>) {
+    override suspend fun reorderStandby(
+        eventId: String,
+        orderedProfileIds: List<String>
+    ) {
         delay(latency.milliseconds)
         reorderStandbyError?.let { throw it }
         reorderCalls = reorderCalls + listOf(orderedProfileIds)
@@ -161,7 +175,11 @@ class FakeEventRepository(
         dataChanges?.notify(DataChange.Roster(eventId))
     }
 
-    override suspend fun addPlayers(eventId: String, groupId: String, profileIds: List<String>) {
+    override suspend fun addPlayers(
+        eventId: String,
+        groupId: String,
+        profileIds: List<String>
+    ) {
         delay(latency.milliseconds)
         addPlayersError?.let { throw it }
         addPlayersCalls = addPlayersCalls + listOf(profileIds)

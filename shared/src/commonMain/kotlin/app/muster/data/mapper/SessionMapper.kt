@@ -7,7 +7,8 @@ internal fun SessionStatus.toSessionState(): SessionState = when (this) {
     SessionStatus.Initializing -> SessionState.Loading
     is SessionStatus.NotAuthenticated -> SessionState.SignedOut
     is SessionStatus.RefreshFailure -> SessionState.Unreachable
-    is SessionStatus.Authenticated -> session.user
-        ?.let { SessionState.SignedIn(userId = it.id, email = it.email.orEmpty()) }
-        ?: SessionState.Loading
+    is SessionStatus.Authenticated ->
+        session.user
+            ?.let { SessionState.SignedIn(userId = it.id, email = it.email.orEmpty()) }
+            ?: SessionState.Loading
 }

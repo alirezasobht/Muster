@@ -11,14 +11,13 @@ import kotlinx.io.IOException
 // Every repository call goes through this, so the UI only ever sees DomainError.
 // Cancellation must pass through untouched, or cancelled coroutines would
 // surface as errors on screen.
-internal inline fun <T> mapErrors(block: () -> T): T =
-    try {
-        block()
-    } catch (e: CancellationException) {
-        throw e
-    } catch (e: Exception) {
-        throw e.toDomainError()
-    }
+internal inline fun <T> mapErrors(block: () -> T): T = try {
+    block()
+} catch (e: CancellationException) {
+    throw e
+} catch (e: Exception) {
+    throw e.toDomainError()
+}
 
 internal fun Throwable.toDomainError(): DomainError = when (this) {
     is DomainError -> this

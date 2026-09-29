@@ -12,9 +12,7 @@ import org.junit.runner.Description
 // viewModelScope runs on Dispatchers.Main, which has no implementation off
 // Android. Without this every ViewModel test fails on the first launch{}.
 @OptIn(ExperimentalCoroutinesApi::class)
-class MainDispatcherRule(
-    val dispatcher: TestDispatcher = StandardTestDispatcher()
-) : TestWatcher() {
+class MainDispatcherRule(val dispatcher: TestDispatcher = StandardTestDispatcher()) : TestWatcher() {
 
     override fun starting(description: Description) {
         Dispatchers.setMain(dispatcher)

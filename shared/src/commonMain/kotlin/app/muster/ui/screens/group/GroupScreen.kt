@@ -265,7 +265,10 @@ private fun GroupOverflowMenu(
                 actions.forEach { action ->
                     DropdownMenuItem(
                         text = { Text(stringResource(action.menuLabel())) },
-                        onClick = { expanded = false; onActionRequested(action) }
+                        onClick = {
+                            expanded = false
+                            onActionRequested(action)
+                        }
                     )
                 }
             }
@@ -366,14 +369,14 @@ private val PreviewActions = GroupActions(
     onOverflowConfirmed = {},
     onOverflowDialogDismissed = {}
 )
-private const val PreviewGroupName = "Westgate Wednesday 7s"
+private const val PREVIEW_GROUP_NAME = "Westgate Wednesday 7s"
 
 @Preview
 @Composable
 private fun GroupScreenLoadingPreview() {
     MusterTheme {
         GroupScreen(
-            state = GroupUiState.Loading(PreviewGroupName),
+            state = GroupUiState.Loading(PREVIEW_GROUP_NAME),
             actions = PreviewActions,
             spinnerDelayMillis = 0
         )
@@ -385,7 +388,7 @@ private fun GroupScreenLoadingPreview() {
 private fun GroupScreenFailedPreview() {
     MusterTheme {
         GroupScreen(
-            state = GroupUiState.Error(PreviewGroupName, DomainError.Network()),
+            state = GroupUiState.Error(PREVIEW_GROUP_NAME, DomainError.Network()),
             actions = PreviewActions
         )
     }
@@ -396,7 +399,7 @@ private fun GroupScreenFailedPreview() {
 private fun GroupScreenEventsAdminPreview() {
     MusterTheme {
         GroupScreen(
-            state = GroupUiState.Success(groupName = PreviewGroupName, myRole = GroupRole.Admin),
+            state = GroupUiState.Success(groupName = PREVIEW_GROUP_NAME, myRole = GroupRole.Admin),
             actions = PreviewActions
         )
     }
@@ -408,7 +411,7 @@ private fun GroupScreenMembersMemberPreview() {
     MusterTheme {
         GroupScreen(
             state = GroupUiState.Success(
-                groupName = PreviewGroupName,
+                groupName = PREVIEW_GROUP_NAME,
                 myRole = GroupRole.Member,
                 selectedTab = GroupTab.Members
             ),

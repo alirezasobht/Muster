@@ -25,7 +25,10 @@ import app.muster.ui.theme.MusterTheme
 // Form-error block, DESIGN.md "Two kinds of error" (2b). The action button
 // below it is always the retry, so no onAccent variant and no button here.
 @Composable
-fun FormError(message: String, modifier: Modifier = Modifier) {
+fun FormError(
+    message: String,
+    modifier: Modifier = Modifier
+) {
     Row(
         modifier = modifier
             .fillMaxWidth()

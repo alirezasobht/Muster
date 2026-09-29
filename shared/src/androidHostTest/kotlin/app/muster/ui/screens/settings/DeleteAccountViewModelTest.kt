@@ -8,14 +8,14 @@ import app.muster.domain.model.Group
 import app.muster.domain.model.SessionState
 import app.muster.domain.usecase.DeleteAccountUseCase
 import app.muster.testing.MainDispatcherRule
-import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.coroutines.test.runTest
-import org.junit.Rule
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
+import org.junit.Rule
 
 class DeleteAccountViewModelTest {
 

@@ -24,8 +24,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.muster.ui.common.components.MusterSpinner
 import app.muster.ui.common.components.MusterMark
+import app.muster.ui.common.components.MusterSpinner
 import app.muster.ui.common.components.MusterWordmark
 import app.muster.ui.common.components.PhoneWidth
 import app.muster.ui.common.components.PrimaryButton
@@ -95,7 +95,10 @@ private fun MarkAndWordmark(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun Failure(onRetry: () -> Unit, onSignOut: (() -> Unit)?) {
+private fun Failure(
+    onRetry: () -> Unit,
+    onSignOut: (() -> Unit)?
+) {
     Column(
         modifier = Modifier.padding(horizontal = 28.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),

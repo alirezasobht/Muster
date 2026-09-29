@@ -65,7 +65,6 @@ fun NavGraph(
     SharedTransitionLayout {
         CompositionLocalProvider(LocalSharedTransitionScope provides this) {
             NavHost(navController = navController, startDestination = Launch) {
-
                 composable<Launch> {
                     CompositionLocalProvider(LocalAnimatedVisibilityScope provides this@composable) {
                         LaunchRoute(viewModel = launchViewModel)

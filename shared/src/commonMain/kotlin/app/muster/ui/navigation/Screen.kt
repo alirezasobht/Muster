@@ -27,13 +27,22 @@ data object PrivacyPolicy
 data object NewGroup
 
 @Serializable
-data class Group(val id: String, val name: String)
+data class Group(
+    val id: String,
+    val name: String
+)
 
 @Serializable
-data class AddMemberByEmail(val groupId: String, val groupName: String)
+data class AddMemberByEmail(
+    val groupId: String,
+    val groupName: String
+)
 
 @Serializable
-data class NewEvent(val groupId: String, val groupName: String)
+data class NewEvent(
+    val groupId: String,
+    val groupName: String
+)
 
 // Carries everything the caller already knows from the Events tab card
 @Serializable
@@ -50,4 +59,7 @@ data class Event(
 )
 
 @Serializable
-data class AddPlayers(val eventId: String, val groupId: String)
+data class AddPlayers(
+    val eventId: String,
+    val groupId: String
+)

@@ -38,6 +38,7 @@ sealed interface AddPlayersUiState : UiState<AddPlayersUiState.Success> {
 
         // how many of the currently checked players will actually get invited
         val inviting: Int get() = minOf(selectedIds.size, freeSlots)
+
         // how many of the currently checked players will be on standby
         val standbyPicks: Int get() = selectedIds.size - inviting
 

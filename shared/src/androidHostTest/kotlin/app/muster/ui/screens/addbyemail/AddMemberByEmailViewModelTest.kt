@@ -4,14 +4,14 @@ import app.muster.data.fake.FakeMemberRepository
 import app.muster.domain.error.DomainError
 import app.muster.domain.usecase.InviteByEmailUseCase
 import app.muster.testing.MainDispatcherRule
-import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.coroutines.test.runTest
-import org.junit.Rule
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
+import org.junit.Rule
 
 class AddMemberByEmailViewModelTest {
 
@@ -20,8 +20,7 @@ class AddMemberByEmailViewModelTest {
 
     private val groupId = "group-1"
 
-    private fun viewModel(members: FakeMemberRepository = FakeMemberRepository()) =
-        AddMemberByEmailViewModel(groupId, InviteByEmailUseCase(members))
+    private fun viewModel(members: FakeMemberRepository = FakeMemberRepository()) = AddMemberByEmailViewModel(groupId, InviteByEmailUseCase(members))
 
     @Test
     fun `starts empty`() {

@@ -9,7 +9,10 @@ class GetInviteeCandidatesUseCase(
     private val events: EventRepository,
     private val members: MemberRepository
 ) {
-    suspend operator fun invoke(eventId: String, groupId: String): InviteeCandidates {
+    suspend operator fun invoke(
+        eventId: String,
+        groupId: String
+    ): InviteeCandidates {
         val detail = events.getEvent(eventId)
         val onEvent = (detail.roster.map { it.profileId } + detail.standby.map { it.profileId }).toSet()
         val occupied = detail.roster.count { it.status == RsvpStatus.In || it.status == RsvpStatus.Pending }

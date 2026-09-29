@@ -6,7 +6,10 @@ sealed interface SessionState {
 
     data object SignedOut : SessionState
 
-    data class SignedIn(val userId: String, val email: String) : SessionState
+    data class SignedIn(
+        val userId: String,
+        val email: String
+    ) : SessionState
 
     // Signed in, but the access token has expired and refreshing it keeps
     // failing with a network error, so no request can succeed right now.

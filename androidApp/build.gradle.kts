@@ -23,8 +23,11 @@ dependencies {
 val versionProperties = rootProject.layout.projectDirectory.file("version.properties")
 val localProperties = rootProject.layout.projectDirectory.file("local.properties")
 val uploadKeystorePath = buildSetting(providers, localProperties, "UPLOAD_KEYSTORE_PATH").get()
-val uploadKeystorePassword =
-    buildSetting(providers, localProperties, "UPLOAD_KEYSTORE_PASSWORD").get()
+val uploadKeystorePassword = buildSetting(
+    providers,
+    localProperties,
+    "UPLOAD_KEYSTORE_PASSWORD"
+).get()
 val isProd = buildSetting(providers, localProperties, "MUSTER_ENV").get() == "prod"
 
 android {

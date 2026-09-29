@@ -122,7 +122,11 @@ actual fun AdaptedCodeInput(
 }
 
 @Composable
-private fun AdaptedCodeBox(digit: Char?, active: Boolean, modifier: Modifier = Modifier) {
+private fun AdaptedCodeBox(
+    digit: Char?,
+    active: Boolean,
+    modifier: Modifier = Modifier
+) {
     Box(
         modifier = modifier
             .height(64.dp)

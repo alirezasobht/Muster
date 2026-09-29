@@ -4,11 +4,11 @@ import app.muster.domain.error.DomainError
 import app.muster.domain.model.Group
 import app.muster.domain.model.SessionState
 import app.muster.domain.repository.AuthRepository
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlin.time.Duration.Companion.milliseconds
 
 class FakeAuthRepository(
     initial: SessionState = SessionState.SignedOut,
@@ -43,7 +43,10 @@ class FakeAuthRepository(
         requestedCodes++
     }
 
-    override suspend fun verifySignInCode(email: String, code: String) {
+    override suspend fun verifySignInCode(
+        email: String,
+        code: String
+    ) {
         delay(latency.milliseconds)
         verifyError?.let { throw it }
         if (code == REJECTED_CODE) throw DomainError.InvalidCode()

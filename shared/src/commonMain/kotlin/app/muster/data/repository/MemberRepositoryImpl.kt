@@ -48,7 +48,10 @@ internal class MemberRepositoryImpl(
         MemberListing(members = members, pendingInvitations = pendingInvitations)
     }
 
-    override suspend fun inviteByEmail(groupId: String, email: String): Unit = mapErrors {
+    override suspend fun inviteByEmail(
+        groupId: String,
+        email: String
+    ): Unit = mapErrors {
         client.postgrest.rpc(
             INVITE_GROUP_MEMBER_BY_EMAIL_FUNCTION,
             InviteGroupMemberDto(groupId = groupId, email = email)
@@ -56,17 +59,26 @@ internal class MemberRepositoryImpl(
         dataChanges.notify(DataChange.Members(groupId))
     }
 
-    override suspend fun promote(groupId: String, profileId: String): Unit = mapErrors {
+    override suspend fun promote(
+        groupId: String,
+        profileId: String
+    ): Unit = mapErrors {
         setRole(groupId, profileId, ADMIN_ROLE)
         dataChanges.notify(DataChange.Members(groupId))
     }
 
-    override suspend fun demote(groupId: String, profileId: String): Unit = mapErrors {
+    override suspend fun demote(
+        groupId: String,
+        profileId: String
+    ): Unit = mapErrors {
         setRole(groupId, profileId, MEMBER_ROLE)
         dataChanges.notify(DataChange.Members(groupId))
     }
 
-    override suspend fun remove(groupId: String, profileId: String): Unit = mapErrors {
+    override suspend fun remove(
+        groupId: String,
+        profileId: String
+    ): Unit = mapErrors {
         client.postgrest.rpc(
             REMOVE_GROUP_MEMBER_FUNCTION,
             RemoveGroupMemberDto(groupId, profileId)
@@ -74,7 +86,10 @@ internal class MemberRepositoryImpl(
         dataChanges.notify(DataChange.Members(groupId))
     }
 
-    override suspend fun revokeInvitation(groupId: String, invitationId: String): Unit = mapErrors {
+    override suspend fun revokeInvitation(
+        groupId: String,
+        invitationId: String
+    ): Unit = mapErrors {
         client.postgrest.rpc(
             REVOKE_GROUP_INVITATION_FUNCTION,
             RevokeGroupInvitationDto(groupId, invitationId)
@@ -82,7 +97,10 @@ internal class MemberRepositoryImpl(
         dataChanges.notify(DataChange.Members(groupId))
     }
 
-    override suspend fun resendInvitation(groupId: String, invitationId: String): Unit = mapErrors {
+    override suspend fun resendInvitation(
+        groupId: String,
+        invitationId: String
+    ): Unit = mapErrors {
         client.postgrest.rpc(
             RESEND_GROUP_INVITATION_FUNCTION,
             ResendGroupInvitationDto(groupId, invitationId, tz = MusterTimeZone.id)
@@ -96,7 +114,11 @@ internal class MemberRepositoryImpl(
         dataChanges.notify(DataChange.MyGroups)
     }
 
-    private suspend fun setRole(groupId: String, profileId: String, role: String) {
+    private suspend fun setRole(
+        groupId: String,
+        profileId: String,
+        role: String
+    ) {
         client.postgrest.rpc(
             SET_GROUP_MEMBER_ROLE_FUNCTION,
             SetGroupMemberRoleDto(groupId = groupId, profileId = profileId, role = role)

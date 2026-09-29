@@ -13,7 +13,10 @@ import platform.WebKit.WKWebViewConfiguration
 
 @OptIn(ExperimentalForeignApi::class)
 @Composable
-actual fun WebPage(url: String, modifier: Modifier) {
+actual fun WebPage(
+    url: String,
+    modifier: Modifier
+) {
     UIKitView(
         factory = {
             WKWebView(frame = CGRectZero.readValue(), configuration = WKWebViewConfiguration()).apply {

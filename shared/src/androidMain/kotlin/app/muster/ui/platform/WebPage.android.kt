@@ -10,13 +10,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 
 @Composable
-actual fun WebPage(url: String, modifier: Modifier) {
+actual fun WebPage(
+    url: String,
+    modifier: Modifier
+) {
     AndroidView(
         factory = { context ->
             WebView(context).apply {
                 webViewClient = object : WebViewClient() {
                     // A WebView can't open mailto: itself; hand those to the mail app.
-                    override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+                    override fun shouldOverrideUrlLoading(
+                        view: WebView,
+                        request: WebResourceRequest
+                    ): Boolean {
                         val uri = request.url
                         if (uri.scheme == "http" || uri.scheme == "https") return false
                         try {

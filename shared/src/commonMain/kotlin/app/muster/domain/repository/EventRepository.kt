@@ -21,21 +21,39 @@ interface EventRepository {
 
     // profileId is the caller for a self-RSVP, or the target player when an
     // admin changes someone else's — the RPC checks the caller's authority.
-    suspend fun setRsvp(eventId: String, profileId: String, status: RsvpStatus)
+    suspend fun setRsvp(
+        eventId: String,
+        profileId: String,
+        status: RsvpStatus
+    )
 
     // groupId only for the Events(groupId) notification; the RPC takes the
     // event and player alone.
-    suspend fun disinvitePlayer(eventId: String, groupId: String, profileId: String)
+    suspend fun disinvitePlayer(
+        eventId: String,
+        groupId: String,
+        profileId: String
+    )
 
     // No DataChanges notification: status and last_sent_at aren't reflected
     // in the roster row, so there is nothing to refetch.
-    suspend fun resendInvitation(eventId: String, profileId: String)
+    suspend fun resendInvitation(
+        eventId: String,
+        profileId: String
+    )
 
     // The whole ordered queue, set_standby_order rewrites positions 1..n
-    suspend fun reorderStandby(eventId: String, orderedProfileIds: List<String>)
+    suspend fun reorderStandby(
+        eventId: String,
+        orderedProfileIds: List<String>
+    )
 
     // add_players_to_event invites while slots remain and queues the rest, in
     // profileIds order. groupId only for the Events(groupId) notification —
     // same reasoning as disinvitePlayer.
-    suspend fun addPlayers(eventId: String, groupId: String, profileIds: List<String>)
+    suspend fun addPlayers(
+        eventId: String,
+        groupId: String,
+        profileIds: List<String>
+    )
 }

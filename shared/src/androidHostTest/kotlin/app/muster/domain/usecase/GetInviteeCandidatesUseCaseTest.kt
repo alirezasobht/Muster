@@ -9,11 +9,11 @@ import app.muster.domain.model.Member
 import app.muster.domain.model.RosterEntry
 import app.muster.domain.model.RsvpStatus
 import app.muster.domain.model.StandbyEntry
-import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.time.Instant
+import kotlinx.coroutines.test.runTest
 
 class GetInviteeCandidatesUseCaseTest {
 

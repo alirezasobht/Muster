@@ -4,22 +4,21 @@ import app.muster.data.fake.FakeProfileRepository
 import app.muster.domain.error.DomainError
 import app.muster.domain.usecase.UpdateNameUseCase
 import app.muster.testing.MainDispatcherRule
-import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.coroutines.test.runTest
-import org.junit.Rule
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
+import org.junit.Rule
 
 class SetNameViewModelTest {
 
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
-    private fun viewModel(profiles: FakeProfileRepository = FakeProfileRepository()) =
-        SetNameViewModel(UpdateNameUseCase(profiles))
+    private fun viewModel(profiles: FakeProfileRepository = FakeProfileRepository()) = SetNameViewModel(UpdateNameUseCase(profiles))
 
     @Test
     fun `starts empty`() {

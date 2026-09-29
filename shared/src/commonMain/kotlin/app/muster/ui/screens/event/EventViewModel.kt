@@ -19,12 +19,12 @@ import app.muster.domain.usecase.SetRsvpUseCase
 import app.muster.ui.common.util.toDisplayDate
 import app.muster.ui.common.util.toDisplayTime
 import app.muster.ui.common.util.updateSuccess
+import kotlin.time.Clock
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
-import kotlin.time.Clock
 
 class EventViewModel(
     initialSummary: EventSummary,
@@ -57,7 +57,7 @@ class EventViewModel(
             dataChanges.changes
                 .filter {
                     (it is DataChange.Roster && it.eventId == eventId) ||
-                            (it is DataChange.Events && it.groupId == groupId)
+                        (it is DataChange.Events && it.groupId == groupId)
                 }
                 .collect { refresh(showIndicator = true) }
         }
@@ -94,7 +94,10 @@ class EventViewModel(
         }
     }
 
-    fun onRosterAction(playerId: String, action: RosterAction) = when (action) {
+    fun onRosterAction(
+        playerId: String,
+        action: RosterAction
+    ) = when (action) {
         RosterAction.SetIn -> onChangeRowStatus(playerId, RsvpStatus.In)
         RosterAction.SetOut -> onChangeRowStatus(playerId, RsvpStatus.Out)
         RosterAction.CancelInvite,
@@ -103,7 +106,10 @@ class EventViewModel(
         RosterAction.ResendInvite -> onResendInvitation(playerId)
     }
 
-    private fun onChangeRowStatus(playerId: String, status: RsvpStatus) {
+    private fun onChangeRowStatus(
+        playerId: String,
+        status: RsvpStatus
+    ) {
         val current = _state.value as? EventUiState.Success ?: return
         if (current.rowActionTargetId != null) return
         _state.updateSuccess { it.copy(rowActionTargetId = playerId, rowActionError = null, rowActionErrorId = null) }
@@ -216,7 +222,10 @@ class EventViewModel(
 
 private val statusOrder = mapOf(RsvpStatus.In to 0, RsvpStatus.Pending to 1, RsvpStatus.Out to 2)
 
-private fun EventDetail.toRosterRows(myProfileId: String, isAdmin: Boolean): List<RosterRow> {
+private fun EventDetail.toRosterRows(
+    myProfileId: String,
+    isAdmin: Boolean
+): List<RosterRow> {
     val hasFreeSlot = event.capacity > event.inCount + event.pendingCount
     return roster
         .map { entry ->
@@ -269,5 +278,3 @@ private fun availableActions(
         }
     }
 }
-
-

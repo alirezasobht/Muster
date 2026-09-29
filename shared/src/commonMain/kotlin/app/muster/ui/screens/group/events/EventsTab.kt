@@ -1,6 +1,5 @@
 package app.muster.ui.screens.group.events
 
-import app.muster.ui.common.components.MusterPullToRefreshBox
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -41,6 +40,7 @@ import app.muster.domain.error.DomainError
 import app.muster.domain.model.Event
 import app.muster.domain.model.emptyEvent
 import app.muster.ui.common.components.MessageState
+import app.muster.ui.common.components.MusterPullToRefreshBox
 import app.muster.ui.common.components.MusterSpinner
 import app.muster.ui.common.toMessage
 import app.muster.ui.common.util.SharedTransitionKeys
@@ -100,7 +100,6 @@ fun EventsTab(
     modifier: Modifier = Modifier,
     spinnerDelayMillis: Long = 400
 ) {
-
     when (state) {
         is EventsUiState.Loading -> Box(
             modifier = modifier.fillMaxSize(),
@@ -201,7 +200,8 @@ private fun EventRowItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(modifier = modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 8.dp),
+    Card(
+        modifier = modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 8.dp),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         border = BorderStroke(1.dp, MusterColors.Outline),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
@@ -253,7 +253,10 @@ private fun EventRowItem(
 }
 
 @Composable
-private fun EventStatusBadge(status: MemberEventStatus, modifier: Modifier = Modifier) {
+private fun EventStatusBadge(
+    status: MemberEventStatus,
+    modifier: Modifier = Modifier
+) {
     val fill = when (status) {
         MemberEventStatus.In -> MusterColors.InFill
         MemberEventStatus.Pending -> MusterColors.PendingFill
@@ -283,7 +286,7 @@ private fun EventStatusBadge(status: MemberEventStatus, modifier: Modifier = Mod
 
 private val PreviewActions = EventsActions(
     onSelectEvent = {},
-    getEvent = {Event.emptyEvent(id = it)},
+    getEvent = { Event.emptyEvent(id = it) },
     onNewEvent = {},
     onRetry = {}
 )
