@@ -321,3 +321,32 @@ stateless screens — enabled and disabled states, callbacks, error
 rendering. Not full flows. Screens are driven with literal state, so no
 Koin and no `NavHost` is involved. One test file per screen, covering all
 its state composables.
+
+## Versioning and releases
+
+`version.properties` holds one `VERSION_NAME`, `x.y.z`, each part
+0..999. Android, iOS and web ship the same version; the backend has
+none. A fix for one platform still bumps the patch, and the others skip
+that number.
+
+- **Android** derives `versionCode` as
+  `major * 1_000_000 + minor * 1000 + patch` (`versionCode()` in
+  buildSrc).
+- **iOS** `#include`s `version.properties` from `Config.xcconfig` and
+  uses `VERSION_NAME` for both `MARKETING_VERSION` and
+  `CURRENT_PROJECT_VERSION`, so every upload needs a new version. Xcode
+  parses the file as xcconfig: keep it to `KEY=value` lines — a `#`
+  comment breaks the iOS build.
+- **Web and in-app** get `APP_VERSION` from `generateAppInfo`.
+
+A release:
+
+1. Bump `VERSION_NAME` as the last commit on `dev`.
+2. Merge `dev` -> `main` with a merge commit.
+3. Tag `main` `vX.Y.Z`.
+4. Deploy in order: migrations, Edge Functions, web, Android and iOS.
+5. Once every platform is live, back-merge `main` -> `dev`.
+
+Backend changes are additive. Installed apps lag behind the backend —
+store review, users who don't update — so an RPC or column is removed
+only once no client in use calls it. That is why migrations go first.

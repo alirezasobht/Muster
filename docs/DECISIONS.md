@@ -246,3 +246,16 @@ Release builds are signed with an upload key kept in `Muster-env/prod/`;
 Play re-signs with its own key. Minify stays off until crash reporting
 exists, since a stripped class only fails at runtime. `allowBackup` is off
 so a session or push token never moves to another device.
+
+## One version for all clients, bumped on dev
+
+Android, iOS and web are one codebase, so they share one `x.y.z` in
+`version.properties`. Build numbers are derived from it, never set by
+hand. iOS reads the file through an xcconfig `#include`, so no script
+or generated file sits in between. The bump is the last commit on `dev`
+before the release PR, so `main`'s version-bumped check can see it.
+
+Rejected: a version per platform (three numbers for one codebase), a
+version from git tags (the file is already what every build reads), and
+a CI bump on `main` after the merge (needs a bot that bypasses `main`'s
+protection, and the PR can't show the bump).

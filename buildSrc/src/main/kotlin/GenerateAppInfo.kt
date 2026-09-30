@@ -40,14 +40,22 @@ abstract class GenerateAppInfo : DefaultTask() {
 
 /**
  * Reads a value out of `version.properties`, the single file that holds
- * `VERSION_CODE` and `VERSION_NAME` so a CI release job can bump both by
- * rewriting two lines, without touching Gradle or the version catalog.
+ * `VERSION_NAME` so a CI release job can bump it by rewriting one line,
+ * without touching Gradle or the version catalog.
  */
 fun versionSetting(
     providers: ProviderFactory,
     versionProperties: RegularFile,
-    name: String,
+    name: String
 ): Provider<String> =
     providers.fileContents(versionProperties).asText.map { text ->
         Properties().apply { load(text.reader()) }.getProperty(name)
     }
+
+fun versionCode(versionName: String): Int {
+    val parts = versionName.split(".").mapNotNull { it.toIntOrNull() }
+    require(parts.size == 3 && parts.all { it in 0..999 }) {
+        "VERSION_NAME must be x.y.z with each part 0..999, was $versionName"
+    }
+    return parts[0] * 1_000_000 + parts[1] * 1000 + parts[2]
+}

@@ -21,6 +21,7 @@ dependencies {
 }
 
 val versionProperties = rootProject.layout.projectDirectory.file("version.properties")
+val appVersionName = versionSetting(providers, versionProperties, "VERSION_NAME").get()
 val localProperties = rootProject.layout.projectDirectory.file("local.properties")
 val uploadKeystorePath = buildSetting(providers, localProperties, "UPLOAD_KEYSTORE_PATH").get()
 val uploadKeystorePassword = buildSetting(
@@ -40,8 +41,8 @@ android {
         manifestPlaceholders["appLabel"] = if (isProd) "Muster" else "Muster Dev"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = versionSetting(providers, versionProperties, "VERSION_CODE").get().toInt()
-        versionName = versionSetting(providers, versionProperties, "VERSION_NAME").get()
+        versionCode = versionCode(appVersionName)
+        versionName = appVersionName
     }
     signingConfigs {
         if (uploadKeystorePath.isNotEmpty()) {
