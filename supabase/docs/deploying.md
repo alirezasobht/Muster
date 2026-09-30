@@ -44,8 +44,8 @@ typed first.
 **`scripts/`**
 
 - `set-env-vars.sh <env>` — source it (`. scripts/set-env-vars.sh <env>`):
-  exports the app build values for that environment into the current shell
-  only.
+  exports the app build values for that environment, and `MUSTER_ENV` for
+  the Android app id, into the current shell only.
 - `deploy-prod.sh` — full prod deploy: `deploy-backend.sh prod`, then a clean
   web build with prod values. Ends on dev whatever happens. The Pages
   upload stays manual; it prints the folder.
@@ -56,3 +56,8 @@ Dev is the default the scripts return to. Only one thing outlives a
 script: the CLI link, saved in `supabase/.temp` and followed by every
 terminal. `push-migrations.sh` and `deploy-prod.sh` always put it back on
 dev. Build values from `set-env-vars.sh` die with their shell.
+
+## Backups
+
+The free plan has no dashboard backups; use `supabase db dump`, with Docker
+or Podman running. Dumps hold users' emails, so they stay in `Muster-env`.

@@ -232,3 +232,17 @@ outputs (two converters to maintain).
 browsers without Wasm GC (Safari before 18.2) fall back to JS.
 
 Rejected: a Wasm-only build, which shows those browsers a spinner forever.
+
+## Android app ids per environment
+
+Prod is `app.muster.prod`, dev is `app.muster.dev`, picked by `MUSTER_ENV`
+from `set-env-vars.sh`, not by build type. With no `MUSTER_ENV` the build
+falls back to dev. The prod id is fixed: Play records it when the app is
+created.
+
+## Android release: Play App Signing, no R8, no backup
+
+Release builds are signed with an upload key kept in `Muster-env/prod/`;
+Play re-signs with its own key. Minify stays off until crash reporting
+exists, since a stripped class only fails at runtime. `allowBackup` is off
+so a session or push token never moves to another device.
