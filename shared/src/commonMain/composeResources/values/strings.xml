@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Compose Resources does not use Android's backslash escaping: \' renders
+     as a literal backslash. Apostrophes go in directly, as ’ to match the
+     typography in docs/design. -->
+<resources>
+
+    <!-- Launch (1q, 1r) -->
+    <string name="launch_failed_title">Couldn’t reach Muster</string>
+    <string name="launch_failed_body">Check your connection and try again. Nothing has been lost.</string>
+    <string name="launch_try_again">Try again</string>
+
+    <!-- Sign in (1a) -->
+    <string name="request_code_title">Sign in</string>
+    <string name="request_code_subtitle">We’ll email you a six-digit code. There are no passwords.</string>
+    <string name="request_code_send">Send code</string>
+    <string name="request_code_footer">No sign-up needed. Your email becomes your account, and it can’t be changed later.</string>
+
+    <!-- Enter code (1b) -->
+    <string name="enter_code_title">Enter your code</string>
+    <string name="enter_code_sent_to">Sent to %1$s</string>
+    <string name="enter_code_resend_in">Resend code in %1$s</string>
+    <string name="enter_code_resend">Resend code</string>
+
+    <!-- Set name (1c) -->
+    <string name="set_name_title">What should we call you?</string>
+    <string name="set_name_subtitle">Your teammates see this name on rosters.</string>
+
+    <!-- Home (1d, 1e, 1s, 1t) -->
+    <string name="home_settings">Settings</string>
+    <string name="home_new_group">New group</string>
+    <string name="home_invitation_label">Invitation</string>
+    <string name="home_invited_by">Invited by %1$s</string>
+    <string name="home_empty_title">No groups yet</string>
+    <string name="home_empty_body">Invitations show up here as soon as someone adds you.</string>
+    <string name="home_failed_title">Couldn’t load your groups</string>
+    <string name="home_failed_try_again">Try again</string>
+
+    <!-- Settings (1f) -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_load_failed_title">Couldn’t load your profile</string>
+    <string name="settings_try_again">Try again</string>
+    <string name="settings_saved">Saved</string>
+    <string name="settings_discard_title">Discard changes?</string>
+    <string name="settings_discard_body">Your name hasn’t been saved yet.</string>
+    <string name="settings_discard_confirm">Discard</string>
+    <string name="settings_discard_cancel">Keep editing</string>
+    <string name="settings_delete_account">Delete account</string>
+    <string name="settings_privacy_policy">Privacy policy</string>
+    <string name="settings_version">Version %1$s</string>
+
+    <!-- Delete account (Settings) -->
+    <string name="delete_account_title">Delete your account?</string>
+    <string name="delete_account_body">Your name, email, group memberships and RSVPs will be removed. This can’t be undone.</string>
+    <string name="delete_account_confirm">Delete</string>
+    <string name="delete_account_cancel">Cancel</string>
+    <string name="delete_account_sole_admin_title">You’re the only admin</string>
+    <string name="delete_account_sole_admin_body">These groups will be archived:</string>
+    <string name="delete_account_sole_admin_warning">They’ll disappear for all their members, and this can’t be undone in the app.</string>
+    <string name="delete_account_sole_admin_confirm">Delete and archive</string>
+
+    <!-- New group (1g) -->
+    <string name="new_group_title">New group</string>
+    <string name="new_group_hint">You’ll be its first admin. You can add players once it exists.</string>
+
+    <!-- Group (1h, 1i, 1j) -->
+    <string name="group_tab_events">Events</string>
+    <string name="group_tab_members">Members</string>
+    <string name="group_failed_title">Couldn’t load this group</string>
+    <string name="group_failed_try_again">Try again</string>
+
+    <!-- Group app bar overflow (1p) -->
+    <string name="group_menu_archive">Archive group</string>
+    <string name="group_menu_leave">Leave group</string>
+    <string name="group_archive_title">Archive this group?</string>
+    <string name="group_archive_body">It disappears for everyone, including you, and its events stop accepting changes. This can’t be undone in the app.</string>
+    <string name="group_archive_confirm">Archive</string>
+    <string name="group_archive_cancel">Cancel</string>
+    <string name="group_leave_title">Leave this group?</string>
+    <string name="group_leave_body">You’ll lose access to this group, and any RSVPs you’ve made will be removed.</string>
+    <string name="group_leave_confirm">Leave</string>
+    <string name="group_leave_cancel">Cancel</string>
+
+    <!-- Add by email -->
+    <string name="add_by_email_hint">They’ll be notified, and can accept once they sign in.</string>
+    <string name="action_send_invite">Send invite</string>
+    <string name="add_by_email_success_title">Invite sent</string>
+    <string name="add_by_email_success_body">They’ll be notified, and can accept once they sign in with this address.</string>
+    <string name="add_by_email_invite_more">Invite more</string>
+    <string name="add_by_email_close">Close</string>
+
+    <!-- Group — Members tab (1i, 1j) -->
+    <string name="members_add_by_email">Add by email</string>
+    <string name="members_status_admin">Admin</string>
+    <string name="members_status_member">Member</string>
+    <string name="members_status_invited">Invited</string>
+    <string name="members_action_promote">Make admin</string>
+    <string name="members_action_demote">Make member</string>
+    <string name="members_action_remove">Remove from group</string>
+    <string name="members_action_revoke">Cancel invitation</string>
+    <string name="members_action_resend">Resend invitation</string>
+    <string name="members_remove_title">Remove %1$s?</string>
+    <string name="members_remove_body">They’ll lose access to this group and any RSVPs they’ve made will be removed.</string>
+    <string name="members_remove_confirm">Remove</string>
+    <string name="members_remove_cancel">Cancel</string>
+    <string name="members_promote_title">Make %1$s an admin?</string>
+    <string name="members_promote_body">They’ll get full admin access — invites, events and other members.</string>
+    <string name="members_promote_confirm">Make admin</string>
+    <string name="members_promote_cancel">Cancel</string>
+    <string name="members_demote_title">Make %1$s a member?</string>
+    <string name="members_demote_body">They’ll lose admin access to this group.</string>
+    <string name="members_demote_confirm">Make member</string>
+    <string name="members_demote_cancel">Cancel</string>
+    <string name="members_revoke_title">Cancel invitation to %1$s?</string>
+    <string name="members_revoke_body">They won’t be able to join using this invite.</string>
+    <string name="members_revoke_confirm">Cancel invitation</string>
+    <string name="members_revoke_cancel">Keep invitation</string>
+    <string name="members_resend_title">Resend invitation to %1$s?</string>
+    <string name="members_resend_body">They’ll get another email at the same address.</string>
+    <string name="members_resend_confirm">Resend</string>
+    <string name="members_resend_cancel">Cancel</string>
+    <string name="members_empty_title">It’s just you for now</string>
+    <string name="members_empty_body">Add teammates by email to fill out the group.</string>
+    <string name="members_failed_title">Couldn’t load members</string>
+    <string name="members_try_again">Try again</string>
+    <string name="members_you_suffix"> · you</string>
+
+    <!-- Group — Events tab (1h) -->
+    <string name="events_new">New event</string>
+    <string name="events_status_in">In</string>
+    <string name="events_status_pending">Pending</string>
+    <string name="events_status_out">Out</string>
+    <string name="event_action_cancel_invite">Cancel invite</string>
+    <string name="event_action_remove_from_event">Remove from event</string>
+    <string name="event_action_remove_from_list">Remove from list</string>
+    <string name="event_action_resend_invite">Resend invite</string>
+    <string name="event_cancel_invite_title">Cancel invite to %1$s?</string>
+    <string name="event_cancel_invite_body">They won’t be able to join using this invite.</string>
+    <string name="event_cancel_invite_confirm">Cancel invite</string>
+    <string name="event_cancel_invite_cancel">Keep invite</string>
+    <string name="event_remove_from_event_title">Remove %1$s from this event?</string>
+    <string name="event_remove_from_event_body">They’ll lose their spot. If there’s a queue, someone from standby may be promoted.</string>
+    <string name="event_remove_from_event_confirm">Remove</string>
+    <string name="event_remove_from_event_cancel">Cancel</string>
+    <string name="event_remove_from_list_title">Remove %1$s from this event?</string>
+    <string name="event_remove_from_list_body">They won’t be listed for this event anymore.</string>
+    <string name="event_remove_from_list_confirm">Remove</string>
+    <string name="event_remove_from_list_cancel">Cancel</string>
+    <string name="event_resend_invite_title">Resend invite to %1$s?</string>
+    <string name="event_resend_invite_body">They’ll get another email at the same address.</string>
+    <string name="event_resend_invite_confirm">Resend</string>
+    <string name="event_resend_invite_cancel">Cancel</string>
+    <string name="events_slots">%1$d of %2$d slots · %3$d in, %4$d pending</string>
+    <string name="events_empty_title">No upcoming events</string>
+    <string name="events_empty_body">New events will show up here once one is scheduled.</string>
+    <string name="events_failed_title">Couldn’t load events</string>
+    <string name="events_try_again">Try again</string>
+
+    <!-- Event (4a, 4b, 4c) -->
+    <string name="event_players_header">Players %1$d</string>
+    <string name="event_add">+ Add</string>
+    <string name="event_add_players">+ Add players</string>
+    <string name="event_slots_of">of %1$d slots</string>
+    <string name="event_slots_open">%1$d open</string>
+    <string name="event_slots_legend_in">%1$d in</string>
+    <string name="event_slots_legend_pending">%1$d pending</string>
+    <string name="event_slots_legend_no_reply">%1$d no reply</string>
+    <string name="event_slots_legend_out">%1$d out</string>
+    <string name="event_status_no_reply">No reply</string>
+    <string name="event_frozen_strip">Started at %1$s · no more changes</string>
+    <string name="event_rsvp_question">Can you play?</string>
+    <string name="action_im_in">I’m in</string>
+    <string name="action_cant_make_it">Can’t make it</string>
+    <string name="action_change">Change</string>
+    <string name="event_rsvp_in">You’re in</string>
+    <string name="event_rsvp_out">You’re out</string>
+    <string name="event_rsvp_frozen_in">You played</string>
+    <string name="event_rsvp_frozen_out">You didn’t play</string>
+    <string name="event_rsvp_frozen_pending">You didn’t respond</string>
+    <string name="event_roster_empty_title">No one invited yet</string>
+    <string name="event_roster_empty_body">Add players from your group. Each gets an invite to answer In or Out.</string>
+    <string name="event_failed_title">Couldn’t load this event</string>
+    <string name="event_try_again">Try again</string>
+    <string name="event_standby_header">Standby · %1$d</string>
+    <string name="event_standby_header_frozen">Standby · Not called up</string>
+    <string name="event_standby_drag_hint">Drag to reorder</string>
+
+    <!-- New event (1k) -->
+    <string name="new_event_title">New event</string>
+    <string name="field_event_title">Title</string>
+    <string name="field_event_location">Location</string>
+    <string name="new_event_date_label">Date</string>
+    <string name="new_event_time_label">Start</string>
+    <string name="new_event_date_placeholder">Select date</string>
+    <string name="new_event_time_placeholder">Select time</string>
+    <string name="new_event_capacity_label">Capacity</string>
+    <string name="new_event_capacity_value">%1$d players</string>
+    <string name="new_event_capacity_hint">Invites count toward this, answered or not. Can’t be changed later.</string>
+    <string name="new_event_decrease_capacity">Decrease capacity</string>
+    <string name="new_event_increase_capacity">Increase capacity</string>
+    <string name="new_event_picker_confirm">OK</string>
+    <string name="new_event_picker_cancel">Cancel</string>
+
+    <!-- Add players (1o) -->
+    <string name="add_players_title">Add players</string>
+    <string name="add_players_stats">Capacity %1$d · Free %2$d · Inviting %3$d · Standby %4$d</string>
+    <string name="add_players_destination_invited">Invite</string>
+    <string name="add_players_destination_standby">Standby #%1$d</string>
+    <string name="add_players_confirm">Add %1$d players</string>
+    <string name="add_players_empty_title">Everyone’s already on this event</string>
+    <string name="add_players_empty_body">Every member of this group is already invited or on standby.</string>
+    <string name="add_players_failed_title">Couldn’t load members</string>
+    <string name="add_players_try_again">Try again</string>
+
+    <!-- Shared -->
+    <string name="action_continue">Continue</string>
+    <string name="action_save">Save</string>
+    <string name="action_sign_out">Sign out</string>
+    <string name="action_accept">Accept</string>
+    <string name="action_decline">Decline</string>
+    <string name="action_create_group">Create group</string>
+    <string name="action_create_event">Create event</string>
+    <string name="field_email">Email</string>
+    <string name="field_name">Name</string>
+    <string name="field_group_name">Group name</string>
+    <string name="content_description_back">Back</string>
+    <string name="content_description_more">More options</string>
+    <string name="content_description_close">Close</string>
+
+    <!-- Errors: one per DomainError case -->
+    <string name="error_invalid_email">That doesn’t look like an email address.</string>
+    <string name="error_invalid_code">That code is wrong or has expired.</string>
+    <string name="error_rate_limited">Too many attempts. Wait a minute and try again.</string>
+    <string name="error_invalid_name">Enter your name.</string>
+    <string name="error_invitation_not_pending">That invitation is no longer available.</string>
+    <string name="error_not_allowed_to_create_groups">You’re not allowed to create groups.</string>
+    <string name="error_last_admin">A group needs at least one admin. Promote someone else first.</string>
+    <string name="error_already_invited">There’s already an open invitation for that address.</string>
+    <string name="error_already_member">That address is already in the group.</string>
+    <string name="error_event_starts_in_past">Pick a time that hasn’t passed yet.</string>
+    <string name="error_event_full">This event is full.</string>
+    <string name="error_event_frozen">This event has already started.</string>
+    <string name="error_standby_queue_stale">Someone was promoted while you were reordering. Refresh and try again.</string>
+    <string name="error_invitation_sent_too_recently">Already sent today — try again tomorrow.</string>
+    <string name="error_network">Can’t connect. Check your connection and try again.</string>
+    <string name="error_not_signed_in">You’ve been signed out. Sign in again.</string>
+    <string name="error_unknown">Something went wrong. Try again.</string>
+
+</resources>

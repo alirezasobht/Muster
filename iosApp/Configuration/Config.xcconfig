@@ -3,5 +3,7 @@ TEAM_ID=
 PRODUCT_NAME=Muster
 PRODUCT_BUNDLE_IDENTIFIER=app.muster.Muster$(TEAM_ID)
 
-CURRENT_PROJECT_VERSION=1
-MARKETING_VERSION=1.0
+// version.properties is read as xcconfig: keep it to KEY=value lines, no # comments.
+#include "../../version.properties"
+CURRENT_PROJECT_VERSION=$(VERSION_NAME)
+MARKETING_VERSION=$(VERSION_NAME)

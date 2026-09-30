@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <group android:translateX="18" android:translateY="18" android:scaleX="0.72" android:scaleY="0.72">
+        <path android:fillColor="#FF000000" android:fillType="evenOdd"
+            android:pathData="M32,24H32.6V27A5.4,5.4 0 0 0 43.4,27V24H56.6V27A5.4,5.4 0 0 0 67.4,27V24H68A14,14 0 0 1 82,38V70A14,14 0 0 1 68,84H32A14,14 0 0 1 18,70V38A14,14 0 0 1 32,24ZM35,19A3,3 0 0 1 41,19V27A3,3 0 0 1 35,27ZM59,19A3,3 0 0 1 65,19V27A3,3 0 0 1 59,27ZM37,57V35H43L50,47L57,35H63V57H57.6V44.5L51.8,54H48.2L42.4,44.5V57ZM29.25,70.75A2.75,2.75 0 1 0 34.75,70.75A2.75,2.75 0 1 0 29.25,70.75ZM38.25,70.75A2.75,2.75 0 1 0 43.75,70.75A2.75,2.75 0 1 0 38.25,70.75ZM47.25,70.75A2.75,2.75 0 1 0 52.75,70.75A2.75,2.75 0 1 0 47.25,70.75ZM56.25,70.75A2.75,2.75 0 1 0 61.75,70.75A2.75,2.75 0 1 0 56.25,70.75ZM65.25,70.75A2.75,2.75 0 1 0 70.75,70.75A2.75,2.75 0 1 0 65.25,70.75ZM66.55,70.75A1.45,1.45 0 1 0 69.45,70.75A1.45,1.45 0 1 0 66.55,70.75Z" />
+    </group>
+</vector>

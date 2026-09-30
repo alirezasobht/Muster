@@ -1,5 +1,10 @@
 package app.muster
 
 import androidx.compose.ui.window.ComposeUIViewController
+import app.muster.ui.MusterApp
+import platform.UIKit.UIViewController
 
-fun MainViewController() = ComposeUIViewController { App() }
+fun MainViewController(): UIViewController {
+    initKoin()
+    return ComposeUIViewController { MusterApp() }
+}
