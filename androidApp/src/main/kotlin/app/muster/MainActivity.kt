@@ -9,6 +9,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.SideEffect
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import app.muster.ui.MusterApp
+import app.muster.ui.platform.SystemBarIconColor
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -31,7 +32,10 @@ class MainActivity : ComponentActivity() {
             }
         )
         splashScreen.setKeepOnScreenCondition { !contentDrawn }
-        splashScreen.setOnExitAnimationListener { it.remove() }
+        splashScreen.setOnExitAnimationListener {
+            it.remove()
+            SystemBarIconColor.apply(window)
+        }
 
         setContent {
             MusterApp()

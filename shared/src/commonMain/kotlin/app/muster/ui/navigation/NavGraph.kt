@@ -7,14 +7,17 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import app.muster.ui.common.util.LocalAnimatedVisibilityScope
 import app.muster.ui.common.util.LocalSharedTransitionScope
 import app.muster.ui.common.util.toDisplayDate
+import app.muster.ui.platform.SystemBarIcons
 import app.muster.ui.screens.addbyemail.AddMemberByEmailRoute
 import app.muster.ui.screens.addplayers.AddPlayersRoute
 import app.muster.ui.screens.event.EventRoute
@@ -40,6 +43,10 @@ fun NavGraph(
     launchViewModel: LaunchViewModel = koinViewModel()
 ) {
     val session by launchViewModel.state.collectAsStateWithLifecycle()
+
+    val current = navController.currentBackStackEntryAsState().value?.destination
+    val onGreen = current == null || current.hasRoute<Launch>() || current.hasRoute<RequestCode>()
+    SystemBarIcons(dark = !onGreen)
 
     LaunchedEffect(session) {
         val destination: Any? = when (session) {
