@@ -90,8 +90,8 @@ and every ViewModel. `:shared:iosSimulatorArm64Test` and
 ## Deploying
 
 Backend changes go out with `supabase/scripts/deploy-backend.sh <env>`;
-a full production deploy is `scripts/deploy-prod.sh`, then a manual upload
-of the folder it prints. Every script, and how the Supabase CLI is
+a full production deploy is `scripts/deploy-prod.sh`, then manual uploads
+of the two paths it prints. Every script, and how the Supabase CLI is
 authorised: [supabase/docs/deploying.md](supabase/docs/deploying.md).
 
 ## Layout

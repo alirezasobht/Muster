@@ -155,8 +155,8 @@ in the output — over Pages' 25 MiB per-file limit:
 ```
 
 `scripts/deploy-prod.sh` does all of this in one go: the backend
-(`deploy-backend.sh prod`), then this build, and it prints the folder to
-upload.
+(`deploy-backend.sh prod`), then this build and the Android bundle, and
+it prints both paths to upload.
 
 The compatibility build packs the Wasm and JS builds together and falls
 back to JS where Wasm GC is missing (Safari before 18.2, so iOS 17 and
