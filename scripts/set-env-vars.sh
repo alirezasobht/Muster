@@ -29,14 +29,18 @@ else
   _key=$(_read SUPABASE_PUBLISHABLE_KEY env)
   _contact=$(_read CONTACT_EMAIL edge.env)
   _web=$(_read WEB_APP_URL edge.env)
-  if [ -z "$_url" ] || [ -z "$_key" ] || [ -z "$_contact" ] || [ -z "$_web" ]; then
-    echo "missing one of ${_prefix}SUPABASE_URL, ${_prefix}SUPABASE_PUBLISHABLE_KEY (env)," \
-      "${_prefix}CONTACT_EMAIL, ${_prefix}WEB_APP_URL (edge.env)" >&2
+  _cert=$(_read ANDROID_CERT_SHA256 env)
+  if [ -z "$_url" ] || [ -z "$_key" ] || [ -z "$_cert" ] || [ -z "$_contact" ] \
+    || [ -z "$_web" ]; then
+    echo "missing one of ${_prefix}SUPABASE_URL, ${_prefix}SUPABASE_PUBLISHABLE_KEY," \
+      "${_prefix}ANDROID_CERT_SHA256 (env), ${_prefix}CONTACT_EMAIL," \
+      "${_prefix}WEB_APP_URL (edge.env)" >&2
   else
     export SUPABASE_URL="$_url" SUPABASE_PUBLISHABLE_KEY="$_key" \
-      CONTACT_EMAIL="$_contact" WEB_APP_URL="$_web" MUSTER_ENV="$1"
+      CONTACT_EMAIL="$_contact" WEB_APP_URL="$_web" MUSTER_ENV="$1" \
+      ANDROID_CERT_SHA256="$_cert"
     echo "App build now targets $1 ($SUPABASE_URL)"
   fi
 fi
-unset _root _dir _prefix _url _key _contact _web
+unset _root _dir _prefix _url _key _contact _web _cert
 unset -f _read 2>/dev/null

@@ -29,7 +29,6 @@ grep "^${PREFIX}" "$EDGE_FILE" | sed "s/^${PREFIX}//" > "$TMP"
 # Must match the required names in the Edge Functions. Checked before
 # uploading anything, so a half-filled file never reaches Supabase. Quotes are
 # stripped first: NAME="" is empty, even though it has characters after =.
-# ANDROID_APP_URL is optional until there is a Play Store listing.
 for name in GROUP_INVITATION_WEBHOOK_SECRET EVENT_INVITATION_WEBHOOK_SECRET \
             RESEND_API_KEY RESEND_FROM RESEND_MEMBER_INVITATION_TEMPLATE_ID \
             RESEND_EVENT_INVITATION_TEMPLATE_ID CONTACT_EMAIL WEB_APP_URL; do

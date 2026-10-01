@@ -46,9 +46,9 @@ typed first.
 - `set-env-vars.sh <env>` — source it (`. scripts/set-env-vars.sh <env>`):
   exports the app build values for that environment, and `MUSTER_ENV` for
   the Android app id, into the current shell only.
-- `deploy-prod.sh` — full prod deploy: `deploy-backend.sh prod`, then a clean
-  web build with prod values. Ends on dev whatever happens. The Pages
-  upload stays manual; it prints the folder.
+- `deploy-prod.sh` — full prod deploy: `deploy-backend.sh prod`, then clean
+  web and Android release builds with prod values. Ends on dev whatever
+  happens. The Pages and Play uploads stay manual; it prints both paths.
 
 ## Staying on dev
 
