@@ -240,6 +240,20 @@ from `set-env-vars.sh`, not by build type. With no `MUSTER_ENV` the build
 falls back to dev. The prod id is fixed: Play records it when the app is
 created.
 
+## iOS environment follows the Xcode configuration
+
+Debug builds dev, Release builds prod; Archive uses Release. Xcode's
+Run and Archive never see a shell's exports, so `MUSTER_ENV` is set per
+configuration in `Config.xcconfig` and the Kotlin build phase sources
+`set-env-vars.sh` with it. The phase fails if no values load, so a
+Release build can't fall back to `local.properties`. Bundle ids follow,
+`app.muster.dev` and `app.muster.prod`, as on Android.
+
+The Team ID comes from `Muster-env/<env>/ios.xcconfig`: xcconfig reads
+`//` as a comment, so it can't include `env`.
+
+Rejected: Android's shell-only switch, which Xcode's buttons can't reach.
+
 ## Android release: Play App Signing, no R8, no backup
 
 Release builds are signed with an upload key kept in `Muster-env/prod/`;
