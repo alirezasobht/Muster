@@ -12,8 +12,6 @@ const RESEND_FROM = requireEnv("RESEND_FROM");
 const RESEND_EVENT_INVITATION_TEMPLATE_ID = requireEnv("RESEND_EVENT_INVITATION_TEMPLATE_ID");
 const CONTACT_EMAIL = requireEnv("CONTACT_EMAIL");
 const WEB_APP_URL = requireEnv("WEB_APP_URL");
-// Optional until there is a Play Store listing. Falls back to the web app
-const ANDROID_APP_URL = Deno.env.get("ANDROID_APP_URL") || WEB_APP_URL;
 
 // Resend's batch endpoint accepts at most 100 emails per request.
 const BATCH_LIMIT = 100;
@@ -99,7 +97,6 @@ export default {
               EVENT_LOCATION: event.location ?? "Location to be confirmed",
               RECIPIENT_EMAIL: email,
               CONTACT_EMAIL: CONTACT_EMAIL,
-              ANDROID_APP_URL: ANDROID_APP_URL,
               WEB_APP_URL: WEB_APP_URL,
             },
           },

@@ -12,8 +12,6 @@ const RESEND_FROM = requireEnv("RESEND_FROM");
 const RESEND_MEMBER_INVITATION_TEMPLATE_ID = requireEnv("RESEND_MEMBER_INVITATION_TEMPLATE_ID");
 const CONTACT_EMAIL = requireEnv("CONTACT_EMAIL");
 const WEB_APP_URL = requireEnv("WEB_APP_URL");
-// Optional until there is a Play Store listing. Falls back to the web app
-const ANDROID_APP_URL = Deno.env.get("ANDROID_APP_URL") || WEB_APP_URL;
 
 // Read at module load, so a missing secret fails the deploy's first request
 // with a clear log line instead of sending an email with an empty field.
@@ -75,7 +73,6 @@ export default {
               INVITER_NAME: inviterName,
               RECIPIENT_EMAIL: invitation.email,
               CONTACT_EMAIL: CONTACT_EMAIL,
-              ANDROID_APP_URL: ANDROID_APP_URL,
               WEB_APP_URL: WEB_APP_URL,
             },
           },

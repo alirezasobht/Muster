@@ -1,3 +1,4 @@
+import java.net.URI
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -30,6 +31,8 @@ val uploadKeystorePassword = buildSetting(
     "UPLOAD_KEYSTORE_PASSWORD"
 ).get()
 val isProd = buildSetting(providers, localProperties, "MUSTER_ENV").get() == "prod"
+val webAppHost = buildSetting(providers, localProperties, "WEB_APP_URL").get()
+    .let { URI(it).host.orEmpty() }
 
 android {
     namespace = "app.muster"
@@ -39,6 +42,7 @@ android {
         applicationId = "app.muster"
         applicationIdSuffix = if (isProd) ".prod" else ".dev"
         manifestPlaceholders["appLabel"] = if (isProd) "Muster" else "Muster Dev"
+        manifestPlaceholders["webAppHost"] = webAppHost
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = versionCode(appVersionName)

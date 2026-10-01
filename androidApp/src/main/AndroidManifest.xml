@@ -13,11 +13,22 @@
         android:theme="@style/Theme.Muster.Splash">
         <activity
             android:exported="true"
+            android:launchMode="singleTask"
             android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="https" />
+                <data android:host="${webAppHost}" />
+                <data android:path="/open" />
             </intent-filter>
         </activity>
     </application>

@@ -84,7 +84,7 @@ second deploys every function. Both take the project ref from `env`, so
 they can't target the wrong project. `prod` asks for confirmation.
 
 Push secrets first: a function refuses to start if any required one is
-missing. `ANDROID_APP_URL` is optional and falls back to the web URL.
+missing.
 
 `supabase/scripts/deploy-backend.sh <env>` runs steps 2 and 5 together:
 migrations, secrets, then functions.
