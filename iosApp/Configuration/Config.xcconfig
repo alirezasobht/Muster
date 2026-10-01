@@ -1,7 +1,13 @@
-TEAM_ID=
+MUSTER_ENV[config=Debug]=dev
+MUSTER_ENV[config=Release]=prod
+
+#include? "../../../Muster-env/dev/ios.xcconfig"
+#include? "../../../Muster-env/prod/ios.xcconfig"
+TEAM_ID[config=Debug]=$(DEV_TEAM_ID)
+TEAM_ID[config=Release]=$(PROD_TEAM_ID)
 
 PRODUCT_NAME=Muster
-PRODUCT_BUNDLE_IDENTIFIER=app.muster.Muster$(TEAM_ID)
+PRODUCT_BUNDLE_IDENTIFIER=app.muster.$(MUSTER_ENV)
 
 // version.properties is read as xcconfig: keep it to KEY=value lines, no # comments.
 #include "../../version.properties"

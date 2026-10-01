@@ -8,6 +8,7 @@ they live in `Muster-env/<env>/`, with every name prefixed `DEV_` or
 |---|---|---|
 | `env` | app build values, project ref, DB password (direct Postgres access only; no script uses it) | `.env.example` |
 | `edge.env` | Edge Function secrets, and the contact email and web URL the web build also reads | `edge.env.example` |
+| `ios.xcconfig` | the Apple Team ID, read by Xcode | `DEV_TEAM_ID=` / `PROD_TEAM_ID=` |
 
 The scripts used below, and how the Supabase CLI is authorised to run
 them: `deploying.md`.
