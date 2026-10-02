@@ -85,8 +85,8 @@ class HomeViewModel(
         if (showIndicator) _state.updateSuccess { it.copy(isRefreshing = true) }
         viewModelScope.launch {
             try {
-                // The profile too: can_create_groups is flipped by hand in the
-                // dashboard, so a refresh is the only way it reaches the app.
+                // The profile too: can_create_groups comes from the group_creator_emails table,
+                // edited by hand in the dashboard, so a refresh is the only way a change reaches the app.
                 val profile = getMyProfile()
                 val groups = listMyGroups()
                 val invitations = listPendingInvitations()

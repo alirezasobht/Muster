@@ -13,7 +13,7 @@ Mirrors `auth.users`. Created by trigger on signup.
 | id | uuid PK | → `auth.users.id`, cascade |
 | name | text | **nullable**, non-blank when present, editable by owner |
 | email | text | not null, **unique**, stored lowercase and trimmed (CHECK) |
-| can_create_groups | bool | default false, set by hand in the dashboard |
+| can_create_groups | bool | default false. **Mirror only**, for 1.0.x clients that read it; the allowlist is the source. Drop once no client reads it |
 
 A null `name` means the person has not set one yet. The account exists
 from the moment the first sign-in code is requested, which is before
@@ -26,13 +26,20 @@ two identities, and the unique constraint means the schema doesn't lean
 on `auth.users` to enforce it.
 
 Signup is open to anyone; **creating a group is allowlisted**. Without
-the flag an account can accept invitations and play, nothing more.
+it an account can accept invitations and play, nothing more.
 `set_profile_name` leaves `name` as the only self-editable field, with
-no direct client write grants on `profiles`, so `can_create_groups`
-cannot be granted by its owner. `email` is not
+no direct client write grants on `profiles`. `email` is not
 editable here either, but that is not the whole story: Supabase Auth has
 its own email-change flow outside these tables, and a trigger syncs any
 such change back into `profiles`. See CONTEXT.md → Identity.
+
+`private.group_creator_emails` (`email` text PK, lowercase and trimmed,
+no grants, edited in the dashboard) is the allowlist. It is keyed by
+email with no link to the account, so it survives account deletion and
+a re-signup at the same address can create groups again. Two triggers
+keep the `can_create_groups` column in step for 1.0.x clients, turning
+it on only: removing an address revokes the right but leaves the column
+set.
 
 ### groups
 
@@ -184,8 +191,8 @@ it never needs to renumber anything.
 3. **Admin-only actions** — RPC guards checking `role = 'admin'` for:
    create event, invite member, promote/demote, remove member, archive
    group, reorder standby, change another player's RSVP.
-4. **Group creation allowlist** — `create_group` requires
-   `profiles.can_create_groups`. Off by default. The RPC sets
+4. **Group creation allowlist** — `create_group` requires the caller's
+   email on `private.group_creator_emails`. The RPC sets
    `created_by = auth.uid()` itself; clients cannot supply it.
 5. **Column privileges** — RLS filters rows, not columns, so a member
    passing a row policy could otherwise rewrite any field on it (moving
@@ -286,7 +293,7 @@ calls one by name must qualify it, `private.is_group_admin(...)`.
 | `is_group_member(gid)` | caller is in the group, and it is not archived |
 | `is_group_admin(gid)` | as above, and role is `admin` |
 | `my_email()` | caller's email from `profiles`, not the JWT |
-| `can_create_groups()` | caller's allowlist flag |
+| `can_create_groups()` | caller's email is on `private.group_creator_emails` |
 | `group_is_live(gid)` | not archived — for paths with no membership to check |
 | `has_pending_invitation(gid)` | caller has a pending invitation to it |
 
@@ -297,7 +304,8 @@ calls one by name must qualify it, `private.is_group_admin(...)`.
 | `get_event_detail(eid)` | read-only `security invoker`: returns event fields, roster with names, ordered standby with names, and the caller's RSVP in one SQL statement. Existing SELECT grants and RLS apply to every table |
 | `list_upcoming_events(gid)` | read-only `security invoker`: returns upcoming events with complete in/pending counts and the caller's RSVP in one SQL statement. Uses existing RLS and SELECT grants, database time, and orders by start time then ID |
 | `create_event(group_id, title, starts_at, capacity, location)` | `security definer`: requires a signed-in admin, locks the live group before inserting, sets the creator, and returns the created event. Location is optional |
-| `set_profile_name(name)` | `security definer`: requires a signed-in caller, updates only their name, and returns their profile; raises if the profile is missing. No group membership is required |
+| `set_profile_name(name)` | `security definer`: requires a signed-in caller, updates only their name, and returns their profile as `my_profile`, the flag from the `group_creator_emails` table; raises if the profile is missing. No group membership is required |
+| `get_my_profile()` | `security definer`: the caller's profile as `my_profile` (`id, name, email, can_create_groups`), the flag from the `group_creator_emails` table. The app reads its profile here, not from `profiles` |
 | `create_group(name)` | `security definer`: requires a signed-in, allowlisted caller, sets the creator, and returns the created group. The existing trigger creates its admin membership |
 | `archive_group(group_id)` | `security definer`: locks a live group, requires its admin, and sets the archive timestamp on the server; raises for a missing or already archived group |
 | `accept_group_invitation(id)` | accepts a pending group invitation addressed to the caller's profile email. Locks the invitation then its live group; creates membership and marks accepted atomically |
@@ -367,6 +375,8 @@ is stale. These existing whole-queue and batch semantics are preserved.
 | `on_auth_user_created` | `handle_new_user` | insert on `auth.users` | creates the `profiles` row |
 | `on_auth_user_sign_in_restore_profile` | `restore_profile_on_sign_in` | update of `last_sign_in_at` on `auth.users` | recreates a missing `profiles` row, never touches an existing one |
 | `on_auth_user_email_changed` | `sync_user_email` | update of email on `auth.users` | keeps `profiles.email` in step with Auth |
+| `profiles_group_creator_allowlist` | `private.apply_group_creator_allowlist` | before insert/update of email on `profiles` | sets `can_create_groups` when the email is on `private.group_creator_emails`; covers all three triggers above |
+| `group_creator_emails_grant` | `private.grant_listed_group_creator` | insert on `private.group_creator_emails` | sets `can_create_groups` on an existing profile with that email |
 | `on_group_created` | `handle_new_group` | insert on `groups` | creator's admin membership |
 | `group_invitations_not_member` | `reject_if_already_member` | insert on `group_invitations` | rejects inviting someone already in the group |
 | `group_keeps_an_admin` | `ensure_admin_remains` | update/delete on `group_members` | rejects leaving a live group admin-less; archived groups are skipped so account deletion can cascade. **Deferred** — lets a transaction promote and demote in either order, and lets a group's cascade through |
