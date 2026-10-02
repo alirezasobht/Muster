@@ -46,9 +46,9 @@ outgrows an Edge Function.
 A Gradle task reads build values (Supabase URL, publishable key, web app
 URL) from the environment, falling back to `local.properties`, and
 generates `app.muster.SupabaseConfig` into `commonMain`. Any future
-build-time value follows the same path. The web app's static pages are
-the one exception: plain HTML can't read Kotlin, so the web build fills
-their contact address and web link by filtering the files.
+build-time value follows the same path. The web app's static files are
+the one exception: plain HTML and JSON can't read Kotlin, so the web
+build replaces their `@…@` placeholders by filtering the files.
 
 Rejected: `BuildConfig` (Android-only), `expect`/`actual` (a copy per
 target) and BuildKonfig (a third-party plugin whose Wasm support is one
