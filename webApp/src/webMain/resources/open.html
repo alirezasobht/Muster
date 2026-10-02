@@ -9,9 +9,13 @@
     <meta name="theme-color" content="#2F7D4F">
     <script>
         // Reached only when the app didn't take the link: Android without
-        // Muster installed goes to Play, everything else to the web app.
+        // Muster installed goes to Play, iPhone to the App Store, everything
+        // else to the web app. Dev has no App Store id, so iPhone falls through.
+        var iosAppStoreId = "@IOS_APP_STORE_ID@";
         if (/Android/i.test(navigator.userAgent)) {
             location.replace("https://play.google.com/store/apps/details?id=@ANDROID_APP_ID@");
+        } else if (/iPhone|iPod/i.test(navigator.userAgent) && iosAppStoreId) {
+            location.replace("https://apps.apple.com/app/id" + iosAppStoreId);
         } else {
             location.replace("/");
         }

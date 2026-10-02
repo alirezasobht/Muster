@@ -30,6 +30,8 @@ else
   _contact=$(_read CONTACT_EMAIL edge.env)
   _web=$(_read WEB_APP_URL edge.env)
   _cert=$(_read ANDROID_CERT_SHA256 env)
+  # Optional: dev has no App Store listing.
+  _ios=$(_read IOS_APP_STORE_ID env)
   if [ -z "$_url" ] || [ -z "$_key" ] || [ -z "$_cert" ] || [ -z "$_contact" ] \
     || [ -z "$_web" ]; then
     echo "missing one of ${_prefix}SUPABASE_URL, ${_prefix}SUPABASE_PUBLISHABLE_KEY," \
@@ -38,9 +40,9 @@ else
   else
     export SUPABASE_URL="$_url" SUPABASE_PUBLISHABLE_KEY="$_key" \
       CONTACT_EMAIL="$_contact" WEB_APP_URL="$_web" MUSTER_ENV="$1" \
-      ANDROID_CERT_SHA256="$_cert"
+      ANDROID_CERT_SHA256="$_cert" IOS_APP_STORE_ID="$_ios"
     echo "App build now targets $1 ($SUPABASE_URL)"
   fi
 fi
-unset _root _dir _prefix _url _key _contact _web _cert
+unset _root _dir _prefix _url _key _contact _web _cert _ios
 unset -f _read 2>/dev/null
