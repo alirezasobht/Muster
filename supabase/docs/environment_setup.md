@@ -2,13 +2,13 @@
 
 How to bring up a Muster environment. Values are never written here —
 they live in `Muster-env/<env>/`, with every name prefixed `DEV_` or
-`PROD_`. The examples at the repo root list the names.
+`PROD_`. The examples in `env-examples/` list the names.
 
 | File in `Muster-env/<env>/` | Holds | Example |
 |---|---|---|
-| `env` | app build values, project ref, DB password (direct Postgres access only; no script uses it) | `.env.example` |
-| `edge.env` | Edge Function secrets, and the contact email and web URL the web build also reads | `edge.env.example` |
-| `ios.xcconfig` | the Apple Team ID, read by Xcode | `DEV_TEAM_ID=` / `PROD_TEAM_ID=` |
+| `env` | app build values, project ref, DB password (direct Postgres access only; no script uses it) | `env-examples/env.example` |
+| `edge.env` | Edge Function secrets, and the contact email and web URL the web build also reads | `env-examples/edge.env.example` |
+| `ios.xcconfig` | the Apple Team ID and the web app host for Universal Links, read by Xcode; the Team ID also by the web build | `env-examples/ios.xcconfig.example` |
 
 The scripts used below, and how the Supabase CLI is authorised to run
 them: `deploying.md`.

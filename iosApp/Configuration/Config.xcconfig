@@ -5,6 +5,12 @@ MUSTER_ENV[config=Release]=prod
 #include? "../../../Muster-env/prod/ios.xcconfig"
 TEAM_ID[config=Debug]=$(DEV_TEAM_ID)
 TEAM_ID[config=Release]=$(PROD_TEAM_ID)
+WEB_APP_HOST[config=Debug]=$(DEV_WEB_APP_HOST)
+WEB_APP_HOST[config=Release]=$(PROD_WEB_APP_HOST)
+// Debug fetches apple-app-site-association straight from the site, not
+// through Apple's CDN, which can take hours to see a new file.
+APPLINKS_MODE[config=Debug]=?mode=developer
+CODE_SIGN_ENTITLEMENTS=Configuration/Muster.entitlements
 
 PRODUCT_NAME=Muster
 PRODUCT_BUNDLE_IDENTIFIER=app.muster.$(MUSTER_ENV)
