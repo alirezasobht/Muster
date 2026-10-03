@@ -167,11 +167,15 @@ Upload `webApp/build/dist/composeWebCompatibility/productionExecutable/`
 in the Pages project's **Create deployment**. `composeResources` must be
 included.
 
-`delete-account.html` and `privacy.html` ride along and are served at
-`/delete-account` and `/privacy`: Play's account deletion link and
-privacy policy URL. The app's Privacy policy screen shows
+`delete-account.html`, `privacy.html` and `support.html` ride along and
+are served at `/delete-account`, `/privacy` and `/support`: Play's account
+deletion link, the privacy policy URL for both stores, and the App Store
+support URL. The app's Privacy policy screen shows
 `privacy.html` too. The build fills their contact address and web link
 from `CONTACT_EMAIL` and `WEB_APP_URL`, and fails without them.
+Each also links to `/open`, shown by `app-link.js` only on Android
+and on iPhones once `IOS_APP_STORE_ID` is set, and never inside the
+app's own Privacy policy screen.
 
 Domain, set once, with `<domain>` the web domain and `<project>` the
 Pages project name:
