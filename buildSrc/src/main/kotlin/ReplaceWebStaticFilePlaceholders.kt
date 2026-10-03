@@ -25,9 +25,10 @@ fun Project.replaceWebStaticFilePlaceholders() {
         inputs.property("androidCertSha256", certs)
         inputs.property("iosAppStoreId", iosId)
         inputs.property("iosTeamId", iosTeam)
-        filesMatching(listOf("delete-account.html", "privacy.html")) {
+        filesMatching(listOf("delete-account.html", "privacy.html", "support.html")) {
             val emailValue = email.get()
-            val urlValue = url.get()
+            // Pages append paths like /open, so a trailing slash would double up.
+            val urlValue = url.get().trimEnd('/')
             require(emailValue.isNotBlank() && urlValue.isNotBlank()) {
                 "CONTACT_EMAIL and WEB_APP_URL must be set in local.properties or in the environment."
             }
@@ -40,6 +41,7 @@ fun Project.replaceWebStaticFilePlaceholders() {
         filesMatching(
             listOf(
                 "open.html",
+                "app-link.js",
                 ".well-known/assetlinks.json",
                 ".well-known/apple-app-site-association"
             )
