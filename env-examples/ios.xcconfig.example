@@ -1,0 +1,5 @@
+// Names only. Values live in Muster-env/<env>/ios.xcconfig, prefixed DEV_ / PROD_.
+// One KEY=value per line: xcconfig reads // as a comment, so no URLs.
+
+TEAM_ID=
+WEB_APP_HOST=

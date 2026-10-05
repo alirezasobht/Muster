@@ -22,8 +22,9 @@ sealed class DomainError(
     // answered, or not the caller's.
     class InvitationNotPending : DomainError("invitation is no longer available")
 
-    // create_group requires profiles.can_create_groups. The entry
-    // point is gated on it too, but the flag can change between screens.
+    // create_group requires the caller's email in the group_creator_emails
+    // table. The entry point is gated on it too, but the table can change
+    // between screens.
     class NotAllowedToCreateGroups : DomainError("not allowed to create groups")
 
     // group_keeps_an_admin trigger: rejects any change that would leave a

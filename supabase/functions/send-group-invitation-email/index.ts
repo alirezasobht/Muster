@@ -5,7 +5,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 const SUPABASE_URL = requireEnv("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
 
-// Edge Function secrets, per environment. See .env.example.
+// Edge Function secrets, per environment. See env-examples/edge.env.example.
 const WEBHOOK_SECRET = requireEnv("GROUP_INVITATION_WEBHOOK_SECRET");
 const RESEND_API_KEY = requireEnv("RESEND_API_KEY");
 const RESEND_FROM = requireEnv("RESEND_FROM");

@@ -2,12 +2,13 @@
 
 How to bring up a Muster environment. Values are never written here —
 they live in `Muster-env/<env>/`, with every name prefixed `DEV_` or
-`PROD_`. The examples at the repo root list the names.
+`PROD_`. The examples in `env-examples/` list the names.
 
 | File in `Muster-env/<env>/` | Holds | Example |
 |---|---|---|
-| `env` | app build values, project ref, DB password (direct Postgres access only; no script uses it) | `.env.example` |
-| `edge.env` | Edge Function secrets, and the contact email and web URL the web build also reads | `edge.env.example` |
+| `env` | app build values, project ref, DB password (direct Postgres access only; no script uses it) | `env-examples/env.example` |
+| `edge.env` | Edge Function secrets, and the contact email and web URL the web build also reads | `env-examples/edge.env.example` |
+| `ios.xcconfig` | the Apple Team ID and the web app host for Universal Links, read by Xcode; the Team ID also by the web build | `env-examples/ios.xcconfig.example` |
 
 The scripts used below, and how the Supabase CLI is authorised to run
 them: `deploying.md`.
@@ -166,11 +167,15 @@ Upload `webApp/build/dist/composeWebCompatibility/productionExecutable/`
 in the Pages project's **Create deployment**. `composeResources` must be
 included.
 
-`delete-account.html` and `privacy.html` ride along and are served at
-`/delete-account` and `/privacy`: Play's account deletion link and
-privacy policy URL. The app's Privacy policy screen shows
+`delete-account.html`, `privacy.html` and `support.html` ride along and
+are served at `/delete-account`, `/privacy` and `/support`: Play's account
+deletion link, the privacy policy URL for both stores, and the App Store
+support URL. The app's Privacy policy screen shows
 `privacy.html` too. The build fills their contact address and web link
 from `CONTACT_EMAIL` and `WEB_APP_URL`, and fails without them.
+Each also links to `/open`, shown by `app-link.js` only on Android
+and on iPhones once `IOS_APP_STORE_ID` is set, and never inside the
+app's own Privacy policy screen.
 
 Domain, set once, with `<domain>` the web domain and `<project>` the
 Pages project name:

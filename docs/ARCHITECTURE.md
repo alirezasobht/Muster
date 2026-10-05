@@ -18,7 +18,8 @@ shared/              shared module — UI + logic
 androidApp/          Android host — MainActivity only
 iosApp/              Xcode project, thin SwiftUI wrapper
 webApp/              Web host — Main.kt, index.html, styles.css, and the
-                     static delete-account.html and privacy.html
+                     static delete-account.html, privacy.html and
+                     support.html
 ```
 
 Package: `app.muster`.

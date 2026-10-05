@@ -46,9 +46,9 @@ outgrows an Edge Function.
 A Gradle task reads build values (Supabase URL, publishable key, web app
 URL) from the environment, falling back to `local.properties`, and
 generates `app.muster.SupabaseConfig` into `commonMain`. Any future
-build-time value follows the same path. The web app's static pages are
-the one exception: plain HTML can't read Kotlin, so the web build fills
-their contact address and web link by filtering the files.
+build-time value follows the same path. The web app's static files are
+the one exception: plain HTML and JSON can't read Kotlin, so the web
+build replaces their `@…@` placeholders by filtering the files.
 
 Rejected: `BuildConfig` (Android-only), `expect`/`actual` (a copy per
 target) and BuildKonfig (a third-party plugin whose Wasm support is one
@@ -239,6 +239,20 @@ Prod is `app.muster.prod`, dev is `app.muster.dev`, picked by `MUSTER_ENV`
 from `set-env-vars.sh`, not by build type. With no `MUSTER_ENV` the build
 falls back to dev. The prod id is fixed: Play records it when the app is
 created.
+
+## iOS environment follows the Xcode configuration
+
+Debug builds dev, Release builds prod; Archive uses Release. Xcode's
+Run and Archive never see a shell's exports, so `MUSTER_ENV` is set per
+configuration in `Config.xcconfig` and the Kotlin build phase sources
+`set-env-vars.sh` with it. The phase fails if no values load, so a
+Release build can't fall back to `local.properties`. Bundle ids follow,
+`app.muster.dev` and `app.muster.prod`, as on Android.
+
+The Team ID comes from `Muster-env/<env>/ios.xcconfig`: xcconfig reads
+`//` as a comment, so it can't include `env`.
+
+Rejected: Android's shell-only switch, which Xcode's buttons can't reach.
 
 ## Android release: Play App Signing, no R8, no backup
 

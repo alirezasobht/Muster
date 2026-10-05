@@ -28,7 +28,6 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.HtmlElementView
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.currentStateAsState
 import app.muster.ui.theme.MusterColors
@@ -72,7 +71,7 @@ actual fun AdaptedMusterTextField(
     val currentOnValueChange by rememberUpdatedState(onValueChange)
     val currentKeyboardActions by rememberUpdatedState(keyboardActions)
     // The <input> sits above the canvas and can't join a screen transition, so
-    // it would float over the next screen. Shown only while its screen is RESUMED.
+    // it would float over the next screen. Shown only while its screen is on top (see showsHtmlInput).
     val lifecycleState = LocalLifecycleOwner.current.lifecycle.currentStateAsState()
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(7.dp)) {
@@ -131,7 +130,7 @@ actual fun AdaptedMusterTextField(
                 update = { input ->
                     if (input.value != value) input.value = value
                     input.disabled = !enabled || readOnly
-                    val onScreen = lifecycleState.value.isAtLeast(Lifecycle.State.RESUMED)
+                    val onScreen = lifecycleState.value.showsHtmlInput()
                     input.style.setProperty("visibility", if (onScreen) "visible" else "hidden")
                     if (!onScreen) input.blur()
                 }

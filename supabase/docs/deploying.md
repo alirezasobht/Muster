@@ -38,6 +38,7 @@ typed first.
   Function secrets, prefix stripped, and removes stale ones.
 - `deploy-functions.sh <env>` — deploys every Edge Function, settings from
   `supabase/config.toml`.
+- `backup-db.sh <env>` — dumps the database into `Muster-env`; see Backups.
 - `deploy-backend.sh <env>` — runs the three above in order: migrations,
   secrets, functions. Confirms prod once and stops at the first failure.
 
@@ -59,5 +60,9 @@ dev. Build values from `set-env-vars.sh` die with their shell.
 
 ## Backups
 
-The free plan has no dashboard backups; use `supabase db dump`, with Docker
-or Podman running. Dumps hold users' emails, so they stay in `Muster-env`.
+The free plan has no dashboard backups. `supabase/scripts/backup-db.sh <env>`
+dumps roles, schema and data into `Muster-env/<env>/backups/<timestamp>/`.
+It needs Docker or Podman installed, and starts Podman itself when there is
+no `docker` command. Dumps hold users' emails, so they stay in `Muster-env`.
+"could not translate host name" followed by "Retrying via the IPv4
+connection pooler" is normal.
