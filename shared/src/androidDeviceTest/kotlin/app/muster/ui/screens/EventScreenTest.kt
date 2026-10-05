@@ -474,6 +474,7 @@ class EventScreenTest {
     @Test
     fun standbyShowsNamesAndMarksTheViewersOwnRow() {
         show(state = successState.copy(isAdmin = false, standby = standby))
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Joe Moriarty · you"))
         composeRule.onNodeWithText("Priya Nair").assertIsDisplayed()
         composeRule.onNodeWithText("Joe Moriarty · you").assertIsDisplayed()
     }
@@ -481,6 +482,7 @@ class EventScreenTest {
     @Test
     fun adminSeesADragHandlePerRow() {
         show(state = successState.copy(isAdmin = true, standby = standby))
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Joe Moriarty · you"))
         composeRule.onAllNodesWithContentDescription("Drag to reorder").assertCountEquals(2)
     }
 
@@ -508,7 +510,8 @@ class EventScreenTest {
                 standbyError = DomainError.StandbyQueueStale()
             )
         )
-        composeRule.onNodeWithText("Someone was promoted while you were reordering. Refresh and try again.")
-            .assertIsDisplayed()
+        val message = "Someone was promoted while you were reordering. Refresh and try again."
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText(message))
+        composeRule.onNodeWithText(message).assertIsDisplayed()
     }
 }
