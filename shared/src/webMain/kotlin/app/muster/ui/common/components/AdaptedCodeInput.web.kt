@@ -23,7 +23,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.HtmlElementView
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.currentStateAsState
 import app.muster.ui.theme.MusterColors
@@ -60,7 +59,7 @@ actual fun AdaptedCodeInput(
     val currentOnValueChange by rememberUpdatedState(onValueChange)
     val currentOnDone by rememberUpdatedState(onDone)
     // The <input> sits above the canvas and can't join a screen transition, so
-    // it would float over the next screen. Shown only while its screen is RESUMED.
+    // it would float over the next screen. Shown only while its screen is on top (see showsHtmlInput).
     val lifecycleState = LocalLifecycleOwner.current.lifecycle.currentStateAsState()
 
     Box(modifier = modifier.fillMaxWidth()) {
@@ -113,7 +112,7 @@ actual fun AdaptedCodeInput(
             update = { input ->
                 if (input.value != value) input.value = value
                 input.disabled = !enabled
-                val onScreen = lifecycleState.value.isAtLeast(Lifecycle.State.RESUMED)
+                val onScreen = lifecycleState.value.showsHtmlInput()
                 input.style.setProperty("visibility", if (onScreen) "visible" else "hidden")
                 if (!onScreen) input.blur()
             }
