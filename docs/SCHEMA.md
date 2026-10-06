@@ -34,12 +34,14 @@ its own email-change flow outside these tables, and a trigger syncs any
 such change back into `profiles`. See CONTEXT.md → Identity.
 
 `private.group_creator_emails` (`email` text PK, lowercase and trimmed,
-no grants, edited in the dashboard) is the allowlist. It is keyed by
-email with no link to the account, so it survives account deletion and
-a re-signup at the same address can create groups again. Two triggers
-keep the `can_create_groups` column in step for 1.0.x clients, turning
-it on only: removing an address revokes the right but leaves the column
-set.
+no grants, edited in the dashboard) lifts the group-creation limit:
+anyone else can create a group only while they have no live group they
+created. It is keyed by email; `delete_account` removes the caller's
+address, so a re-signup at the same address starts at the limit again.
+Two triggers keep the `can_create_groups` column in step for 1.0.x
+clients, turning it on only: removing an address revokes the right but
+leaves the column set. The column reflects the list alone, not the
+limit, so 1.0.x clients offer group creation to listed addresses only.
 
 ### groups
 
@@ -191,8 +193,10 @@ it never needs to renumber anything.
 3. **Admin-only actions** — RPC guards checking `role = 'admin'` for:
    create event, invite member, promote/demote, remove member, archive
    group, reorder standby, change another player's RSVP.
-4. **Group creation allowlist** — `create_group` requires the caller's
-   email on `private.group_creator_emails`. The RPC sets
+4. **Group creation limit** — `create_group` allows one live group
+   created by the caller, unless their email is on
+   `private.group_creator_emails`. It locks the caller's profile row
+   first, so two concurrent creates can't both pass. The RPC sets
    `created_by = auth.uid()` itself; clients cannot supply it.
 5. **Column privileges** — RLS filters rows, not columns, so a member
    passing a row policy could otherwise rewrite any field on it (moving
@@ -293,7 +297,7 @@ calls one by name must qualify it, `private.is_group_admin(...)`.
 | `is_group_member(gid)` | caller is in the group, and it is not archived |
 | `is_group_admin(gid)` | as above, and role is `admin` |
 | `my_email()` | caller's email from `profiles`, not the JWT |
-| `can_create_groups()` | caller's email is on `private.group_creator_emails` |
+| `can_create_groups()` | caller's email is on `private.group_creator_emails`, or they have no live group they created |
 | `group_is_live(gid)` | not archived — for paths with no membership to check |
 | `has_pending_invitation(gid)` | caller has a pending invitation to it |
 
@@ -304,9 +308,9 @@ calls one by name must qualify it, `private.is_group_admin(...)`.
 | `get_event_detail(eid)` | read-only `security invoker`: returns event fields, roster with names, ordered standby with names, and the caller's RSVP in one SQL statement. Existing SELECT grants and RLS apply to every table |
 | `list_upcoming_events(gid)` | read-only `security invoker`: returns upcoming events with complete in/pending counts and the caller's RSVP in one SQL statement. Uses existing RLS and SELECT grants, database time, and orders by start time then ID |
 | `create_event(group_id, title, starts_at, capacity, location)` | `security definer`: requires a signed-in admin, locks the live group before inserting, sets the creator, and returns the created event. Location is optional |
-| `set_profile_name(name)` | `security definer`: requires a signed-in caller, updates only their name, and returns their profile as `my_profile`, the flag from the `group_creator_emails` table; raises if the profile is missing. No group membership is required |
-| `get_my_profile()` | `security definer`: the caller's profile as `my_profile` (`id, name, email, can_create_groups`), the flag from the `group_creator_emails` table. The app reads its profile here, not from `profiles` |
-| `create_group(name)` | `security definer`: requires a signed-in, allowlisted caller, sets the creator, and returns the created group. The existing trigger creates its admin membership |
+| `set_profile_name(name)` | `security definer`: requires a signed-in caller, updates only their name, and returns their profile as `my_profile`, the flag from `can_create_groups()`; raises if the profile is missing. No group membership is required |
+| `get_my_profile()` | `security definer`: the caller's profile as `my_profile` (`id, name, email, can_create_groups`), the flag from `can_create_groups()`. The app reads its profile here, not from `profiles` |
+| `create_group(name)` | `security definer`: requires a signed-in caller that `can_create_groups()` allows, locking their profile row first, sets the creator, and returns the created group. The existing trigger creates its admin membership |
 | `archive_group(group_id)` | `security definer`: locks a live group, requires its admin, and sets the archive timestamp on the server; raises for a missing or already archived group |
 | `accept_group_invitation(id)` | accepts a pending group invitation addressed to the caller's profile email. Locks the invitation then its live group; creates membership and marks accepted atomically |
 | `decline_group_invitation(id)` | declines a pending group invitation addressed to the caller's profile email. Same locks as accept; creates no membership |
@@ -322,7 +326,7 @@ calls one by name must qualify it, `private.is_group_admin(...)`.
 | `revoke_group_invitation(group_id, invitation_id)` | admins only. Locks the invitation then its live group before checking authority and deleting; raises if nothing matched |
 | `resend_group_invitation(group_id, invitation_id, tz)` | admins only, on a still-pending invitation. Same lock order as revoke. Throttled to once per calendar day in the caller-supplied `tz`, checked against the invitation's own `last_sent_at` — no per-admin or per-group limit. The app sends `MusterTimeZone`'s id today; a per-group or per-event tz column would just change what it sends, not this function. Calls `send_group_invitation_email`, which stamps `last_sent_at` on every send it makes, including the one from `invite_group_member_by_email` |
 | `leave_group(group_id)` | locks the live group and removes only the signed-in caller's membership; raises if the group is missing/archived or the caller is not a member |
-| `delete_account(force)` | `security definer`. Without `force`, returns the live groups where the caller is the only admin and deletes nothing if there are any. With `force`, or when there are none, archives those groups, deletes invitations sent to the caller's address, and deletes the caller's `auth.users` row; cascades remove the profile, memberships and RSVPs |
+| `delete_account(force)` | `security definer`. Without `force`, returns the live groups where the caller is the only admin and deletes nothing if there are any. With `force`, or when there are none, archives those groups, deletes invitations sent to the caller's address and its `group_creator_emails` entry, and deletes the caller's `auth.users` row; cascades remove the profile, memberships and RSVPs |
 
 The four member RPCs are `security definer` with their own checks, and
 raise if nothing matched rather than succeeding silently. None of them

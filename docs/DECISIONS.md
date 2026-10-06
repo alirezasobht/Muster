@@ -261,10 +261,12 @@ Play re-signs with its own key. Minify stays off until crash reporting
 exists, since a stripped class only fails at runtime. `allowBackup` is off
 so a session or push token never moves to another device.
 
-## One version for all clients, bumped on dev
+## One version per release, bumped on dev
 
 Android, iOS and web are one codebase, so they share one `x.y.z` in
-`version.properties`. Build numbers are derived from it, never set by
+`version.properties`. It counts releases, backend-only ones included,
+so tags on `main` track backend changes too; a platform that ships
+nothing in a release skips its number. Build numbers are derived from it, never set by
 hand. iOS reads the file through an xcconfig `#include`, so no script
 or generated file sits in between. The bump is the last commit on `dev`
 before the release PR, so `main`'s version-bumped check can see it.
@@ -273,3 +275,20 @@ Rejected: a version per platform (three numbers for one codebase), a
 version from git tags (the file is already what every build reads), and
 a CI bump on `main` after the merge (needs a bot that bypasses `main`'s
 protection, and the PR can't show the bump).
+
+## Group creation: one live group, the allowlist lifts the limit
+
+Anyone can have one live group they created; archived groups don't
+count. Addresses on `private.group_creator_emails` have no limit and are
+added on request via support. The limit is enforced in `create_group`.
+An allowlist alone made the app invite-only for most new accounts, which
+risks App Store guideline 3.2 (apps for specific organisations). If spam
+shows up, the limit can drop to zero without an app change.
+
+Deleting an account removes its address from the list, so a re-signup
+starts at the limit.
+
+Rejected: open creation with no limit (nothing stops spam groups and
+invitation emails), and access that differs by app version (the version
+is client-reported, and reviewers would see different behaviour from
+live users).
