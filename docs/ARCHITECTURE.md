@@ -326,9 +326,11 @@ its state composables.
 ## Versioning and releases
 
 `version.properties` holds one `VERSION_NAME`, `x.y.z`, each part
-0..999. Android, iOS and web ship the same version; the backend has
-none. A fix for one platform still bumps the patch, and the others skip
-that number.
+0..999. It numbers releases, not builds: every merge to `main` bumps
+it, backend-only ones included. Android, iOS and web ship the same
+version. A release that doesn't touch a platform, such as a
+backend-only one, still bumps the patch, and that platform skips the
+number.
 
 - **Android** derives `versionCode` as
   `major * 1_000_000 + minor * 1000 + patch` (`versionCode()` in
@@ -345,7 +347,8 @@ A release:
 1. Bump `VERSION_NAME` as the last commit on `dev`.
 2. Merge `dev` -> `main` with a merge commit.
 3. Tag `main` `vX.Y.Z`.
-4. Deploy in order: migrations, Edge Functions, web, Android and iOS.
+4. Deploy in order: migrations, Edge Functions, web, Android and iOS,
+   skipping what the release didn't change.
 5. Once every platform is live, back-merge `main` -> `dev`.
 
 Backend changes are additive. Installed apps lag behind the backend —
