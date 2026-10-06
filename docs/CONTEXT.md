@@ -60,11 +60,11 @@ Cost: Supabase free tier, Resend free tier. Domain fee (yearly). Apple Developer
 
 Two roles only: `admin` and `member`.
 
-- Signup is open to anyone, but **creating a group is allowlisted** —
-  an address on `private.group_creator_emails`, added by hand in the
-  Supabase dashboard. It is keyed by email, so it survives account
-  deletion. An account without it can accept invitations and play,
-  nothing more.
+- Signup is open to anyone, and **anyone can have one live group they
+  created**; archived groups don't count. Addresses on
+  `private.group_creator_emails`, added by hand in the Supabase
+  dashboard on request via support, have no limit. Deleting an account
+  removes its address from the list.
 - Group creator becomes the first admin.
 - Admins can promote members to admin.
 - Admins can create events, invite members, remove members, and archive
