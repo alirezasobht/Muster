@@ -344,7 +344,8 @@ number.
 
 A release:
 
-1. Bump `VERSION_NAME` as the last commit on `dev`.
+1. Add the version's entry to `CHANGELOG.md` and bump `VERSION_NAME`
+   as the last commit on `dev`.
 2. Merge `dev` -> `main` with a merge commit.
 3. Tag `main` `vX.Y.Z`.
 4. Deploy in order: migrations, Edge Functions, web, Android and iOS,
