@@ -261,10 +261,12 @@ Play re-signs with its own key. Minify stays off until crash reporting
 exists, since a stripped class only fails at runtime. `allowBackup` is off
 so a session or push token never moves to another device.
 
-## One version for all clients, bumped on dev
+## One version per release, bumped on dev
 
 Android, iOS and web are one codebase, so they share one `x.y.z` in
-`version.properties`. Build numbers are derived from it, never set by
+`version.properties`. It counts releases, backend-only ones included,
+so tags on `main` track backend changes too; a platform that ships
+nothing in a release skips its number. Build numbers are derived from it, never set by
 hand. iOS reads the file through an xcconfig `#include`, so no script
 or generated file sits in between. The bump is the last commit on `dev`
 before the release PR, so `main`'s version-bumped check can see it.
