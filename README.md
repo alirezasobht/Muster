@@ -94,6 +94,9 @@ a full production deploy is `scripts/deploy-prod.sh`, then manual uploads
 of the two paths it prints. Every script, and how the Supabase CLI is
 authorised: [supabase/docs/deploying.md](supabase/docs/deploying.md).
 
+Every PR runs CI, and dev backend changes deploy when they merge into
+`dev`: [docs/CI.md](docs/CI.md).
+
 ## Layout
 
 ```
@@ -125,6 +128,7 @@ could ask for too.
 | [docs/design/muster-screens-v6.html](docs/design/muster-screens-v6.html) | The frames — open in a browser |
 | [supabase/docs/environment_setup.md](supabase/docs/environment_setup.md) | Bringing up an environment |
 | [supabase/docs/deploying.md](supabase/docs/deploying.md) | Deploy scripts and how they are authorised |
+| [docs/CI.md](docs/CI.md) | Branch rules, PR checks, CI deploys, secrets and backups |
 
 [CLAUDE.md](CLAUDE.md) at the root holds the same map plus conventions
 and current state, read automatically by Claude Code.

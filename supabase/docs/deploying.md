@@ -3,6 +3,10 @@
 How the deploy scripts work and what lets them in. Setting up a new
 environment from scratch: `environment_setup.md`.
 
+Dev backend changes deploy from CI when they merge into `dev`; the
+scripts stay the way to deploy prod, and to deploy dev by hand.
+`docs/CI.md`.
+
 ## Authorisation
 
 Every `supabase` command runs as the **Supabase account signed in to the
@@ -18,8 +22,9 @@ new login; `--project-ref` only picks the target.
   and without a signed-in account it opens nothing.
 - **Check it works:** `supabase projects list` lists every project in the
   signed-in account, which should include each environment's project.
-- **CI:** store an access token as a `SUPABASE_ACCESS_TOKEN` secret; it
-  replaces `supabase login`.
+- **CI:** uses its own access token, not the one from `supabase login`,
+  so either can be revoked alone. It lives in `Muster-env` and reaches
+  GitHub through the sync; `docs/CI.md`.
 
 ## Scripts
 
@@ -63,6 +68,10 @@ dev. Build values from `set-env-vars.sh` die with their shell.
 The free plan has no dashboard backups. `supabase/scripts/backup-db.sh <env>`
 dumps roles, schema and data into `Muster-env/<env>/backups/<timestamp>/`.
 It needs Docker or Podman installed, and starts Podman itself when there is
-no `docker` command. Dumps hold users' emails, so they stay in `Muster-env`.
+no `docker` command. Dumps hold users' emails, so they stay in
+`Muster-env`, whose `.gitignore` keeps `backups/` out of git.
+
+CI backs up dev before every deploy, encrypted, into the private
+`Muster-backups` repo. Restoring one: `docs/CI.md` → Backups.
 "could not translate host name" followed by "Retrying via the IPv4
 connection pooler" is normal.
