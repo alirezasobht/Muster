@@ -16,6 +16,30 @@ env:
     CONTACT_EMAIL: ci@ci.invalid
 
 jobs:
+    changes:
+        name: Changes
+        runs-on: ubuntu-latest
+        outputs:
+            code: ${{ steps.filter.outputs.code }}
+        steps:
+            - uses: actions/checkout@v5
+            - uses: dorny/paths-filter@v3
+              id: filter
+              with:
+                  filters: |
+                      code:
+                          - 'shared/**'
+                          - 'androidApp/**'
+                          - 'webApp/**'
+                          - 'iosApp/**'
+                          - 'buildSrc/**'
+                          - 'ktlint-rules/**'
+                          - 'gradle/**'
+                          - '*.gradle.kts'
+                          - 'gradle.properties'
+                          - 'version.properties'
+                          - '.github/workflows/ci.yml'
+
     ktlint:
         name: Ktlint Check
         runs-on: ubuntu-latest
@@ -30,6 +54,8 @@ jobs:
 
     unit:
         name: Unit Tests
+        needs: changes
+        if: needs.changes.outputs.code == 'true'
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v5
@@ -42,6 +68,8 @@ jobs:
 
     android:
         name: Android Tests
+        needs: changes
+        if: needs.changes.outputs.code == 'true'
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v5
@@ -63,6 +91,8 @@ jobs:
 
     web:
         name: Web Build
+        needs: changes
+        if: needs.changes.outputs.code == 'true'
         runs-on: ubuntu-latest
         env:
             SUPABASE_URL: ${{ secrets.DEV_SUPABASE_URL }}
@@ -86,6 +116,8 @@ jobs:
 
     ios:
         name: iOS Tests
+        needs: changes
+        if: needs.changes.outputs.code == 'true'
         runs-on: macos-latest
         steps:
             - uses: actions/checkout@v5

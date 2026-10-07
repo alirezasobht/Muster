@@ -1,0 +1,73 @@
+name: Deploy dev
+
+on:
+    push:
+        branches: [dev]
+        paths: [supabase/**, .github/workflows/deploy-dev.yml]
+    workflow_dispatch:
+
+concurrency:
+    group: deploy-dev
+    cancel-in-progress: false
+
+jobs:
+    backend:
+        name: Backend
+        runs-on: ubuntu-latest
+        environment: dev
+        env:
+            SUPABASE_ACCESS_TOKEN: ${{ secrets.DEV_SUPABASE_ACCESS_TOKEN }}
+            PROJECT_REF: ${{ secrets.DEV_SUPABASE_PROJECT_REF }}
+        steps:
+            - uses: actions/checkout@v5
+            - uses: supabase/setup-cli@v1
+              with:
+                  version: latest
+            - run: sudo apt-get install -y age
+
+            - name: Link
+              run: supabase link --project-ref "$PROJECT_REF"
+
+            - name: Back up
+              env:
+                  AGE_PUBLIC_KEY: ${{ vars.AGE_PUBLIC_KEY }}
+              run: |
+                  set -eu
+                  mkdir dump
+                  supabase db dump --linked --role-only -f dump/roles.sql
+                  supabase db dump --linked -f dump/schema.sql
+                  supabase db dump --linked --data-only --use-copy -f dump/data.sql
+                  for f in roles schema data; do
+                      [ -s "dump/$f.sql" ] || { echo "empty $f.sql: the dump failed" >&2; exit 1; }
+                  done
+                  tar -czf - -C dump . | age -r "$AGE_PUBLIC_KEY" > backup.tar.gz.age
+                  rm -rf dump
+
+            - name: Store backup
+              env:
+                  BACKUPS_TOKEN: ${{ secrets.MUSTER_BACKUPS_TOKEN }}
+              run: |
+                  set -eu
+                  stamp=$(date -u +%Y%m%d-%H%M%S)
+                  git clone --depth 1 \
+                      "https://x-access-token:${BACKUPS_TOKEN}@github.com/alirezasobht/Muster-backups.git" backups
+                  mkdir -p backups/dev
+                  mv backup.tar.gz.age "backups/dev/${stamp}-${GITHUB_SHA::7}.tar.gz.age"
+                  cd backups
+                  git config user.name "github-actions"
+                  git config user.email "github-actions@users.noreply.github.com"
+                  git add dev
+                  git commit -m "dev ${stamp}"
+                  git push
+
+            - name: Push migrations
+              run: supabase db push --linked --yes
+
+            - name: Deploy functions
+              run: |
+                  set -eu
+                  for dir in supabase/functions/*/; do
+                      name=$(basename "$dir")
+                      case "$name" in _*) continue ;; esac
+                      supabase functions deploy "$name" --project-ref "$PROJECT_REF"
+                  done
