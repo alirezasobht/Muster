@@ -179,6 +179,68 @@ same folder as the values, so the dev file can't be pushed to prod.
 Rejected: a prefix-checking Edge Function. Two Supabase projects are
 already separate stores; it would add detection, not isolation.
 
+`Muster-env` is also a private GitHub repo now, so CI can be fed from it;
+`Muster-backups` holds CI's encrypted backups. Both below.
+
+## CI secrets are pushed from Muster-env, not read by CI
+
+A workflow in `Muster-env` copies the values Muster's CI needs into
+Muster's secrets on every push. Muster's CI never holds a key to
+`Muster-env`.
+
+Rejected: a token in Muster that reads `Muster-env`. GitHub tokens are
+scoped per repo, not per folder, so it would read prod values and every
+Edge Function secret too, and anything in a workflow could print them to
+public logs; values read from files aren't masked the way secrets are.
+Also rejected: splitting `Muster-env` per environment to scope that token,
+and copying values by hand, which drifts.
+
+The push token can only write secrets. GitHub's secrets API never returns
+a value, so a leaked token can overwrite them but not read them.
+
+## Backups are encrypted, in a private repo, without a ruleset
+
+CI dumps dev before each deploy, encrypts it with `age` and commits it to
+`Muster-backups`. CI holds the public key only.
+
+Rejected: artifacts on Muster, which is public, so anyone signed in to
+GitHub can download them, and they expire after 90 days; and committing to
+`Muster-env`, which would give CI write access there.
+
+GitHub's free plan doesn't enforce rulesets on private repos, so the token
+could delete history. Accepted: it lives only in the `dev` environment,
+and a leak can't read the backups, only remove them.
+
+## Prod Edge Function secrets are pushed by hand
+
+The sync uploads dev's Edge Function secrets as soon as `dev/edge.env`
+changes. Prod's go through `push-secrets.sh prod`.
+
+Secrets would otherwise change on a `Muster-env` push while prod's
+functions change on a release: renaming one would remove the old name
+from prod while its functions still read it. The prod deploy workflow will
+push them alongside the functions, as `deploy-backend.sh` does.
+
+## Linear dev, merge commits only into main
+
+Feature branches squash or rebase into `dev`, which rejects merge
+commits. Releases merge `dev` into `main` with a merge commit, which
+carries the tag. Hotfixes to `main` come back to `dev` by cherry-pick.
+
+Rejected: fast-forwarding `main` to `dev`. Fully linear, but GitHub's
+merge button can't do it, so the release PR and its checks would go.
+Also rejected: back-merging `main` into `dev`, which breaks the linear
+history.
+
+## Tests skip per job, not per workflow
+
+`ci.yml` always starts; a `Changes` job decides whether the code-only
+jobs run. A skipped job passes as a required check.
+
+Rejected: a `paths:` filter on the workflow. A workflow that doesn't start
+never reports its checks, and required checks that never report block the
+PR permanently.
+
 ## Account deletion: cascade, not a tombstone
 
 Play requires account deletion in the app and via a web link. Settings

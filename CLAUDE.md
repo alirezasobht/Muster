@@ -20,6 +20,7 @@ editing** — they change often, and other sessions edit them too.
 | `docs/design/muster-screens-v6.html` | The frames — open in a browser. v1–v5 superseded, kept as history |
 | `supabase/docs/environment_setup.md` | Bringing up an environment: Vault, secrets, Resend, Auth |
 | `supabase/docs/deploying.md` | Deploy scripts, one line each, and how the CLI is authorised |
+| `docs/CI.md` | Branch flow, rulesets, PR checks, CI deploys, secrets, backups |
 
 Keep them updated when decisions change.
 
@@ -46,6 +47,8 @@ iOS builds from Xcode: open `iosApp/`.
 Migrations in `supabase/migrations/`. Migrations, Edge Function secrets
 and deploys go through `supabase/scripts/`, never by hand; a full prod
 deploy is `scripts/deploy-prod.sh`. See `supabase/docs/deploying.md`.
+Merging into `dev` deploys dev's backend from CI; PRs go into `dev`, from a
+branch made with `--no-track`. See `docs/CI.md`.
 
 ## How to work
 
