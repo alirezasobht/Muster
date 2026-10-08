@@ -1,0 +1,25 @@
+name: Release
+
+on:
+    pull_request:
+        branches: [main]
+
+jobs:
+    version:
+        name: Version Bump
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v5
+              with:
+                  fetch-depth: 0
+            - run: |
+                  set -eu
+                  name() { grep '^VERSION_NAME=' | cut -d= -f2 | tr -d '[:space:]'; }
+                  base=$(git show "origin/${GITHUB_BASE_REF}:version.properties" | name)
+                  head=$(name < version.properties)
+                  echo "main: $base, PR: $head"
+                  echo "$head" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' \
+                      || { echo "VERSION_NAME must be x.y.z" >&2; exit 1; }
+                  [ "$head" != "$base" ] \
+                      && [ "$(printf '%s\n%s\n' "$base" "$head" | sort -V | tail -n 1)" = "$head" ] \
+                      || { echo "Bump VERSION_NAME in version.properties above $base" >&2; exit 1; }

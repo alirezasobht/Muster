@@ -1,0 +1,21 @@
+name: Guard main
+
+on:
+    pull_request_target:
+        branches: [main]
+        types: [opened, reopened]
+
+permissions:
+    pull-requests: write
+
+jobs:
+    close:
+        name: Owner only
+        if: github.event.pull_request.user.login != github.repository_owner
+        runs-on: ubuntu-latest
+        steps:
+            - env:
+                  GH_TOKEN: ${{ github.token }}
+                  PR: ${{ github.event.pull_request.html_url }}
+              run: |
+                  gh pr close "$PR" --comment "Pull requests into main come only from the maintainer. Please target dev instead."
