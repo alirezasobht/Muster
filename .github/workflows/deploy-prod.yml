@@ -1,0 +1,123 @@
+name: Deploy prod
+
+on:
+    push:
+        branches: [main]
+    workflow_dispatch:
+
+concurrency:
+    group: deploy-prod
+    cancel-in-progress: false
+
+jobs:
+    backend:
+        name: Backend
+        runs-on: ubuntu-latest
+        environment: prod
+        env:
+            SUPABASE_ACCESS_TOKEN: ${{ secrets.PROD_SUPABASE_ACCESS_TOKEN }}
+            PROJECT_REF: ${{ secrets.PROD_SUPABASE_PROJECT_REF }}
+        steps:
+            - uses: actions/checkout@v5
+            - uses: supabase/setup-cli@v1
+              with:
+                  version: latest
+            - run: sudo apt-get install -y age
+
+            - name: Link
+              run: supabase link --project-ref "$PROJECT_REF"
+
+            - name: Back up
+              env:
+                  AGE_PUBLIC_KEY: ${{ vars.AGE_PUBLIC_KEY }}
+              run: |
+                  set -eu
+                  mkdir dump
+                  supabase db dump --linked --role-only -f dump/roles.sql
+                  supabase db dump --linked -f dump/schema.sql
+                  supabase db dump --linked --data-only --use-copy -f dump/data.sql
+                  for f in roles schema data; do
+                      [ -s "dump/$f.sql" ] || { echo "empty $f.sql: the dump failed" >&2; exit 1; }
+                  done
+                  tar -czf - -C dump . | age -r "$AGE_PUBLIC_KEY" > backup.tar.gz.age
+                  rm -rf dump
+
+            - name: Store backup
+              env:
+                  BACKUPS_TOKEN: ${{ secrets.MUSTER_BACKUPS_TOKEN }}
+              run: |
+                  set -eu
+                  stamp=$(date -u +%Y%m%d-%H%M%S)
+                  git clone --depth 1 \
+                      "https://x-access-token:${BACKUPS_TOKEN}@github.com/alirezasobht/Muster-backups.git" backups
+                  mkdir -p backups/prod
+                  mv backup.tar.gz.age "backups/prod/${stamp}-${GITHUB_SHA::7}.tar.gz.age"
+                  cd backups
+                  git config user.name "github-actions"
+                  git config user.email "github-actions@users.noreply.github.com"
+                  git add prod
+                  git commit -m "prod ${stamp}"
+                  git push
+
+            - name: Push migrations
+              run: supabase db push --linked --yes
+
+            - name: Push Edge Function secrets
+              env:
+                  ALL_SECRETS: ${{ toJSON(secrets) }}
+              run: |
+                  set -eu
+                  echo "$ALL_SECRETS" | jq -r '
+                      to_entries[]
+                      | select(.key | startswith("PROD_EDGE_"))
+                      | "\(.key | sub("^PROD_EDGE_"; ""))=\(.value | @json)"' > edge.env
+                  [ -s edge.env ] || { echo "no PROD_EDGE_ secrets in the prod environment" >&2; exit 1; }
+                  supabase secrets set --env-file edge.env --project-ref "$PROJECT_REF"
+
+                  existing=$(supabase secrets list --project-ref "$PROJECT_REF" -o json \
+                      | jq -r '.[].name' | grep -v '^SUPABASE_' || true)
+                  wanted=$(cut -d= -f1 edge.env)
+                  stale=""
+                  for name in $existing; do
+                      echo "$wanted" | grep -qx "$name" || stale="$stale $name"
+                  done
+                  [ -z "$stale" ] || supabase secrets unset $stale --project-ref "$PROJECT_REF"
+                  rm -f edge.env
+
+            - name: Deploy functions
+              run: |
+                  set -eu
+                  for dir in supabase/functions/*/; do
+                      name=$(basename "$dir")
+                      case "$name" in _*) continue ;; esac
+                      supabase functions deploy "$name" --project-ref "$PROJECT_REF"
+                  done
+
+    web:
+        name: Web
+        needs: backend
+        runs-on: ubuntu-latest
+        environment: prod
+        env:
+            SUPABASE_URL: ${{ secrets.PROD_SUPABASE_URL }}
+            SUPABASE_PUBLISHABLE_KEY: ${{ secrets.PROD_SUPABASE_PUBLISHABLE_KEY }}
+            WEB_APP_URL: ${{ secrets.PROD_WEB_APP_URL }}
+            CONTACT_EMAIL: ${{ secrets.PROD_CONTACT_EMAIL }}
+            MUSTER_ENV: prod
+        steps:
+            - uses: actions/checkout@v5
+            - uses: actions/setup-java@v5
+              with:
+                  distribution: temurin
+                  java-version: 21
+            - uses: gradle/actions/setup-gradle@v4
+            - run: ./gradlew :webApp:composeCompatibilityBrowserDistribution
+            - uses: cloudflare/wrangler-action@v3
+              with:
+                  apiToken: ${{ secrets.PROD_CLOUDFLARE_API_TOKEN }}
+                  accountId: ${{ secrets.PROD_CLOUDFLARE_ACCOUNT_ID }}
+                  command: >-
+                      pages deploy webApp/build/dist/composeWebCompatibility/productionExecutable
+                      --project-name=${{ secrets.PROD_CLOUDFLARE_PAGES_PROJECT }}
+                      --branch=main
+                      --commit-hash=${{ github.sha }}
