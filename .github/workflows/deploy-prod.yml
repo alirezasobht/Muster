@@ -1,3 +1,5 @@
+# On every push to main, each job after approval: back up and
+# deploy the backend, then web to Cloudflare and Android to Play.
 name: Deploy prod
 
 on:
