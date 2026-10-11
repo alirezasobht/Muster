@@ -103,6 +103,9 @@ jobs:
             SUPABASE_PUBLISHABLE_KEY: ${{ secrets.PROD_SUPABASE_PUBLISHABLE_KEY }}
             WEB_APP_URL: ${{ secrets.PROD_WEB_APP_URL }}
             CONTACT_EMAIL: ${{ secrets.PROD_CONTACT_EMAIL }}
+            ANDROID_CERT_SHA256: ${{ secrets.PROD_ANDROID_CERT_SHA256 }}
+            IOS_APP_STORE_ID: ${{ secrets.PROD_IOS_APP_STORE_ID }}
+            IOS_TEAM_ID: ${{ secrets.PROD_IOS_TEAM_ID }}
             MUSTER_ENV: prod
         steps:
             - uses: actions/checkout@v5
@@ -121,3 +124,41 @@ jobs:
                       --project-name=${{ secrets.PROD_CLOUDFLARE_PAGES_PROJECT }}
                       --branch=main
                       --commit-hash=${{ github.sha }}
+
+    android:
+        name: Android
+        needs: backend
+        runs-on: ubuntu-latest
+        environment: prod
+        env:
+            SUPABASE_URL: ${{ secrets.PROD_SUPABASE_URL }}
+            SUPABASE_PUBLISHABLE_KEY: ${{ secrets.PROD_SUPABASE_PUBLISHABLE_KEY }}
+            WEB_APP_URL: ${{ secrets.PROD_WEB_APP_URL }}
+            CONTACT_EMAIL: ${{ secrets.PROD_CONTACT_EMAIL }}
+            MUSTER_ENV: prod
+            UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.PROD_UPLOAD_KEYSTORE_PASSWORD }}
+        steps:
+            - uses: actions/checkout@v5
+            - uses: actions/setup-java@v5
+              with:
+                  distribution: temurin
+                  java-version: 21
+            - uses: gradle/actions/setup-gradle@v4
+
+            - name: Restore keystore
+              env:
+                  KEYSTORE_BASE64: ${{ secrets.PROD_UPLOAD_KEYSTORE_BASE64 }}
+              run: |
+                  set -eu
+                  printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload-keystore.jks"
+                  echo "UPLOAD_KEYSTORE_PATH=$RUNNER_TEMP/upload-keystore.jks" >> "$GITHUB_ENV"
+
+            - run: ./gradlew :androidApp:bundleRelease
+
+            - uses: r0adkll/upload-google-play@v1
+              with:
+                  serviceAccountJsonPlainText: ${{ secrets.PROD_PLAY_SERVICE_ACCOUNT_JSON }}
+                  packageName: app.muster.prod
+                  releaseFiles: androidApp/build/outputs/bundle/release/androidApp-release.aab
+                  track: internal
+                  status: completed
