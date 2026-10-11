@@ -1,0 +1,81 @@
+# Run by hand after a release: tags main vX.Y.Z, then merges main
+# back into dev with a merge commit once the PR's checks pass.
+name: Release finish
+
+on:
+    workflow_dispatch:
+
+concurrency:
+    group: release-finish
+    cancel-in-progress: false
+
+jobs:
+    finish:
+        name: Finish
+        runs-on: ubuntu-latest
+        environment: release
+        steps:
+            - uses: actions/create-github-app-token@v2
+              id: app
+              with:
+                  app-id: ${{ vars.MUSTER_RELEASE_APP_ID }}
+                  private-key: ${{ secrets.MUSTER_RELEASE_APP_KEY }}
+
+            - uses: actions/checkout@v5
+              with:
+                  ref: main
+                  fetch-depth: 0
+                  token: ${{ steps.app.outputs.token }}
+
+            - name: Tag
+              run: |
+                  set -eu
+                  version=$(grep '^VERSION_NAME=' version.properties | cut -d= -f2 | tr -d '[:space:]')
+                  tag="v$version"
+                  if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+                      echo "$tag already exists"
+                  else
+                      git tag "$tag" HEAD
+                      git push origin "$tag"
+                  fi
+                  echo "TAG=$tag" >> "$GITHUB_ENV"
+
+            - name: Back-merge into dev
+              env:
+                  GH_TOKEN: ${{ steps.app.outputs.token }}
+              run: |
+                  set -eu
+                  git fetch origin dev
+                  if [ -z "$(git rev-list origin/dev..origin/main)" ]; then
+                      echo "dev already has everything on main"
+                      exit 0
+                  fi
+
+                  # From a branch, not main itself, so conflicts can be
+                  # resolved in the PR: main can't take commits.
+                  branch="back-merge/$TAG"
+                  git push origin "origin/main:refs/heads/$branch" 2>/dev/null || true
+                  url=$(gh pr list --base dev --head "$branch" --state open --json url --jq '.[0].url // ""')
+                  [ -n "$url" ] || url=$(gh pr create --base dev --head "$branch" \
+                      --title "Back-merge $TAG" --body "Brings $TAG back into dev.")
+
+                  state=UNKNOWN
+                  for i in $(seq 1 20); do
+                      state=$(gh pr view "$url" --json mergeable --jq .mergeable)
+                      [ "$state" != UNKNOWN ] && break
+                      sleep 5
+                  done
+                  if [ "$state" = CONFLICTING ]; then
+                      gh pr comment "$url" --body "Conflicts with dev. Resolve them in this PR (Resolve conflicts, or merge dev into $branch locally), then merge with: gh pr merge <number> --merge --admin"
+                      echo "::error::$url has conflicts with dev: resolve them in the PR, then merge it with gh pr merge --merge --admin"
+                      exit 1
+                  fi
+
+                  # Checks take a moment to register on a new PR.
+                  for i in $(seq 1 20); do
+                      count=$(gh pr checks "$url" --required --json name --jq length 2>/dev/null || true)
+                      [ "${count:-0}" -gt 0 ] && break
+                      sleep 15
+                  done
+                  gh pr checks "$url" --required --watch --fail-fast
+                  gh pr merge "$url" --merge --admin --delete-branch
