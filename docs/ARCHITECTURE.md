@@ -148,6 +148,13 @@ interface, no manual JSON, and no `where user_id = ...`, since RLS
 decides what comes back. Retrofit would not work here anyway; it is
 JVM-only and cannot live in `commonMain`.
 
+The Ktor engines (OkHttp, Darwin, Js) are declared per target in
+`shared/build.gradle.kts`, separately from supabase-kt, so `ktor` in the
+version catalog has to stay on the version supabase-kt was built against
+— 3.5.1 for supabase-kt 3.8.0. Bumping it alone pulls `ktor-client-core`
+out of alignment with the SDK, and the result is a runtime failure in HTTP
+calls rather than a build error. Move the two versions together.
+
 ## DI: Koin
 
 One module per layer, each in that layer's `di/` package: `dataModule`
@@ -344,7 +351,8 @@ number.
 
 A release:
 
-1. Bump `VERSION_NAME` as the last commit on `dev`.
+1. Add the version's entry to `CHANGELOG.md` and bump `VERSION_NAME`
+   as the last commit on `dev`.
 2. Merge `dev` -> `main` with a merge commit.
 3. Tag `main` `vX.Y.Z`.
 4. Deploy in order: migrations, Edge Functions, web, Android and iOS,
