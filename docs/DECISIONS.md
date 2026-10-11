@@ -211,30 +211,39 @@ GitHub's free plan doesn't enforce rulesets on private repos, so the token
 could delete history. Accepted: it lives only in the `dev` environment,
 and a leak can't read the backups, only remove them.
 
-## Prod Edge Function secrets are pushed by hand
+## Prod Edge Function secrets go out with the release
 
 The sync uploads dev's Edge Function secrets as soon as `dev/edge.env`
-changes. Prod's go through `push-secrets.sh prod`.
+changes. Prod's are copied into Muster's `prod` environment as
+`PROD_EDGE_*`, and the prod deploy uploads them right before the
+functions, as `deploy-backend.sh` does.
 
-Secrets would otherwise change on a `Muster-env` push while prod's
-functions change on a release: renaming one would remove the old name
-from prod while its functions still read it. The prod deploy workflow will
-push them alongside the functions, as `deploy-backend.sh` does.
+Rejected: the sync pushing them to prod directly. Secrets would change on
+a `Muster-env` push while functions change on a release, so renaming one
+would remove the old name from prod while its functions still read it;
+and a typo would go live with no approval. Also rejected: keeping them
+manual, which drifts from `prod/edge.env`. Cost: the Resend key and
+webhook secrets sit in a GitHub environment, readable only by an approved
+job on `main`.
 
-## Linear dev, merge commits only into main
+## Linear dev, merge commits into main, back-merge after each release
 
 Feature branches squash or rebase into `dev`, which rejects merge
-commits. Releases merge `dev` into `main` with a merge commit, which
-carries the tag. Hotfixes to `main` come back to `dev` by cherry-pick.
+commits. Releases merge into `main` with a merge commit, which carries
+the tag. After every release `main` is merged back into `dev`, with a
+merge commit, through a PR the admin bypass lets in. `dev` then always
+contains `main`: hotfixes need no cherry-pick, history has no duplicate
+commits, and `main` can require release PRs to be up to date.
 
-Rejected: fast-forwarding `main` to `dev`. Fully linear, but GitHub's
-merge button can't do it, so the release PR and its checks would go.
-Also rejected: back-merging `main` into `dev`, which breaks the linear
-history.
+Rejected: cherry-picking hotfixes into `dev` (every fix appears twice in
+`main`'s history once the next release lands), and fast-forwarding `main`
+to `dev` (fully linear, but GitHub's merge button can't do it, so the
+release PR and its checks would go). Cost: one merge commit in `dev` per
+release.
 
 ## Tests skip per job, not per workflow
 
-`ci.yml` always starts; a `Changes` job decides whether the code-only
+`pr-checks.yml` always starts; a `Changes` job decides whether the code-only
 jobs run. A skipped job passes as a required check.
 
 Rejected: a `paths:` filter on the workflow. A workflow that doesn't start
@@ -307,7 +316,8 @@ created.
 Debug builds dev, Release builds prod; Archive uses Release. Xcode's
 Run and Archive never see a shell's exports, so `MUSTER_ENV` is set per
 configuration in `Config.xcconfig` and the Kotlin build phase sources
-`set-env-vars.sh` with it. The phase fails if no values load, so a
+`set-env-vars.sh` with it, except in CI, where the job supplies the
+values. The phase fails if no values load, so a
 Release build can't fall back to `local.properties`. Bundle ids follow,
 `app.muster.dev` and `app.muster.prod`, as on Android.
 
@@ -330,8 +340,9 @@ Android, iOS and web are one codebase, so they share one `x.y.z` in
 so tags on `main` track backend changes too; a platform that ships
 nothing in a release skips its number. Build numbers are derived from it, never set by
 hand. iOS reads the file through an xcconfig `#include`, so no script
-or generated file sits in between. The bump is the last commit on `dev`
-before the release PR, so `main`'s version-bumped check can see it.
+or generated file sits in between. The bump is the last commit on the
+release branch before the release PR, so `main`'s `Version Bump` check
+can see it; Release prepare makes it when the branch isn't bumped yet.
 
 Rejected: a version per platform (three numbers for one codebase), a
 version from git tags (the file is already what every build reads), and
@@ -354,3 +365,43 @@ Rejected: open creation with no limit (nothing stops spam groups and
 invitation emails), and access that differs by app version (the version
 is client-reported, and reviewers would see different behaviour from
 live users).
+
+## Releases run through a GitHub App
+
+Release prepare commits the version bump straight onto `dev` and opens
+the release PR; Release finish tags and back-merges. Both act as the
+app `muster-release-alirezasobht`, with a token minted per run, on the
+`dev` ruleset's bypass list. Both run by hand only.
+
+The workflow's own token can't do this: PRs and commits made with it
+don't trigger other workflows, so the release PR's checks would never
+run, and `release-guard.yml` would close a PR from `github-actions`.
+Rejected: a personal token (the owner's bypass is PR-only, so it still
+couldn't push to `dev`), a `release/x.y.z` branch per release (an extra
+branch for a one-line bump), and a deploy key plus a token (two
+credentials for the same job). Cost: the app can push anything to `dev`,
+not only the bump; its key lives only in the `release` environment.
+
+## Prod deploys: one workflow, approval per job
+
+Every push to `main` deploys backend, web, Android and iOS. Each job
+waits for approval; web and mobile start only after the backend
+succeeds. Android goes to Play's internal track and iOS to TestFlight;
+promoting to production stays a click in each store.
+
+Signing material lives in CI: the Play upload key and the Apple
+Distribution certificate and profile, synced from `Muster-env` into the
+`prod` environment. Accepted: the upload key can be reset by Google
+under Play App Signing, and the certificate can be revoked; neither is
+the store's own app signing key.
+
+## Play uploads use a service account key
+
+The Google Cloud organisation blocks service account keys by default
+(`iam.managed.disableServiceAccountKeyCreation`). It is overridden,
+enforcement off, on project `muster-ci` only, for one key for
+`play-upload`.
+
+Rejected: Workload Identity Federation, keyless, but a pool and provider
+to set up and maintain for one upload a release.
+
