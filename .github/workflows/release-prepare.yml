@@ -1,5 +1,7 @@
-name: Prepare release
-run-name: Prepare release from ${{ inputs.base }}
+# Run by hand: bumps VERSION_NAME on a branch if needed and opens
+# its release PR into main.
+name: Release prepare
+run-name: Release prepare from ${{ inputs.base }}
 
 on:
     workflow_dispatch:

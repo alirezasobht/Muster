@@ -1,4 +1,5 @@
-name: Guard main
+# Closes PRs into main opened by anyone but the owner or the release app.
+name: Release guard
 
 on:
     pull_request_target:

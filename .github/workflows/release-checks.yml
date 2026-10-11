@@ -1,4 +1,5 @@
-name: Release
+# On PRs into main: fails unless VERSION_NAME is above main's.
+name: Release checks
 
 on:
     pull_request:

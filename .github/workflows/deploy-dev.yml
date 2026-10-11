@@ -1,3 +1,5 @@
+# On merges into dev touching supabase/: backs up dev, then
+# pushes migrations and Edge Functions.
 name: Deploy dev
 
 on:
