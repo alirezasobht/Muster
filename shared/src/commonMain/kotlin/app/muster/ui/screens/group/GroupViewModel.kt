@@ -3,28 +3,44 @@ package app.muster.ui.screens.group
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.muster.domain.error.DomainError
+import app.muster.domain.event.DataChange
+import app.muster.domain.event.DataChanges
+import app.muster.domain.model.GroupRole
 import app.muster.domain.usecase.ArchiveGroupUseCase
+import app.muster.domain.usecase.GetGroupUseCase
 import app.muster.domain.usecase.GetMyGroupRoleUseCase
 import app.muster.domain.usecase.LeaveGroupUseCase
 import app.muster.ui.common.util.updateSuccess
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class GroupViewModel(
     private val groupId: String,
-    private val groupName: String,
+    groupName: String,
     private val getMyGroupRole: GetMyGroupRoleUseCase,
+    private val getGroup: GetGroupUseCase,
     private val leaveGroup: LeaveGroupUseCase,
-    private val archiveGroup: ArchiveGroupUseCase
+    private val archiveGroup: ArchiveGroupUseCase,
+    dataChanges: DataChanges
 ) : ViewModel() {
+
+    // Starts as the route's name; replaced when the group is edited.
+    private var groupName = groupName
 
     private val _state = MutableStateFlow<GroupUiState>(GroupUiState.Loading(groupName))
     val state: StateFlow<GroupUiState> = _state.asStateFlow()
 
     init {
         load()
+        viewModelScope.launch {
+            dataChanges.changes
+                .filter { it is DataChange.GroupDetails && it.groupId == groupId }
+                .collect { refreshName() }
+        }
     }
 
     fun onRetry() = load()
@@ -53,6 +69,8 @@ class GroupViewModel(
                 when (dialog.action) {
                     GroupOverflowAction.Leave -> leaveGroup(groupId)
                     GroupOverflowAction.Archive -> archiveGroup(groupId)
+                    // Navigates from the route; never opens a dialog.
+                    GroupOverflowAction.Edit -> return@launch
                 }
                 _state.updateSuccess { it.copy(overflowDialog = null, exitedGroup = true) }
             } catch (e: DomainError) {
@@ -70,9 +88,25 @@ class GroupViewModel(
         viewModelScope.launch {
             try {
                 val role = getMyGroupRole(groupId)
-                _state.value = GroupUiState.Success(groupName = groupName, myRole = role)
+                _state.value = GroupUiState.Success(
+                    groupName = groupName,
+                    myRole = role,
+                    overflowActions = overflowActionsFor(role)
+                )
             } catch (e: DomainError) {
                 _state.value = GroupUiState.Error(groupName = groupName, error = e)
+            }
+        }
+    }
+
+    private fun refreshName() {
+        viewModelScope.launch {
+            try {
+                val name = getGroup(groupId).name
+                groupName = name
+                _state.update { it.withGroupName(name) }
+            } catch (_: DomainError) {
+                // Keeps the old name; the next edit or visit fetches again.
             }
         }
     }
@@ -85,4 +119,12 @@ class GroupViewModel(
             current.copy(overflowDialog = block(dialog))
         }
     }
+}
+
+private fun overflowActionsFor(role: GroupRole): List<GroupOverflowAction> = buildList {
+    if (role == GroupRole.Admin) {
+        add(GroupOverflowAction.Edit)
+        add(GroupOverflowAction.Archive)
+    }
+    add(GroupOverflowAction.Leave)
 }

@@ -31,6 +31,8 @@ import app.muster.domain.usecase.RetrySessionUseCase
 import app.muster.domain.usecase.RevokeInvitationUseCase
 import app.muster.domain.usecase.SetRsvpUseCase
 import app.muster.domain.usecase.SignOutUseCase
+import app.muster.domain.usecase.UpdateEventUseCase
+import app.muster.domain.usecase.UpdateGroupUseCase
 import app.muster.domain.usecase.UpdateNameUseCase
 import app.muster.domain.usecase.VerifySignInCodeUseCase
 import org.koin.core.module.dsl.factoryOf
@@ -47,6 +49,7 @@ val domainModule = module {
     factoryOf(::ListMyGroupsUseCase)
     factoryOf(::CreateGroupUseCase)
     factoryOf(::GetGroupUseCase)
+    factoryOf(::UpdateGroupUseCase)
     factoryOf(::GetMyGroupRoleUseCase)
     factoryOf(::ListPendingInvitationsUseCase)
     factoryOf(::AcceptGroupInvitationUseCase)
@@ -55,6 +58,7 @@ val domainModule = module {
     factoryOf(::ListUpcomingEventsUseCase)
     factoryOf(::CreateEventUseCase)
     factoryOf(::GetEventUseCase)
+    factoryOf(::UpdateEventUseCase)
     factoryOf(::GetInviteeCandidatesUseCase)
     factoryOf(::SetRsvpUseCase)
     factoryOf(::ReorderStandbyUseCase)

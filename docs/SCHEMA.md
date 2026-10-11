@@ -117,9 +117,10 @@ It exists so child tables can reference the pair and have Postgres
 guarantee their denormalised `group_id` matches the event's.
 
 Creation goes through `create_event`: a signed-in admin of a live group
-supplies the event fields, and the database sets `created_by`. No direct
-client write grants remain on `events`; editing and deleting events are
-not exposed by the app.
+supplies the event fields, and the database sets `created_by`. Editing
+goes through `update_event`, which changes title, start and location only.
+No direct client write grants remain on `events`; deleting events is not
+exposed by the app.
 
 ### event_invitations
 Event-level RSVP. A row means the player has been invited.
@@ -191,8 +192,8 @@ it never needs to renumber anything.
    Covers: last admin leaving, last admin demoting themselves, an admin
    demoting the only other admin.
 3. **Admin-only actions** — RPC guards checking `role = 'admin'` for:
-   create event, invite member, promote/demote, remove member, archive
-   group, reorder standby, change another player's RSVP.
+   create or edit event, edit group, invite member, promote/demote, remove
+   member, archive group, reorder standby, change another player's RSVP.
 4. **Group creation limit** — `create_group` allows one live group
    created by the caller, unless their email is on
    `private.group_creator_emails`. It locks the caller's profile row
@@ -208,10 +209,11 @@ it never needs to renumber anything.
    use `set_group_member_role`. `event_invitations` has no client write
    grants; RSVP changes go through `set_event_rsvp`, which updates only
    status.
-   `events` has no client write grants; `create_event` exposes creation
-   only, keeping `capacity` and the event's group immutable. `groups`
-   has no client write grants, including column grants; creation and
-   archiving go through RPCs, and renaming is not exposed.
+   `events` has no client write grants; `create_event` and `update_event`
+   expose creation and title, start and location edits, keeping
+   `capacity` and the event's group immutable. `groups` has no client
+   write grants, including column grants; creation, editing and
+   archiving go through RPCs.
    `profiles` also has no client write grants; `set_profile_name` updates
    only the caller's name. Auth triggers own profile creation and email sync.
 
@@ -308,9 +310,11 @@ calls one by name must qualify it, `private.is_group_admin(...)`.
 | `get_event_detail(eid)` | read-only `security invoker`: returns event fields, roster with names, ordered standby with names, and the caller's RSVP in one SQL statement. Existing SELECT grants and RLS apply to every table |
 | `list_upcoming_events(gid)` | read-only `security invoker`: returns upcoming events with complete in/pending counts and the caller's RSVP in one SQL statement. Uses existing RLS and SELECT grants, database time, and orders by start time then ID |
 | `create_event(group_id, title, starts_at, capacity, location)` | `security definer`: requires a signed-in admin, locks the live group before inserting, sets the creator, and returns the created event. Location is optional |
+| `update_event(event_id, title, starts_at, location)` | `security definer`: requires an admin of a live group, locks group then event, and returns the updated event. Raises for an event that has started or a new start that has passed. Capacity and group are not parameters |
 | `set_profile_name(name)` | `security definer`: requires a signed-in caller, updates only their name, and returns their profile as `my_profile`, the flag from `can_create_groups()`; raises if the profile is missing. No group membership is required |
 | `get_my_profile()` | `security definer`: the caller's profile as `my_profile` (`id, name, email, can_create_groups`), the flag from `can_create_groups()`. The app reads its profile here, not from `profiles` |
 | `create_group(name)` | `security definer`: requires a signed-in caller that `can_create_groups()` allows, locking their profile row first, sets the creator, and returns the created group. The existing trigger creates its admin membership |
+| `update_group(group_id, name)` | `security definer`: requires an admin, locks the live group, and returns the updated group. Takes every editable group field, so a new one extends it |
 | `archive_group(group_id)` | `security definer`: locks a live group, requires its admin, and sets the archive timestamp on the server; raises for a missing or already archived group |
 | `accept_group_invitation(id)` | accepts a pending group invitation addressed to the caller's profile email. Locks the invitation then its live group; creates membership and marks accepted atomically |
 | `decline_group_invitation(id)` | declines a pending group invitation addressed to the caller's profile email. Same locks as accept; creates no membership |
@@ -424,7 +428,8 @@ The concurrency-sensitive parts rest on six details:
   the other's uncommitted row.
 - **`select ... for update` on the group row** in `ensure_admin_remains`,
   `archive_group`, `set_group_member_role`, `remove_group_member` and
-  `leave_group`. The member RPCs take it before membership writes, so
+  `leave_group`; `update_group` takes `for no key update`, the lock its own
+  update needs. The member RPCs take it before membership writes, so
   cascade deletes and their promotion triggers already hold the group
   lock before reaching events. Archiving takes this lock before checking
   admin authority, conflicts with the live-group share locks, and
@@ -434,8 +439,8 @@ The concurrency-sensitive parts rest on six details:
   see the other's uncommitted admin row.
 - **`select ... for share` on the group row** in all four group-invitation
   write RPCs, in `set_standby_order`, in `promote_standby`, and in
-  `add_players_to_event`, `create_event`, `set_event_rsvp` and
-  `disinvite_player`. Creation holds the group
+  `add_players_to_event`, `create_event`, `update_event`, `set_event_rsvp`
+  and `disinvite_player`. Creation holds the group
   lock before inserting its new event. Checking `archived_at is null` reads a
   snapshot; without the lock an archive committing in between would
   still let the operation write into an archived group.
@@ -489,9 +494,9 @@ deliberately `security invoker`: both need SELECT on `events` and
 They retain the existing RLS helper permissions, add no table privileges
 and do not bypass RLS. EXECUTE is granted only to `authenticated`.
 
-**Groups converted:** `create_group` and `archive_group` own all app
-writes. A separate migration revokes `INSERT`, `UPDATE`, `DELETE` and
-`TRUNCATE` on `groups` from `PUBLIC`, `anon` and `authenticated`, plus
+**Groups converted:** `create_group`, `update_group` and `archive_group`
+own all app writes. A separate migration revokes `INSERT`, `UPDATE`,
+`DELETE` and `TRUNCATE` on `groups` from `PUBLIC`, `anon` and `authenticated`, plus
 the separate `UPDATE (name, archived_at)` grants. Read grants and
 SELECT policies remain.
 
@@ -501,7 +506,8 @@ on `profiles` from `PUBLIC`, `anon` and `authenticated`, plus the
 separate `UPDATE (name)` grants. Read grants and SELECT policies remain;
 Auth's definer triggers still create/restore profiles and sync email.
 
-**Events converted:** `create_event` owns the app's event creation.
+**Events converted:** `create_event` owns the app's event creation and
+`update_event` its edits.
 A separate migration revokes `INSERT`, `UPDATE`, `DELETE` and `TRUNCATE`
 on `events` from `PUBLIC`, `anon` and `authenticated`, plus the separate
 `UPDATE (title, starts_at, location)` grants. Read grants and SELECT

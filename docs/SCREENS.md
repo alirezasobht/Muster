@@ -20,9 +20,11 @@ flowchart TD
     Privacy[Privacy policy]
     NewGroup[New group<br/><i>if allowed</i>]
     Group[Group<br/><i>events / members tabs</i>]
+    EditGroup[Edit group<br/><i>admins</i>]
     AddMemberByEmail[Add by email<br/><i>admins</i>]
     NewEvent[New event<br/><i>admins</i>]
     Event[Event<br/><i>roster, standby</i>]
+    EditEvent[Edit event<br/><i>admins, until it starts</i>]
     AddPlayers[Add players<br/><i>admins</i>]
 
     Launch -->|no session| Request
@@ -36,14 +38,16 @@ flowchart TD
     Home --> NewGroup
     Home --> Group
     NewGroup --> Group
+    Group --> EditGroup
     Group --> AddMemberByEmail
     Group --> NewEvent
     Group --> Event
     NewEvent --> Event
+    Event --> EditEvent
     Event --> AddPlayers
 ```
 
-Twelve screens. A plain stack — no bottom navigation.
+Fourteen screens. A plain stack — no bottom navigation.
 
 ## Staying current
 
@@ -146,8 +150,8 @@ name: admin, member, or pending.
   person or address, dismissible with no side effect. None of them fire
   straight off the menu tap.
 - Anyone: leave the group.
-- Archiving the group lives in the Group app bar overflow, admins only,
-  above Leave group.
+- Edit group and Archive group live in the Group app bar overflow, admins
+  only, in that order above Leave group.
 
 ### Add by email
 Its own destination, not a mode inside Group. It renders the same group
@@ -168,9 +172,19 @@ ViewModel and the call differ.
   Settings, an address costs a second to retype, and a confirmation on
   every change of mind is worse than the occasional lost keystroke.
 
+### Edit group
+New group's form, prefilled, with Save. Save is disabled until the name
+differs from the stored one. On success it returns to Group, which picks
+up the new name. Leaving never prompts.
+
 ### New event
 Own screen. Title, start time, location, capacity. Capacity cannot be
 changed afterwards. Lands on the new event.
+
+### Edit event
+New event's form without capacity, prefilled, with Save. Save is disabled
+until something differs. On success it returns to Event, which refreshes.
+Invitees are not notified of the change. Leaving never prompts.
 
 ### Event
 Details on top, then the roster, then the standby queue.
@@ -178,6 +192,7 @@ Details on top, then the roster, then the standby queue.
 Everyone sees the whole roster and each player's RSVP. Players can
 change only their own. Admins can change anyone's, reorder the queue,
 add players, and cancel, remove or resend a pending player's invitation.
+Admins also get Edit event in the app bar ⋮; members get no ⋮.
 
 The roster is one list sorted in, then pending, then out — not grouped
 into sections.

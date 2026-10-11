@@ -13,6 +13,12 @@ internal data class GroupDto(
 internal data class CreateGroupDto(val name: String)
 
 @Serializable
+internal data class UpdateGroupDto(
+    @SerialName("group_id") val groupId: String,
+    val name: String
+)
+
+@Serializable
 internal data class ArchiveGroupDto(@SerialName("group_id") val groupId: String)
 
 // group_members joined to groups, for "my groups".

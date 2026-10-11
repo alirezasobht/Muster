@@ -33,6 +33,12 @@ data class Group(
 )
 
 @Serializable
+data class EditGroup(
+    val groupId: String,
+    val groupName: String
+)
+
+@Serializable
 data class AddMemberByEmail(
     val groupId: String,
     val groupName: String
@@ -56,6 +62,16 @@ data class Event(
     val capacity: Int,
     val inCount: Int,
     val pendingCount: Int
+)
+
+// startsAt is an ISO-8601 instant
+@Serializable
+data class EditEvent(
+    val eventId: String,
+    val groupId: String,
+    val title: String,
+    val startsAt: String,
+    val location: String
 )
 
 @Serializable

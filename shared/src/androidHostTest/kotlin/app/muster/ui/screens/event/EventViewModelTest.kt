@@ -157,7 +157,35 @@ class EventViewModelTest {
 
         val state = assertIs<EventUiState.Success>(viewModel.state.value)
         assertTrue(state.isFrozen)
-        assertTrue(state.startTime.isNotBlank())
+        assertTrue(state.startsAtDisplay.isNotBlank())
+    }
+
+    @Test
+    fun `an admin gets Edit in the overflow menu`() = runTest {
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(EventOverflowAction.Edit),
+            assertIs<EventUiState.Success>(viewModel.state.value).overflowActions
+        )
+    }
+
+    @Test
+    fun `a member gets no overflow actions`() = runTest {
+        val viewModel = viewModel(groups = FakeGroupRepository(myRole = GroupRole.Member))
+        advanceUntilIdle()
+
+        assertEquals(emptyList(), assertIs<EventUiState.Success>(viewModel.state.value).overflowActions)
+    }
+
+    @Test
+    fun `a started event offers no overflow actions, even to an admin`() = runTest {
+        val events = FakeEventRepository(eventDetail = detail(startsAt = pastStart))
+        val viewModel = viewModel(events = events)
+        advanceUntilIdle()
+
+        assertEquals(emptyList(), assertIs<EventUiState.Success>(viewModel.state.value).overflowActions)
     }
 
     @Test
