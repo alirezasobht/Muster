@@ -3,8 +3,9 @@
 How the deploy scripts work and what lets them in. Setting up a new
 environment from scratch: `environment_setup.md`.
 
-Dev backend changes deploy from CI when they merge into `dev`; the
-scripts stay the way to deploy prod, and to deploy dev by hand.
+CI deploys both environments: dev's backend when a change merges into
+`dev`, and all of prod on a release. The scripts stay as the manual
+fallback, and for Edge Function secrets on dev outside the sync.
 `docs/CI.md`.
 
 ## Authorisation
@@ -52,9 +53,10 @@ typed first.
 - `set-env-vars.sh <env>` — source it (`. scripts/set-env-vars.sh <env>`):
   exports the app build values for that environment, and `MUSTER_ENV` for
   the Android app id, into the current shell only.
-- `deploy-prod.sh` — full prod deploy: `deploy-backend.sh prod`, then clean
-  web and Android release builds with prod values. Ends on dev whatever
-  happens. The Pages and Play uploads stay manual; it prints both paths.
+- `deploy-prod.sh` — full prod deploy by hand, the fallback to CI:
+  `deploy-backend.sh prod`, then clean web and Android release builds with
+  prod values. Ends on dev whatever happens. The Pages and Play uploads
+  stay manual; it prints both paths.
 
 ## Staying on dev
 
@@ -71,7 +73,7 @@ It needs Docker or Podman installed, and starts Podman itself when there is
 no `docker` command. Dumps hold users' emails, so they stay in
 `Muster-env`, whose `.gitignore` keeps `backups/` out of git.
 
-CI backs up dev before every deploy, encrypted, into the private
-`Muster-backups` repo. Restoring one: `docs/CI.md` → Backups.
+CI backs up each environment before every deploy, encrypted, into the
+private `Muster-backups` repo. Restoring one: `docs/CI.md` → Backups.
 "could not translate host name" followed by "Retrying via the IPv4
 connection pooler" is normal.

@@ -47,8 +47,9 @@ iOS builds from Xcode: open `iosApp/`.
 Migrations in `supabase/migrations/`. Migrations, Edge Function secrets
 and deploys go through `supabase/scripts/`, never by hand; a full prod
 deploy is `scripts/deploy-prod.sh`. See `supabase/docs/deploying.md`.
-Merging into `dev` deploys dev's backend from CI; PRs go into `dev`, from a
-branch made with `--no-track`. See `docs/CI.md`.
+CI deploys too: dev's backend on merge into `dev`, all of prod on a
+release, through the Release prepare / Release finish workflows. PRs go
+into `dev`, from a branch made with `--no-track`. See `docs/CI.md`.
 
 ## How to work
 
