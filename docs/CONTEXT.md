@@ -104,8 +104,9 @@ Accepting and declining both happen in the app, as RPC calls to
 returns in RLS policies, so `profiles.id` mirrors it. Email cannot be the
 primary key.
 
-**We do not build email change.** There is no screen for it; the column
-grant on `profiles` allows only `name`. If someone needs a different
+**We do not build email change.** There is no screen for it, and
+`profiles` has no client write grants at all — `set_profile_name`
+updates only the caller's name. If someone needs a different
 address, an admin re-invites them at it. A change made outside the app —
 dashboard or Auth API — is copied into `profiles` by a trigger, and
 memberships survive it. See DECISIONS.md.

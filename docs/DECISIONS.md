@@ -333,6 +333,21 @@ Play re-signs with its own key. Minify stays off until crash reporting
 exists, since a stripped class only fails at runtime. `allowBackup` is off
 so a session or push token never moves to another device.
 
+## Emails link to `/open`, with the web link beside it
+
+Invitation emails carry two links: "Open in the app" to `/open` and
+"Open on the web" to the web root. `/open` is the only path the apps
+claim (App Link with `assetlinks.json`, Universal Link with
+`apple-app-site-association`), so an installed app opens straight from
+the email. Without it, `open.html` sends Android to Play, iPhone to the
+App Store, and everything else to the web app.
+
+The root stays unclaimed, so the web link still opens the browser on a
+phone with the app installed.
+
+Rejected: a Play link in the email (opens the store listing, not the
+app) and a single `/open` link (no way to choose the web on Android).
+
 ## One version per release, bumped on dev
 
 Android, iOS and web are one codebase, so they share one `x.y.z` in
