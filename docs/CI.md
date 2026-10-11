@@ -54,7 +54,7 @@ merge. Outsiders' PRs into `main` are closed by `release-guard.yml`.
 | `release-prepare.yml` | by hand | bumps the version if needed, opens the release PR |
 | `release-finish.yml` | by hand | tags the release, back-merges `main` into `dev` |
 | `deploy-dev.yml` | push to `dev` touching `supabase/` | backs up dev, deploys its backend |
-| `deploy-prod.yml` | push to `main` | backs up prod, deploys backend, web, Android, iOS |
+| `deploy-prod.yml` | manual, on `main` | backs up prod, deploys the ticked parts: backend, web, Android, iOS |
 
 `workflow_dispatch` buttons and `pull_request_target` workflows run from
 `main`'s copy, so a change to them takes effect after the next release.
@@ -94,7 +94,8 @@ Fails unless `VERSION_NAME` in `version.properties` is `x.y.z` and above
    "Bump version to x.y.z" on the branch as the release app, then opens
    **Release x.y.z** into `main`.
 2. Wait for the checks, then **Create a merge commit**.
-3. **Actions → Deploy prod** → approve each job (see below).
+3. **Actions → Deploy prod** on `main` → tick what to ship → approve
+   (see below).
 4. **Actions → Release finish.** Tags `main` `vX.Y.Z`, then opens
    **Back-merge vX.Y.Z** from a `back-merge/vX.Y.Z` branch into `dev` and
    merges it with a merge commit once the checks pass. On conflicts it
@@ -125,13 +126,15 @@ uploads them.
 
 ## Prod deploy — `deploy-prod.yml`
 
-On every push to `main`. Uses the `prod` environment, which needs your
-approval per job; secrets are released only after it.
+Manual only, run on `main`, with a checkbox each for Backend, Web,
+Android and iOS (all ticked by default). Uses the `prod` environment,
+which needs your approval; one approval releases every ticked job, and
+secrets are released only after it.
 
 - **Backend:** backup to `Muster-backups/prod/`, migrations, Edge
   Function secrets from the `PROD_EDGE_*` secrets (stale ones removed),
   functions. The order matches `deploy-backend.sh`.
-- After Backend succeeds, each with its own approval:
+- After Backend succeeds or is unticked:
   - **Web:** prod web build, uploaded to Cloudflare Pages as a
     production deployment (`--branch=main`).
   - **Android:** `bundleRelease` signed with the upload key, uploaded to

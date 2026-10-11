@@ -397,12 +397,14 @@ branch for a one-line bump), and a deploy key plus a token (two
 credentials for the same job). Cost: the app can push anything to `dev`,
 not only the bump; its key lives only in the `release` environment.
 
-## Prod deploys: one workflow, approval per job
+## Prod deploys: one manual workflow, a checkbox per part
 
-Every push to `main` deploys backend, web, Android and iOS. Each job
-waits for approval; web and mobile start only after the backend
-succeeds. Android goes to Play's internal track and iOS to TestFlight;
-promoting to production stays a click in each store.
+Deploy prod runs by hand on `main`, with a checkbox each for backend,
+web, Android and iOS, so a release can ship only what changed. The
+ticked jobs wait for one approval on the `prod` environment; web and
+mobile start only after the backend succeeds or is unticked. Android
+goes to Play's internal track and iOS to TestFlight; promoting to
+production stays a click in each store.
 
 Signing material lives in CI: the Play upload key and the Apple
 Distribution certificate and profile, synced from `Muster-env` into the
