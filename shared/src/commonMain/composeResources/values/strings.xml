@@ -127,6 +127,11 @@
     <string name="members_failed_title">Couldn’t load members</string>
     <string name="members_try_again">Try again</string>
     <string name="members_you_suffix"> · you</string>
+    <plurals name="members_count">
+        <item quantity="one">%1$d member</item>
+        <item quantity="other">%1$d members</item>
+    </plurals>
+    <string name="members_pending_suffix"> · %1$d pending</string>
 
     <!-- Group — Events tab (1h) -->
     <string name="events_new">New event</string>

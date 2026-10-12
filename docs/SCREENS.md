@@ -135,7 +135,8 @@ now; a second tab is the obvious home for them later. New event button
 for admins.
 
 **Members tab** — one list, everyone in it, with a status against each
-name: admin, member, or pending.
+name: admin, member, or pending. A line at the top counts members, and
+pending invitations when there are any ("12 members · 2 pending").
 
 - Pending rows show an **email address, not a name**. The invitee has no
   profile the group can read, so there is no name to show. Do not design
