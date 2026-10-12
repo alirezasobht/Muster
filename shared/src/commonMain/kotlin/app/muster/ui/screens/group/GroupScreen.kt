@@ -47,7 +47,7 @@ import app.muster.ui.common.toMessage
 import app.muster.ui.common.util.SharedTransitionKeys
 import app.muster.ui.common.util.sharedBoundsOrNone
 import app.muster.ui.screens.group.events.EventsRoute
-import app.muster.ui.screens.group.members.MembersRoute
+import app.muster.ui.screens.group.members.MembersTabRoute
 import app.muster.ui.theme.MusterColors
 import app.muster.ui.theme.MusterTheme
 import muster.shared.generated.resources.Res
@@ -90,6 +90,9 @@ fun GroupRoute(
     onAddMemberByEmail: (groupName: String) -> Unit,
     onSelectEvent: (groupId: String, groupName: String, event: Event) -> Unit,
     onNewEvent: (groupName: String) -> Unit,
+    onCreateTagForMember: (String) -> Unit,
+    onCreateTag: () -> Unit,
+    onRenameMemberTag: (tagId: String, tagName: String, memberCount: Int) -> Unit,
     viewModel: GroupViewModel = koinViewModel { parametersOf(groupId, groupName) }
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -118,9 +121,12 @@ fun GroupRoute(
             onOverflowDialogDismissed = viewModel::onOverflowDialogDismissed
         ),
         membersContent = {
-            MembersRoute(
+            MembersTabRoute(
                 groupId = groupId,
-                onAddMemberByEmail = { onAddMemberByEmail(state.groupName) }
+                onAddMemberByEmail = { onAddMemberByEmail(state.groupName) },
+                onCreateTagForMember = onCreateTagForMember,
+                onCreateTag = onCreateTag,
+                onRenameMemberTag = onRenameMemberTag
             )
         },
         eventsContent = {

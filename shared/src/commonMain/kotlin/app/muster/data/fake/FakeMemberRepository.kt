@@ -6,6 +6,7 @@ import app.muster.domain.event.DataChanges
 import app.muster.domain.model.GroupRole
 import app.muster.domain.model.Member
 import app.muster.domain.model.MemberListing
+import app.muster.domain.model.MemberTag
 import app.muster.domain.model.PendingInvitation
 import app.muster.domain.repository.MemberRepository
 import kotlin.time.Duration.Companion.milliseconds
@@ -14,6 +15,7 @@ import kotlinx.coroutines.delay
 class FakeMemberRepository(
     members: List<Member> = emptyList(),
     pendingInvitations: List<PendingInvitation> = emptyList(),
+    memberTags: List<MemberTag> = emptyList(),
     var listMembersError: DomainError? = null,
     var inviteByEmailError: DomainError? = null,
     var promoteError: DomainError? = null,
@@ -21,6 +23,11 @@ class FakeMemberRepository(
     var removeError: DomainError? = null,
     var revokeError: DomainError? = null,
     var resendError: DomainError? = null,
+    var createTagError: DomainError? = null,
+    var renameTagError: DomainError? = null,
+    var deleteTagError: DomainError? = null,
+    var setMemberTagError: DomainError? = null,
+    var setTagOrderError: DomainError? = null,
     var leaveError: DomainError? = null,
     private val dataChanges: DataChanges? = null,
     private val latency: Long = FAKE_LATENCY_MS
@@ -30,6 +37,9 @@ class FakeMemberRepository(
         private set
 
     var pendingInvitations = pendingInvitations
+        private set
+
+    var tags = memberTags
         private set
 
     var invitedEmails = listOf<String>()
@@ -53,10 +63,16 @@ class FakeMemberRepository(
     var leftGroupIds = listOf<String>()
         private set
 
+    private var nextTagNumber = 1
+
     override suspend fun listMembers(groupId: String): MemberListing {
         delay(latency.milliseconds)
         listMembersError?.let { throw it }
-        return MemberListing(members = members, pendingInvitations = pendingInvitations)
+        return MemberListing(
+            members = members,
+            pendingInvitations = pendingInvitations,
+            memberTags = tags
+        )
     }
 
     override suspend fun inviteByEmail(
@@ -120,6 +136,64 @@ class FakeMemberRepository(
         delay(latency.milliseconds)
         resendError?.let { throw it }
         resentInvitationIds = resentInvitationIds + invitationId
+    }
+
+    override suspend fun createTag(
+        groupId: String,
+        name: String,
+        memberId: String?
+    ) {
+        delay(latency.milliseconds)
+        createTagError?.let { throw it }
+        val tagId = "tag-${nextTagNumber++}"
+        tags = tags + MemberTag(id = tagId, name = name)
+        if (memberId != null) {
+            members = members.map { if (it.profileId == memberId) it.copy(tagId = tagId) else it }
+        }
+        dataChanges?.notify(DataChange.Members(groupId))
+    }
+
+    override suspend fun renameTag(
+        groupId: String,
+        tagId: String,
+        name: String
+    ) {
+        delay(latency.milliseconds)
+        renameTagError?.let { throw it }
+        tags = tags.map { if (it.id == tagId) it.copy(name = name) else it }
+        dataChanges?.notify(DataChange.Members(groupId))
+    }
+
+    override suspend fun deleteTag(
+        groupId: String,
+        tagId: String
+    ) {
+        delay(latency.milliseconds)
+        deleteTagError?.let { throw it }
+        tags = tags.filterNot { it.id == tagId }
+        members = members.map { if (it.tagId == tagId) it.copy(tagId = null) else it }
+        dataChanges?.notify(DataChange.Members(groupId))
+    }
+
+    override suspend fun setMemberTag(
+        groupId: String,
+        profileId: String,
+        tagId: String?
+    ) {
+        delay(latency.milliseconds)
+        setMemberTagError?.let { throw it }
+        members = members.map { if (it.profileId == profileId) it.copy(tagId = tagId) else it }
+        dataChanges?.notify(DataChange.Members(groupId))
+    }
+
+    override suspend fun setTagOrder(
+        groupId: String,
+        tagIds: List<String>
+    ) {
+        delay(latency.milliseconds)
+        setTagOrderError?.let { throw it }
+        tags = tags.sortedBy { tagIds.indexOf(it.id).takeIf { index -> index >= 0 } ?: Int.MAX_VALUE }
+        dataChanges?.notify(DataChange.Members(groupId))
     }
 
     override suspend fun leave(groupId: String) {

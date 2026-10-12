@@ -414,21 +414,68 @@ constraint to its own message rather than repeating the rule.
 Rejected: a `tag_id` column on `group_members`, and tags visible to
 everyone.
 
-## Tag layout is replaced whole, last write wins
+## One member, one tag, no member order
 
-`set_group_tag_layout` takes every tag's ordered members in one call,
-like `set_standby_order`. A move between two tags is one atomic write,
-and the client never computes a position. Tag order has its own call,
-`set_group_tag_order`, so moving a card never re-sends members and
-can't undo another admin's member moves.
-`create_group_tag` takes optional members so "New tag…" from Move to
+`set_member_tag` moves one member into one tag, or untags them, in a
+single row write. Two admins moving different members never overwrite
+each other, so there is no layout to replace and no stale-screen
+conflict. Members inside a tag have no stored order: they always show
+self first, then admins, then members, each A–Z, the same as Untagged.
+Only the tags are ordered, by `set_group_tag_order`, which replaces the
+tag order whole like `set_standby_order`; the client never computes a
+position.
+`create_group_tag` takes an optional member so "New tag…" from Move to
 tag creates the tag and moves the member in one transaction.
 
-Two admins saving at once: the later save wins. Accepted for groups with
-one or two admins.
+Rejected: a stored order for members within a tag, and replacing every
+tag's members in one call (a stale screen would undo another admin's
+moves).
 
-Rejected: one RPC per move (a cross-tag move would be two writes that
-can half-apply), and a revision token with a "list changed" error.
+## Members move by drag, tags by menu
+
+A member moves by dragging the row to another section, or through the Move
+to tag sheet. A tag moves only with Move up / Move down on its card menu.
+There is no member order to drag within a tag, and no card drag: Move
+up/down is enough for the handful of tags a group has.
+
+Rejected: a row-menu Move up / Move down for members (they have no stored
+order), and drag-to-reorder cards.
+
+## The Members list is one flat lazy list
+
+`MembersList` is a single `LazyColumn` of keyed header, row and empty-hint
+items, not a card containing its rows. `animateItem` and the reorderable
+library (3.1.0) only work on direct lazy items; a row inside a card item
+could neither animate between sections nor be dragged out of one. The card
+look is drawn per item (`TagCardPosition`, `tagCardFrame`).
+
+Dragging runs on a local `DragLayout`, a pure model in
+`components/MembersListModel.kt`, not in the ViewModel: the library needs
+to displace rows live as the drag moves. The destination is the nearest
+section header above the dropped row. After the drop a short delay
+(`DRAG_SETTLE_MILLIS`) lets the row animate into place before the list
+goes back to ViewModel state. A row has to keep the same composable
+structure in every section, or the drag is cancelled when it changes
+section mid-drag.
+
+Rejected: dragging across containers with custom pointer input (hit
+testing, auto-scroll and displacement to rebuild), and `ReorderableColumn`
+(a non-lazy column, so no lazy item animation).
+
+## Member moves are optimistic
+
+`MembersTabViewModel.onSetMemberTag` applies the move to the list at once
+(`withMemberMoved` in `MembersTabMapper.kt`, a pure function), keeps the
+previous tags and members, and restores them if the call fails, with the
+error shown under the count line. One row saves at a time. The tag id, the
+order and the name rules stay in Postgres; the client only reflects the
+result.
+
+`MoveTagUpUseCase` and `MoveTagDownUseCase` compute the new id list,
+because `set_group_tag_order` takes the whole list.
+
+Rejected: waiting for the call before moving the row (a dropped row would
+snap back, then jump), and refetching the list after every move.
 
 ## One members read, role included
 

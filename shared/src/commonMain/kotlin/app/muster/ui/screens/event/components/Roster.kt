@@ -7,10 +7,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -38,6 +36,7 @@ import app.muster.domain.model.RsvpStatus
 import app.muster.ui.common.components.InitialsAvatar
 import app.muster.ui.common.components.MessageState
 import app.muster.ui.common.components.PrimaryButton
+import app.muster.ui.common.components.TonalPill
 import app.muster.ui.common.toMessage
 import app.muster.ui.screens.event.EventUiState
 import app.muster.ui.screens.event.RosterAction
@@ -100,7 +99,7 @@ private fun RosterHeader(
             modifier = Modifier.weight(1f)
         )
         if (showAddPill) {
-            AddPill(text = stringResource(Res.string.event_add), onClick = onAddPlayers)
+            TonalPill(text = stringResource(Res.string.event_add), onClick = onAddPlayers)
         }
     }
 }
@@ -306,24 +305,6 @@ private fun RsvpStatus.label() = when (this) {
     RsvpStatus.In -> Res.string.events_status_in
     RsvpStatus.Pending -> Res.string.events_status_pending
     RsvpStatus.Out -> Res.string.events_status_out
-}
-
-@Composable
-private fun AddPill(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        onClick = onClick,
-        modifier = modifier.height(36.dp),
-        shape = RoundedCornerShape(percent = 50),
-        color = MusterColors.InFill
-    ) {
-        Box(modifier = Modifier.padding(horizontal = 14.dp), contentAlignment = Alignment.Center) {
-            Text(text = text, style = MaterialTheme.typography.labelLarge, color = MusterColors.InText)
-        }
-    }
 }
 
 @Preview

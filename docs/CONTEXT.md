@@ -86,8 +86,9 @@ whole tag to an event.
 - A member has **zero or one** tag. Pending invitees can't be tagged.
 - A group can have any number of tags. Names are unique per group,
   ignoring case, and at most 30 characters.
-- Admins order the tags and the members within each tag. Untagged
-  members have no order; they show A–Z.
+- Admins order the tags. Members have no order of their own: within a
+  tag, and in Untagged, they show self first, then admins, then members,
+  each A–Z.
 - Leaving or being removed drops your tag; rejoining starts untagged.
   Deleting a tag untags its members and nothing else.
 

@@ -161,7 +161,7 @@ private fun SlotsPanel(
                         }
                     )
                     Spacer(Modifier.width(12.dp))
-                    LegendItem(color = MusterColors.OutText, label = stringResource(Res.string.event_slots_legend_out, outCount ?: 0))
+                    LegendItem(color = MusterColors.OutText, label = stringResource(Res.string.event_slots_legend_out, outCount))
                 }
             }
         }
