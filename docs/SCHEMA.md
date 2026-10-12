@@ -107,7 +107,7 @@ Labels admins use to sort members, such as Regular or Casual. Admins only
 |---|---|---|
 | id | uuid PK | |
 | group_id | uuid | → groups, cascade |
-| name | text | not null, stored trimmed. CHECK `group_tags_name_not_blank` (1+ characters) and `group_tags_name_length` (at most 30) |
+| name | text | not null. CHECKs `group_tags_name_trimmed`, `group_tags_name_not_blank` (1+ characters) and `group_tags_name_length` (at most 30); the RPCs trim before writing |
 | position | int | > 0, order of the tags |
 | created_at | timestamptz | |
 
@@ -486,10 +486,11 @@ The concurrency-sensitive parts rest on six details:
   the other's uncommitted row.
 - **`select ... for update` on the group row** in `ensure_admin_remains`,
   `archive_group`, `set_group_member_role`, `remove_group_member` and
-  `leave_group`, and in every tag write RPC; `update_group` takes
-  `for no key update`, the lock its own update needs. The tag RPCs'
-  lock serialises them with each other and with membership changes, so
-  two layout saves never interleave their position rewrites. The member
+  `leave_group`. `update_group` and every tag write RPC take
+  `for no key update`, the lock `update_group`'s own update needs. For
+  the tag RPCs it serialises them with each other and with membership
+  changes, so two layout saves never interleave their position rewrites,
+  without blocking foreign-key checks on the group. The member
   RPCs take it before membership writes, so cascade deletes and their
   promotion triggers already hold the group lock before reaching events.
   Archiving takes this lock before checking admin authority, conflicts
