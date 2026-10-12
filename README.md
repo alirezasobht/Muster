@@ -85,7 +85,9 @@ start a group, and the app will look empty.
 Tests: `./gradlew :shared:testAndroidHostTest` covers the shared logic
 and every ViewModel. `:shared:iosSimulatorArm64Test` and
 `:shared:wasmJsTest` run the same common tests on those targets.
-`:shared:connectedAndroidTest` needs a running emulator.
+`:shared:connectedAndroidDeviceTest` needs a running emulator. Every
+command, and the setup a clone needs first:
+[docs/RUNBOOK.md](docs/RUNBOOK.md).
 
 ## Deploying
 
@@ -130,6 +132,7 @@ could ask for too.
 | [supabase/docs/environment_setup.md](supabase/docs/environment_setup.md) | Bringing up an environment |
 | [supabase/docs/deploying.md](supabase/docs/deploying.md) | Deploy scripts and how they are authorised |
 | [docs/CI.md](docs/CI.md) | Branch rules, PR checks, CI deploys, secrets and backups |
+| [docs/RUNBOOK.md](docs/RUNBOOK.md) | Setup from a clone, every command, and the workflows |
 
 [CLAUDE.md](CLAUDE.md) at the root holds the same map plus conventions
 and current state, read automatically by Claude Code.

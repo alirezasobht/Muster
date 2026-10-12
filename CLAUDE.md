@@ -21,6 +21,7 @@ editing** — they change often, and other sessions edit them too.
 | `supabase/docs/environment_setup.md` | Bringing up an environment: Vault, secrets, Resend, Auth |
 | `supabase/docs/deploying.md` | Deploy scripts, one line each, and how the CLI is authorised |
 | `docs/CI.md` | Branch flow, rulesets, PR checks, CI deploys, secrets, backups |
+| `docs/RUNBOOK.md` | Setup from a clone, every command, and the workflows |
 
 Keep them updated when decisions change.
 
@@ -42,7 +43,8 @@ notifications deferred past MVP.
 ./gradlew ktlintCheck                          verify style
 ```
 
-iOS builds from Xcode: open `iosApp/`.
+iOS builds from Xcode: open `iosApp/`. Every other command, and the
+setup a clone needs first: `docs/RUNBOOK.md`.
 
 Migrations in `supabase/migrations/`. Migrations, Edge Function secrets
 and deploys go through `supabase/scripts/`, never by hand; a full prod
