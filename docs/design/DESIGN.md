@@ -1,13 +1,14 @@
-# Muster — Screen Design (v8)
+# Muster — Screen Design (v9)
 
-Design of record for the app's screens. Open `muster-screens-v7.html`
+Design of record for the app's screens. Open `muster-screens-v9.html`
 in a browser: one canvas, pan and zoom. Turn 1 holds the twenty screens
 (1a–1t); turn 2 the form-level error treatment (2a–2d); turn 3 the
-wide-viewport treatment (3a–3c); turn 4, at the top, the event screen
-re-layout (4a–4c), which supersedes 1l's layout. Frame ids are the reference
-names — use them in issues and commits. (`muster-screens-v1.html`
-through `-v7.html` are earlier snapshots, kept for reference. The app icon
-has its own file — see *App icon* below.)
+wide-viewport treatment (3a–3c); turn 4 the event screen re-layout (4a–4c),
+which supersedes 1l's layout; turn 5, at the top, member tags (5a–5w),
+which supersedes 1i for admins and 1o. Frame ids are the reference names —
+use them in issues and commits. (`muster-screens-v1.html` through
+`-v7.html` are earlier snapshots, kept for reference. The app icon has its
+own file — see *App icon* below.)
 
 Companion to `SCREENS.md` (screen map, navigation) and `CONTEXT.md`
 (product decisions). Where this file and a screenshot disagree, this file wins.
@@ -85,6 +86,23 @@ Members see the same badges, read-only.
 | 4a | Event — admin, answered (supersedes 1l layout) |
 | 4b | Event — admin, no one invited |
 | 4c | Event — scrolled to standby |
+| 5a | Members — admin, with tags (supersedes 1i for admins) |
+| 5b | Members — scrolled: empty tag, Untagged, Invited |
+| 5c–5g | Drag: into tag, between tags, within tag, into Untagged, reorder cards (5g not built) |
+| 5h | Tag move — saving in place |
+| 5i | Tag move — failed, inline |
+| 5j | Member row menu (non-drag path) |
+| 5k | Move to tag — sheet |
+| 5l | Tag card menu |
+| 5m | Members — admin, no tags yet |
+| 5n | New tag dialog |
+| 5o–5q | New tag — blank / too long / taken |
+| 5r | Rename tag |
+| 5s | Delete tag confirm |
+| 5t | Add players — with tags (supersedes 1o) |
+| 5u | Add players — tags picked, over capacity |
+| 5v | Admin journeys diagram |
+| 5w | Open questions — tags |
 
 ## Wide viewports
 
@@ -199,6 +217,42 @@ a different kind of thing.
 - **Standby**: sits on the same tint as the slots panel (it is that panel's
   overflow); numbered discs for queue position; drag handles as before.
 
+## Member tags (5a–5w)
+
+Admins only. Members see 1j unchanged.
+
+- **Model**: a member has zero or one tag; invitees can't be tagged. Name
+  1–30 characters after trimming, unique per group, case-insensitive. No
+  limit on the number of tags.
+- **Members tab (admin)**: count line "12 members · 2 pending" (bold count,
+  muted pending, pending hidden at 0) with tonal "+ New tag"; then Add by
+  email; then tag cards (hairline outline, 14px radius) in admin order;
+  Untagged (no outline, A–Z, not reorderable, always last among members);
+  Invited last.
+- **No tags**: 1i as today plus a `#F5F7F5` intro panel holding the only
+  New tag button.
+- **Rows**: drag handle at left (long-press the row also lifts), ⋮ adds
+  Move to tag…, Move up, Move down above the role items. Your own row gets
+  ⋮ with tag items only.
+- **Drag**: lifted item uses the standby shadow. Drop target = 2px green
+  outline + header note ("Tag as Casual", "Remove tag"). Insertion = 2px
+  green line with open dot. Untagged gets outline, never a line (A–Z).
+  Cards don't drag and never collapse: they reorder only with the card
+  ⋮ Move up / Move down (5l). 5g is not built.
+- **Saving** is optimistic and in place (spinner replaces handle,
+  "Saving…" replaces ⋮). **Failure** snaps the row back with a form-error
+  block directly under it, carrying Try again (exception to the form-block
+  rule: no action button exists on this screen).
+- **New / Rename tag** is a dialog (one short field, sits above the
+  keyboard). **Move to tag** is a sheet (unbounded list). Field errors:
+  "Enter a name" (on submit), "Tag name is too long" (on save, from the
+  server; no counter), "There's already a tag called X" (live + server).
+- **Delete tag**: 1p-style confirm, ink button; members go to Untagged.
+- **Add players**: "Select by tag" chips (eligible counts; tags with none
+  hidden) and Select all (indeterminate when partial). List grouped like
+  the Members tab. Destinations assigned in list order: Invited until
+  slots run out, then Standby #n.
+
 ## App icon
 
 Chosen mark: **K, “Roster on the card”** — a white date card with two
@@ -235,6 +289,20 @@ Rules:
 - **Adaptive icon**: background is solid green, foreground is the card on a
   transparent layer at 72% of the 108dp canvas, so the bleed zone is plain
   green and parallax never reveals an edge.
+
+## Play Store feature graphic
+
+Chosen: **5c** in `Muster App Icon.dc.html`, exported to
+`exports/play-store/feature-graphic-1024x500.png`.
+
+- Green ground `#2F7D4F`. Left: 72px icon + white "Muster" wordmark, tagline
+  "See who's in before the day." in `#F0F7F2`. Right: a white slots card
+  (Sat · 10:00, 8 of 10, 2 open, bar, legend).
+- The copy works for any kind of group, not just sport. Don't mention football or other sports.
+- Everything sits inside the centre 800 × 400 (Play crops edges and may
+  overlay a play button). No badges, device frames or prices.
+- Pending bar colour `#8C9AB3` — a mid blue-grey between the Pending badge
+  fill and text, so it reads beside the green at bar size.
 
 ## Decisions this design fixes
 
@@ -304,6 +372,8 @@ Rules:
 
 ## Still open
 
+- Tags: Untagged sort key; Try again inside the inline error block
+  (see 5w). Settled: no collapsing, no tag limit, last write wins.
 - Past events tab.
 - Notification preferences in Settings, once push lands.
 - No destructive colour is defined; Out is the only red in the app.

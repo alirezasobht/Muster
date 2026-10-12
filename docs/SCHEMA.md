@@ -99,6 +99,51 @@ Partial unique index on `(group_id, email) WHERE status = 'pending'` —
 one open invite per person per group. A second one raises 23505; someone
 who has already accepted is caught separately, by rule 16.
 
+### group_tags
+Labels admins use to sort members, such as Regular or Casual. Admins only
+(rule 17).
+
+| Column | Type | Notes |
+|---|---|---|
+| id | uuid PK | |
+| group_id | uuid | → groups, cascade |
+| name | text | not null, stored trimmed. CHECK `group_tags_name_not_blank` (1+ characters) and `group_tags_name_length` (at most 30) |
+| position | int | > 0, order of the tags |
+| created_at | timestamptz | |
+
+- Unique index `group_tags_name_unique` on `(group_id, lower(name))`: one
+  name per group, ignoring case. A clash raises 23505.
+- UNIQUE `(group_id, position)`, **deferrable**, so a reorder can
+  renumber inside one transaction.
+- UNIQUE `(id, group_id)`, for `group_member_tags` to reference the pair.
+
+The length limit lives here only; the app maps the CHECK names to its
+own messages. Length counts characters as Postgres does (code points).
+
+### group_member_tags
+A member's tag. Untagged members have no row.
+
+| Column | Type | Notes |
+|---|---|---|
+| group_id | uuid | |
+| profile_id | uuid | |
+| tag_id | uuid | |
+| position | int | > 0, order within the tag |
+
+- PK `(group_id, profile_id)`: at most one tag per member
+- UNIQUE `(tag_id, position)`, **deferrable**
+- FK `(group_id, profile_id)` → `group_members (group_id, profile_id)`
+  `ON DELETE CASCADE`: a member who leaves or is removed loses their tag,
+  and rejoining doesn't bring it back
+- FK `(tag_id, group_id)` → `group_tags (id, group_id)` `ON DELETE
+  CASCADE`: a tag can only hold members of its own group, and deleting it
+  untags its members
+
+Pending invitees can't be tagged: they have no `group_members` row.
+Untagged members have no order; the app sorts them A–Z. Writes rewrite
+positions 1..n or append past the highest, so the client never computes a
+position; gaps are allowed.
+
 ### events
 
 | Column | Type | Notes |
@@ -193,7 +238,8 @@ it never needs to renumber anything.
    demoting the only other admin.
 3. **Admin-only actions** — RPC guards checking `role = 'admin'` for:
    create or edit event, edit group, invite member, promote/demote, remove
-   member, archive group, reorder standby, change another player's RSVP.
+   member, archive group, reorder standby, change another player's RSVP,
+   and every tag write.
 4. **Group creation limit** — `create_group` allows one live group
    created by the caller, unless their email is on
    `private.group_creator_emails`. It locks the caller's profile row
@@ -216,6 +262,9 @@ it never needs to renumber anything.
    archiving go through RPCs.
    `profiles` also has no client write grants; `set_profile_name` updates
    only the caller's name. Auth triggers own profile creation and email sync.
+   `group_tags` and `group_member_tags` revoke their default write
+   grants in the migration that creates them; the tag RPCs own every
+   write.
 
    Worth generalising: **any column on a row a user can update is a
    column that user can set.** Permission flags and roles either need an
@@ -279,6 +328,9 @@ it never needs to renumber anything.
     the `group_members` primary key. `security definer`, because the
     admin cannot read the invitee's `profiles` row — a shared group is
     exactly what is being established.
+17. **Tags are admins only** — the select policies on `group_tags` and
+    `group_member_tags` use `is_group_admin`. Members never read a tag:
+    not in the Members tab, on rosters, or anywhere else.
 
 ### Functions and triggers
 
@@ -315,6 +367,12 @@ calls one by name must qualify it, `private.is_group_admin(...)`.
 | `get_my_profile()` | `security definer`: the caller's profile as `my_profile` (`id, name, email, can_create_groups`), the flag from `can_create_groups()`. The app reads its profile here, not from `profiles` |
 | `create_group(name)` | `security definer`: requires a signed-in caller that `can_create_groups()` allows, locking their profile row first, sets the creator, and returns the created group. The existing trigger creates its admin membership |
 | `update_group(group_id, name)` | `security definer`: requires an admin, locks the live group, and returns the updated group. Takes every editable group field, so a new one extends it |
+| `get_group_members(group_id)` | read-only `security invoker`: one row with the caller's role, every member with name, role and tag id, and, for admins only, pending invitations and tags. Tags come in order, each with its members in order; positions are included. A member gets empty `pending` and `tags`, and null tag ids. The Members tab and Add players read here |
+| `create_group_tag(group_id, name, profile_ids)` | `security definer`: requires an admin, locks the live group, adds the tag at the end and returns it. `profile_ids` is optional: those members move into the new tag in the given order, leaving any previous tag, in the same transaction. Non-members are skipped |
+| `update_group_tag(tag_id, name)` | `security definer`: requires an admin, locks the tag's live group, returns the tag. Takes every editable tag field |
+| `delete_group_tag(tag_id)` | `security definer`: requires an admin, locks the tag's live group, deletes the tag; its members become untagged by cascade. Raises if nothing matched |
+| `set_group_tag_layout(group_id, layout)` | `security definer`: requires an admin, locks the live group, and replaces every tag's members. `layout` is an array of `{tag_id, profile_ids}`, members in order; it doesn't change the tag order. Members not listed become untagged. Non-members and tags deleted meanwhile are skipped; tags missing from `layout` keep their members. A member listed twice raises |
+| `set_group_tag_order(group_id, tag_ids)` | `security definer`: requires an admin, locks the live group, and rewrites tag positions 1..n in the given order. Members are untouched, so a card move from a stale screen can't undo another admin's member moves. Tags deleted meanwhile are skipped; tags missing from `tag_ids` follow the listed ones in their old order. A tag listed twice raises |
 | `archive_group(group_id)` | `security definer`: locks a live group, requires its admin, and sets the archive timestamp on the server; raises for a missing or already archived group |
 | `accept_group_invitation(id)` | accepts a pending group invitation addressed to the caller's profile email. Locks the invitation then its live group; creates membership and marks accepted atomically |
 | `decline_group_invitation(id)` | declines a pending group invitation addressed to the caller's profile email. Same locks as accept; creates no membership |
@@ -428,12 +486,14 @@ The concurrency-sensitive parts rest on six details:
   the other's uncommitted row.
 - **`select ... for update` on the group row** in `ensure_admin_remains`,
   `archive_group`, `set_group_member_role`, `remove_group_member` and
-  `leave_group`; `update_group` takes `for no key update`, the lock its own
-  update needs. The member RPCs take it before membership writes, so
-  cascade deletes and their promotion triggers already hold the group
-  lock before reaching events. Archiving takes this lock before checking
-  admin authority, conflicts with the live-group share locks, and
-  touches no event rows.
+  `leave_group`, and in every tag write RPC; `update_group` takes
+  `for no key update`, the lock its own update needs. The tag RPCs'
+  lock serialises them with each other and with membership changes, so
+  two layout saves never interleave their position rewrites. The member
+  RPCs take it before membership writes, so cascade deletes and their
+  promotion triggers already hold the group lock before reaching events.
+  Archiving takes this lock before checking admin authority, conflicts
+  with the live-group share locks, and touches no event rows.
   Deferring a check to commit makes multi-step changes possible; it does
   not serialise transactions. Two concurrent demotions would each still
   see the other's uncommitted admin row.
@@ -493,6 +553,11 @@ deliberately `security invoker`: both need SELECT on `events` and
 `event_invitations`; detail also reads `event_standby` and `profiles`.
 They retain the existing RLS helper permissions, add no table privileges
 and do not bypass RLS. EXECUTE is granted only to `authenticated`.
+
+**Tag tables:** `group_tags` and `group_member_tags` are created with
+`select` granted to `authenticated` and every default write grant
+revoked from `PUBLIC`, `anon` and `authenticated`. Their only policies
+are the admin-only SELECTs of rule 17.
 
 **Groups converted:** `create_group`, `update_group` and `archive_group`
 own all app writes. A separate migration revokes `INSERT`, `UPDATE`,
@@ -555,6 +620,9 @@ The app never writes directly to these tables.
 
 ### Known limits
 
+- **Lost update on the tag layout.** `set_group_tag_layout` replaces
+  every tag's members, so two admins saving from stale screens lose the
+  earlier save. Last write wins, as with the standby queue below.
 - **Lost update on the standby queue.** `set_standby_order` replaces the
   whole queue. Two admins on stale screens — one adds C, the other
   submits the list without C — and C is silently dropped. The stale check
