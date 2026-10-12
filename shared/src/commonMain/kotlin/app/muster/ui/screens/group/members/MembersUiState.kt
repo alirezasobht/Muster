@@ -36,6 +36,7 @@ sealed interface MembersUiState : UiState<MembersUiState.Success> {
         override fun asSuccessOrNull(): Success = this
         val isEmpty: Boolean get() = rows.none { !it.isSelf }
         val memberCount: Int get() = rows.count { it.status != MemberStatus.Pending }
+
         // Pending rows are only built for admins, so members always see 0.
         val pendingCount: Int get() = rows.count { it.status == MemberStatus.Pending }
     }
