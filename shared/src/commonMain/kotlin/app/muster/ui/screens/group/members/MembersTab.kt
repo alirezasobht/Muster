@@ -110,7 +110,8 @@ data class MembersActions(
     val onRevokeInvitation: (id: String) -> Unit,
     val onResendInvitation: (id: String) -> Unit,
     val onRetry: () -> Unit,
-    val onRefresh: () -> Unit = {}
+    val onRefresh: () -> Unit = {},
+    val onNewTag: () -> Unit = {}
 )
 
 @Composable
@@ -242,11 +243,10 @@ private fun MembersContent(
     var pendingConfirmation by remember { mutableStateOf<PendingConfirmation?>(null) }
 
     Column(modifier = modifier.fillMaxSize()) {
+        MemberCountLine(memberCount = state.memberCount, pendingCount = state.pendingCount)
         if (state.canAddMembers) {
             AddMemberByEmailRow(onClick = actions.onAddMemberByEmail)
             HorizontalDivider(color = MusterColors.Hairline)
-        } else {
-            Spacer(Modifier.height(8.dp))
         }
         MusterPullToRefreshBox(
             isRefreshing = state.isRefreshing,
@@ -269,8 +269,13 @@ private fun MembersContent(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(vertical = 4.dp)
                 ) {
-                    item(key = "count") {
-                        MemberCountLine(memberCount = state.memberCount, pendingCount = state.pendingCount)
+                    if (state.showTagsIntro) {
+                        item(key = "tags_intro") {
+                            TagsIntroPanel(
+                                onNewTag = actions.onNewTag,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                            )
+                        }
                     }
                     items(state.rows, key = { it.id }) { row ->
                         MemberRowItem(
@@ -332,7 +337,7 @@ private fun MemberCountLine(
         },
         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
         color = MusterColors.Secondary,
-        modifier = modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 4.dp)
+        modifier = modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 4.dp)
     )
 }
 
@@ -623,6 +628,20 @@ private fun MembersTabAdminPreview() {
         Surface {
             MembersTab(
                 state = MembersUiState.Success(rows = AdminPreviewRows, canAddMembers = true),
+                actions = PreviewActions
+            )
+        }
+    }
+}
+
+// 5m
+@Preview
+@Composable
+private fun MembersTabAdminNoTagsPreview() {
+    MusterTheme {
+        Surface {
+            MembersTab(
+                state = MembersUiState.Success(rows = AdminPreviewRows, canAddMembers = true, showTagsIntro = true),
                 actions = PreviewActions
             )
         }

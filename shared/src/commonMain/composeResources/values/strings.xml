@@ -133,6 +133,11 @@
     </plurals>
     <string name="members_pending_suffix"> · %1$d pending</string>
 
+    <!-- Member tags (5a–5w) -->
+    <string name="members_new_tag">+ New tag</string>
+    <string name="tags_intro_title">Sort members with tags</string>
+    <string name="tags_intro_body">Put people into tags like Regular or Casual, then add a whole tag to an event at once. Only admins see tags.</string>
+
     <!-- Group — Events tab (1h) -->
     <string name="events_new">New event</string>
     <string name="events_status_in">In</string>
