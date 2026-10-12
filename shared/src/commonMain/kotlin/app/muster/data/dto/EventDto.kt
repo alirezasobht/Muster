@@ -39,6 +39,14 @@ internal data class CreateEventDto(
 )
 
 @Serializable
+internal data class UpdateEventDto(
+    @SerialName("event_id") val eventId: String,
+    val title: String,
+    @SerialName("starts_at") val startsAt: String,
+    val location: String? = null
+)
+
+@Serializable
 internal data class GetEventDetailDto(@SerialName("eid") val eventId: String)
 
 @Serializable

@@ -62,6 +62,9 @@
     <string name="new_group_title">New group</string>
     <string name="new_group_hint">You’ll be its first admin. You can add players once it exists.</string>
 
+    <!-- Edit group -->
+    <string name="edit_group_title">Edit group</string>
+
     <!-- Group (1h, 1i, 1j) -->
     <string name="group_tab_events">Events</string>
     <string name="group_tab_members">Members</string>
@@ -69,6 +72,7 @@
     <string name="group_failed_try_again">Try again</string>
 
     <!-- Group app bar overflow (1p) -->
+    <string name="group_menu_edit">Edit group</string>
     <string name="group_menu_archive">Archive group</string>
     <string name="group_menu_leave">Leave group</string>
     <string name="group_archive_title">Archive this group?</string>
@@ -123,6 +127,11 @@
     <string name="members_failed_title">Couldn’t load members</string>
     <string name="members_try_again">Try again</string>
     <string name="members_you_suffix"> · you</string>
+    <plurals name="members_count">
+        <item quantity="one">%1$d member</item>
+        <item quantity="other">%1$d members</item>
+    </plurals>
+    <string name="members_pending_suffix"> · %1$d pending</string>
 
     <!-- Group — Events tab (1h) -->
     <string name="events_new">New event</string>
@@ -183,6 +192,7 @@
     <string name="event_standby_header">Standby · %1$d</string>
     <string name="event_standby_header_frozen">Standby · Not called up</string>
     <string name="event_standby_drag_hint">Drag to reorder</string>
+    <string name="event_menu_edit">Edit event</string>
 
     <!-- New event (1k) -->
     <string name="new_event_title">New event</string>
@@ -199,6 +209,9 @@
     <string name="new_event_increase_capacity">Increase capacity</string>
     <string name="new_event_picker_confirm">OK</string>
     <string name="new_event_picker_cancel">Cancel</string>
+
+    <!-- Edit event -->
+    <string name="edit_event_title">Edit event</string>
 
     <!-- Add players (1o) -->
     <string name="add_players_title">Add players</string>

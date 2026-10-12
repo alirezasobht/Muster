@@ -33,6 +33,7 @@ class FakeEventRepository(
         standby = emptyList()
     ),
     var getEventError: DomainError? = null,
+    var updateEventError: DomainError? = null,
     var setRsvpError: DomainError? = null,
     var reorderStandbyError: DomainError? = null,
     var disinvitePlayerError: DomainError? = null,
@@ -44,6 +45,9 @@ class FakeEventRepository(
 ) : EventRepository {
 
     var createdEventTitles = listOf<String>()
+        private set
+
+    var updatedEvents = listOf<Event>()
         private set
 
     var rsvpUpdates = listOf<Triple<String, String, RsvpStatus>>()
@@ -103,6 +107,22 @@ class FakeEventRepository(
             myStatus = roster.firstOrNull { it.profileId == FAKE_USER_ID }?.status
         )
         return eventDetail.copy(event = event)
+    }
+
+    override suspend fun updateEvent(
+        eventId: String,
+        groupId: String,
+        title: String,
+        startsAt: Instant,
+        location: String?
+    ) {
+        delay(latency.milliseconds)
+        updateEventError?.let { throw it }
+        val updated = eventDetail.event.copy(title = title, startsAt = startsAt, location = location)
+        eventDetail = eventDetail.copy(event = updated)
+        updatedEvents = updatedEvents + updated
+        dataChanges?.notify(DataChange.Roster(eventId))
+        dataChanges?.notify(DataChange.Events(groupId))
     }
 
     override suspend fun setRsvp(

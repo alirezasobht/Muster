@@ -88,6 +88,27 @@ class MembersTabTest {
         composeRule.onNodeWithText("Add by email").assertDoesNotExist()
     }
 
+    private val other = MemberRow(id = "2", displayName = "Dan Whelan", status = MemberStatus.Member)
+    private val invite = MemberRow(id = "3", displayName = "priya.n@gmail.com", status = MemberStatus.Pending)
+
+    @Test
+    fun theCountLineShowsMembersAndPending() {
+        show(state = MembersUiState.Success(rows = listOf(self, other, invite)))
+        composeRule.onNodeWithText("2 members · 1 pending").assertIsDisplayed()
+    }
+
+    @Test
+    fun theCountLineLeavesOutPendingWhenThereIsNone() {
+        show(state = MembersUiState.Success(rows = listOf(self, other)))
+        composeRule.onNodeWithText("2 members").assertIsDisplayed()
+    }
+
+    @Test
+    fun theCountLineIsSingularForOneMember() {
+        show(state = MembersUiState.Success(rows = listOf(self, invite)))
+        composeRule.onNodeWithText("1 member · 1 pending").assertIsDisplayed()
+    }
+
     @Test
     fun tappingAddMemberByEmailReachesTheCallback() {
         var tapped = false

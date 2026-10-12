@@ -19,6 +19,16 @@ interface EventRepository {
 
     suspend fun getEvent(eventId: String): EventDetail
 
+    // Capacity and the event's group are fixed at creation. groupId only for
+    // the Events(groupId) notification.
+    suspend fun updateEvent(
+        eventId: String,
+        groupId: String,
+        title: String,
+        startsAt: Instant,
+        location: String?
+    )
+
     // profileId is the caller for a self-RSVP, or the target player when an
     // admin changes someone else's — the RPC checks the caller's authority.
     suspend fun setRsvp(

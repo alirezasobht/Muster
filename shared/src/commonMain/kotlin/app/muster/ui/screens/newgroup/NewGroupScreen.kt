@@ -1,44 +1,17 @@
 package app.muster.ui.screens.newgroup
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.muster.domain.error.DomainError
 import app.muster.domain.model.Group
-import app.muster.ui.common.components.FormError
-import app.muster.ui.common.components.MusterIcons
-import app.muster.ui.common.components.MusterTextField
-import app.muster.ui.common.components.PhoneWidth
-import app.muster.ui.common.components.PrimaryButton
-import app.muster.ui.common.toMessage
-import app.muster.ui.theme.MusterColors
+import app.muster.ui.common.components.GroupForm
 import app.muster.ui.theme.MusterTheme
 import muster.shared.generated.resources.Res
 import muster.shared.generated.resources.action_create_group
-import muster.shared.generated.resources.content_description_back
-import muster.shared.generated.resources.field_group_name
 import muster.shared.generated.resources.new_group_hint
 import muster.shared.generated.resources.new_group_title
 import org.jetbrains.compose.resources.stringResource
@@ -81,58 +54,20 @@ fun NewGroupScreen(
     error: DomainError? = null,
     canCreate: Boolean = name.isNotBlank()
 ) {
-    Surface(modifier = modifier.fillMaxSize()) {
-        PhoneWidth {
-            Column(modifier = Modifier.safeDrawingPadding().fillMaxSize()) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = MusterIcons.ArrowBack,
-                            contentDescription = stringResource(Res.string.content_description_back),
-                            tint = MusterColors.Ink,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                    Text(
-                        text = stringResource(Res.string.new_group_title),
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                }
-                Spacer(Modifier.height(24.dp))
-                Column(modifier = Modifier.padding(horizontal = 24.dp)) {
-                    MusterTextField(
-                        value = name,
-                        onValueChange = onNameChange,
-                        label = stringResource(Res.string.field_group_name),
-                        enabled = !creating,
-                        error = nameError?.toMessage(),
-                        keyboardOptions = KeyboardOptions(
-                            capitalization = KeyboardCapitalization.Words,
-                            imeAction = ImeAction.Done
-                        ),
-                        keyboardActions = KeyboardActions(onDone = { if (canCreate) onCreate() })
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = stringResource(Res.string.new_group_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MusterColors.Muted
-                    )
-                    Spacer(Modifier.height(24.dp))
-                    if (error != null) {
-                        FormError(message = error.toMessage())
-                        Spacer(Modifier.height(12.dp))
-                    }
-                    PrimaryButton(
-                        text = stringResource(Res.string.action_create_group),
-                        onClick = onCreate,
-                        enabled = canCreate,
-                        loading = creating
-                    )
-                }
-            }
-        }
-    }
+    GroupForm(
+        screenTitle = stringResource(Res.string.new_group_title),
+        actionText = stringResource(Res.string.action_create_group),
+        name = name,
+        onNameChange = onNameChange,
+        onSubmit = onCreate,
+        onBack = onBack,
+        modifier = modifier,
+        hint = stringResource(Res.string.new_group_hint),
+        submitting = creating,
+        nameError = nameError,
+        error = error,
+        canSubmit = canCreate
+    )
 }
 
 @Preview

@@ -20,6 +20,9 @@ import app.muster.ui.common.util.toDisplayDate
 import app.muster.ui.platform.SystemBarIcons
 import app.muster.ui.screens.addbyemail.AddMemberByEmailRoute
 import app.muster.ui.screens.addplayers.AddPlayersRoute
+import app.muster.ui.screens.editevent.EditEventInitial
+import app.muster.ui.screens.editevent.EditEventRoute
+import app.muster.ui.screens.editgroup.EditGroupRoute
 import app.muster.ui.screens.event.EventRoute
 import app.muster.ui.screens.event.EventSummary
 import app.muster.ui.screens.group.GroupRoute
@@ -34,6 +37,7 @@ import app.muster.ui.screens.setname.SetNameRoute
 import app.muster.ui.screens.settings.SettingsRoute
 import app.muster.ui.screens.signin.EnterCodeRoute
 import app.muster.ui.screens.signin.RequestCodeRoute
+import kotlin.time.Instant
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalSharedTransitionApi::class)
@@ -129,7 +133,8 @@ fun NavGraph(
                             groupId = group.id,
                             groupName = group.name,
                             onBack = { navController.popBackStack() },
-                            onAddMemberByEmail = { navController.navigate(AddMemberByEmail(group.id, group.name)) },
+                            onEditGroup = { name -> navController.navigate(EditGroup(group.id, name)) },
+                            onAddMemberByEmail = { name -> navController.navigate(AddMemberByEmail(group.id, name)) },
                             onSelectEvent = { groupId, groupName, event ->
                                 navController.navigate(
                                     Event(
@@ -145,9 +150,18 @@ fun NavGraph(
                                     )
                                 )
                             },
-                            onNewEvent = { navController.navigate(NewEvent(group.id, group.name)) }
+                            onNewEvent = { name -> navController.navigate(NewEvent(group.id, name)) }
                         )
                     }
+                }
+                composable<EditGroup> { entry ->
+                    val route = entry.toRoute<EditGroup>()
+                    EditGroupRoute(
+                        groupId = route.groupId,
+                        groupName = route.groupName,
+                        onBack = { navController.popBackStack() },
+                        onSaved = { navController.popBackStack() }
+                    )
                 }
                 composable<AddMemberByEmail> { entry ->
                     val route = entry.toRoute<AddMemberByEmail>()
@@ -199,9 +213,34 @@ fun NavGraph(
                             onBack = { navController.popBackStack() },
                             onAddPlayers = { eventId, groupId ->
                                 navController.navigate(AddPlayers(eventId, groupId))
+                            },
+                            onEditEvent = { summary, startsAt ->
+                                navController.navigate(
+                                    EditEvent(
+                                        eventId = summary.eventId,
+                                        groupId = summary.groupId,
+                                        title = summary.title,
+                                        startsAt = startsAt.toString(),
+                                        location = summary.location
+                                    )
+                                )
                             }
                         )
                     }
+                }
+                composable<EditEvent> { entry ->
+                    val route = entry.toRoute<EditEvent>()
+                    EditEventRoute(
+                        initial = EditEventInitial(
+                            eventId = route.eventId,
+                            groupId = route.groupId,
+                            title = route.title,
+                            startsAt = Instant.parse(route.startsAt),
+                            location = route.location
+                        ),
+                        onBack = { navController.popBackStack() },
+                        onSaved = { navController.popBackStack() }
+                    )
                 }
                 composable<AddPlayers> { entry ->
                     val route = entry.toRoute<AddPlayers>()

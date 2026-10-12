@@ -5,8 +5,11 @@ import app.muster.domain.model.RsvpStatus
 import app.muster.ui.common.util.UiState
 import app.muster.ui.common.util.initials
 import app.muster.ui.screens.group.events.EventRow
+import kotlin.time.Instant
 
 enum class RosterAction { SetIn, SetOut, CancelInvite, RemoveFromEvent, RemoveFromList, ResendInvite }
+
+enum class EventOverflowAction { Edit }
 
 // A standby player has no event_invitations row
 data class RosterRow(
@@ -66,8 +69,11 @@ sealed interface EventUiState : UiState<EventUiState.Success> {
         val myStatus: RsvpStatus?,
         val roster: List<RosterRow> = emptyList(),
         val standby: List<StandbyRow> = emptyList(),
+        // Set by the ViewModel from role and freeze; the menu only renders it.
+        val overflowActions: List<EventOverflowAction> = emptyList(),
         val isFrozen: Boolean = false,
-        val startTime: String = "",
+        val startsAt: Instant = Instant.DISTANT_FUTURE,
+        val startsAtDisplay: String = "",
         val isRefreshing: Boolean = false,
         val rsvpInFlight: Boolean = false,
         val rsvpError: DomainError? = null,

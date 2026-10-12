@@ -13,6 +13,11 @@ interface GroupRepository {
 
     suspend fun getGroup(groupId: String): Group
 
+    suspend fun updateGroup(
+        groupId: String,
+        name: String
+    ): Group
+
     suspend fun getMyRole(groupId: String): GroupRole
 
     suspend fun getPendingInvitations(): List<GroupInvitation>

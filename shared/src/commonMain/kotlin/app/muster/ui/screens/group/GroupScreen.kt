@@ -64,6 +64,7 @@ import muster.shared.generated.resources.group_leave_cancel
 import muster.shared.generated.resources.group_leave_confirm
 import muster.shared.generated.resources.group_leave_title
 import muster.shared.generated.resources.group_menu_archive
+import muster.shared.generated.resources.group_menu_edit
 import muster.shared.generated.resources.group_menu_leave
 import muster.shared.generated.resources.group_tab_events
 import muster.shared.generated.resources.group_tab_members
@@ -85,9 +86,10 @@ fun GroupRoute(
     groupId: String,
     groupName: String,
     onBack: () -> Unit,
-    onAddMemberByEmail: () -> Unit,
+    onEditGroup: (groupName: String) -> Unit,
+    onAddMemberByEmail: (groupName: String) -> Unit,
     onSelectEvent: (groupId: String, groupName: String, event: Event) -> Unit,
-    onNewEvent: () -> Unit,
+    onNewEvent: (groupName: String) -> Unit,
     viewModel: GroupViewModel = koinViewModel { parametersOf(groupId, groupName) }
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -105,21 +107,27 @@ fun GroupRoute(
             onBack = onBack,
             onTabSelected = viewModel::onTabSelected,
             onRetry = viewModel::onRetry,
-            onOverflowActionRequested = viewModel::onOverflowActionRequested,
+            onOverflowActionRequested = { action ->
+                when (action) {
+                    GroupOverflowAction.Edit -> onEditGroup(state.groupName)
+                    GroupOverflowAction.Archive,
+                    GroupOverflowAction.Leave -> viewModel.onOverflowActionRequested(action)
+                }
+            },
             onOverflowConfirmed = viewModel::onOverflowConfirmed,
             onOverflowDialogDismissed = viewModel::onOverflowDialogDismissed
         ),
         membersContent = {
             MembersRoute(
                 groupId = groupId,
-                onAddMemberByEmail = onAddMemberByEmail
+                onAddMemberByEmail = { onAddMemberByEmail(state.groupName) }
             )
         },
         eventsContent = {
             EventsRoute(
                 groupId = groupId,
-                onSelectEvent = { event -> onSelectEvent(groupId, groupName, event) },
-                onNewEvent = onNewEvent
+                onSelectEvent = { event -> onSelectEvent(groupId, state.groupName, event) },
+                onNewEvent = { onNewEvent(state.groupName) }
             )
         }
     )
@@ -301,11 +309,12 @@ private fun GroupOverflowMenu(
             errorMessage = dialog.error?.toMessage()
         )
 
-        null -> Unit
+        GroupOverflowAction.Edit, null -> Unit
     }
 }
 
 private fun GroupOverflowAction.menuLabel() = when (this) {
+    GroupOverflowAction.Edit -> Res.string.group_menu_edit
     GroupOverflowAction.Archive -> Res.string.group_menu_archive
     GroupOverflowAction.Leave -> Res.string.group_menu_leave
 }
@@ -399,7 +408,11 @@ private fun GroupScreenFailedPreview() {
 private fun GroupScreenEventsAdminPreview() {
     MusterTheme {
         GroupScreen(
-            state = GroupUiState.Success(groupName = PREVIEW_GROUP_NAME, myRole = GroupRole.Admin),
+            state = GroupUiState.Success(
+                groupName = PREVIEW_GROUP_NAME,
+                myRole = GroupRole.Admin,
+                overflowActions = listOf(GroupOverflowAction.Edit, GroupOverflowAction.Archive, GroupOverflowAction.Leave)
+            ),
             actions = PreviewActions
         )
     }
@@ -413,6 +426,7 @@ private fun GroupScreenMembersMemberPreview() {
             state = GroupUiState.Success(
                 groupName = PREVIEW_GROUP_NAME,
                 myRole = GroupRole.Member,
+                overflowActions = listOf(GroupOverflowAction.Leave),
                 selectedTab = GroupTab.Members
             ),
             actions = PreviewActions

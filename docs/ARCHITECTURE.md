@@ -83,7 +83,8 @@ ui/
   navigation/   NavGraph.kt, Screen.kt
   screens/      one folder per screen: XScreen.kt, XUiState.kt, XViewModel.kt
                 launch/ signin/ setname/ home/ settings/ privacy/
-                newgroup/ group/ addbyemail/ newevent/ event/ addplayers/
+                newgroup/ editgroup/ group/ addbyemail/ newevent/
+                editevent/ event/ addplayers/
   common/       ErrorMessages.kt, components/
   platform/     expect/actual pieces a screen needs from its platform
   theme/

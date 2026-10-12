@@ -40,8 +40,8 @@ sealed class DomainError(
     // already holds a group_members row in this group.
     class AlreadyMember : DomainError("already a member of this group")
 
-    // Client-side gate, not a database rule: nothing in the schema stops a
-    // past start time. Thrown by CreateEventUseCase, checked against MusterTimeZone.
+    // Thrown by CreateEventUseCase and UpdateEventUseCase, checked against
+    // MusterTimeZone. update_event also raises it (P0001); create_event does not.
     class EventStartsInPast : DomainError("event start time must be in the future")
 
     // enforce_capacity trigger (P0001, "event is full"): pending + in would

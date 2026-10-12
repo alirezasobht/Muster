@@ -66,6 +66,7 @@ import muster.shared.generated.resources.members_action_remove
 import muster.shared.generated.resources.members_action_resend
 import muster.shared.generated.resources.members_action_revoke
 import muster.shared.generated.resources.members_add_by_email
+import muster.shared.generated.resources.members_count
 import muster.shared.generated.resources.members_demote_body
 import muster.shared.generated.resources.members_demote_cancel
 import muster.shared.generated.resources.members_demote_confirm
@@ -73,6 +74,7 @@ import muster.shared.generated.resources.members_demote_title
 import muster.shared.generated.resources.members_empty_body
 import muster.shared.generated.resources.members_empty_title
 import muster.shared.generated.resources.members_failed_title
+import muster.shared.generated.resources.members_pending_suffix
 import muster.shared.generated.resources.members_promote_body
 import muster.shared.generated.resources.members_promote_cancel
 import muster.shared.generated.resources.members_promote_confirm
@@ -95,6 +97,7 @@ import muster.shared.generated.resources.members_status_member
 import muster.shared.generated.resources.members_try_again
 import muster.shared.generated.resources.members_you_suffix
 import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -266,6 +269,9 @@ private fun MembersContent(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(vertical = 4.dp)
                 ) {
+                    item(key = "count") {
+                        MemberCountLine(memberCount = state.memberCount, pendingCount = state.pendingCount)
+                    }
                     items(state.rows, key = { it.id }) { row ->
                         MemberRowItem(
                             row = row,
@@ -307,6 +313,27 @@ private fun MembersContent(
             onDismiss = { pendingConfirmation = null }
         )
     }
+}
+
+@Composable
+private fun MemberCountLine(
+    memberCount: Int,
+    pendingCount: Int,
+    modifier: Modifier = Modifier
+) {
+    Text(
+        text = buildAnnotatedString {
+            append(pluralStringResource(Res.plurals.members_count, memberCount, memberCount))
+            if (pendingCount > 0) {
+                withStyle(SpanStyle(color = MusterColors.Muted, fontWeight = FontWeight.Normal)) {
+                    append(stringResource(Res.string.members_pending_suffix, pendingCount))
+                }
+            }
+        },
+        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+        color = MusterColors.Secondary,
+        modifier = modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 4.dp)
+    )
 }
 
 @Composable
