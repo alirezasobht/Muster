@@ -137,6 +137,15 @@
     <string name="members_new_tag">+ New tag</string>
     <string name="tags_intro_title">Sort members with tags</string>
     <string name="tags_intro_body">Put people into tags like Regular or Casual, then add a whole tag to an event at once. Only admins see tags.</string>
+    <string name="tag_name_new_title">New tag</string>
+    <string name="tag_name_rename_title">Rename tag</string>
+    <string name="tag_name_create">Create</string>
+    <string name="tag_name_cancel">Cancel</string>
+    <string name="tag_name_admins_hint">Only admins see tags.</string>
+    <plurals name="tag_name_members_hint">
+        <item quantity="one">%1$d member keeps this tag.</item>
+        <item quantity="other">%1$d members keep this tag.</item>
+    </plurals>
 
     <!-- Group — Events tab (1h) -->
     <string name="events_new">New event</string>
