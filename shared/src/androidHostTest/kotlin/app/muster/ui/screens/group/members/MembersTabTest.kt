@@ -29,7 +29,8 @@ class MembersTabTest {
         onRemove: (String) -> Unit = {},
         onRevokeInvitation: (String) -> Unit = {},
         onResendInvitation: (String) -> Unit = {},
-        onRetry: () -> Unit = {}
+        onRetry: () -> Unit = {},
+        onNewTag: () -> Unit = {}
     ) {
         composeRule.setContent {
             MusterTheme {
@@ -42,7 +43,8 @@ class MembersTabTest {
                         onRemove = onRemove,
                         onRevokeInvitation = onRevokeInvitation,
                         onResendInvitation = onResendInvitation,
-                        onRetry = onRetry
+                        onRetry = onRetry,
+                        onNewTag = onNewTag
                     ),
                     actionErrorMessage = actionErrorMessage,
                     spinnerDelayMillis = 0
@@ -99,6 +101,30 @@ class MembersTabTest {
     fun theCountLineLeavesOutPendingWhenThereIsNone() {
         show(state = MembersUiState.Success(rows = listOf(self, other)))
         composeRule.onNodeWithText("2 members").assertIsDisplayed()
+    }
+
+    @Test
+    fun theTagsIntroIsShownWhenAsked() {
+        show(state = MembersUiState.Success(rows = listOf(self, other), canAddMembers = true, showTagsIntro = true))
+        composeRule.onNodeWithText("Sort members with tags").assertIsDisplayed()
+    }
+
+    @Test
+    fun theTagsIntroIsHiddenByDefault() {
+        show(state = MembersUiState.Success(rows = listOf(self, other), canAddMembers = true))
+        composeRule.onNodeWithText("Sort members with tags").assertDoesNotExist()
+        composeRule.onNodeWithText("+ New tag").assertDoesNotExist()
+    }
+
+    @Test
+    fun tappingNewTagInTheIntroReachesTheCallback() {
+        var tapped = false
+        show(
+            state = MembersUiState.Success(rows = listOf(self, other), canAddMembers = true, showTagsIntro = true),
+            onNewTag = { tapped = true }
+        )
+        composeRule.onNodeWithText("+ New tag").performClick()
+        assert(tapped)
     }
 
     @Test

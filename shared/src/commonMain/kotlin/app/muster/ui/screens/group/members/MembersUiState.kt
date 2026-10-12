@@ -31,7 +31,8 @@ sealed interface MembersUiState : UiState<MembersUiState.Success> {
         val actionTargetId: String? = null,
         val actionError: DomainError? = null,
         val failedActionId: String? = null,
-        val canAddMembers: Boolean = false
+        val canAddMembers: Boolean = false,
+        val showTagsIntro: Boolean = false
     ) : MembersUiState {
         override fun asSuccessOrNull(): Success = this
         val isEmpty: Boolean get() = rows.none { !it.isSelf }
