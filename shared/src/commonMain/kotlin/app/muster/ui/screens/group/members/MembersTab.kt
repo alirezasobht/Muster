@@ -55,6 +55,7 @@ import app.muster.ui.common.components.MessageState
 import app.muster.ui.common.components.MusterIcons
 import app.muster.ui.common.components.MusterPullToRefreshBox
 import app.muster.ui.common.components.MusterSpinner
+import app.muster.ui.common.components.TonalPill
 import app.muster.ui.common.toMessage
 import app.muster.ui.theme.MusterColors
 import app.muster.ui.theme.MusterTheme
@@ -74,6 +75,7 @@ import muster.shared.generated.resources.members_demote_title
 import muster.shared.generated.resources.members_empty_body
 import muster.shared.generated.resources.members_empty_title
 import muster.shared.generated.resources.members_failed_title
+import muster.shared.generated.resources.members_new_tag
 import muster.shared.generated.resources.members_pending_suffix
 import muster.shared.generated.resources.members_promote_body
 import muster.shared.generated.resources.members_promote_cancel
@@ -243,7 +245,11 @@ private fun MembersContent(
     var pendingConfirmation by remember { mutableStateOf<PendingConfirmation?>(null) }
 
     Column(modifier = modifier.fillMaxSize()) {
-        MemberCountLine(memberCount = state.memberCount, pendingCount = state.pendingCount)
+        MemberCountLine(
+            memberCount = state.memberCount,
+            pendingCount = state.pendingCount,
+            onNewTag = actions.onNewTag.takeIf { state.showNewTagButton }
+        )
         if (state.canAddMembers) {
             AddMemberByEmailRow(onClick = actions.onAddMemberByEmail)
             HorizontalDivider(color = MusterColors.Hairline)
@@ -324,21 +330,30 @@ private fun MembersContent(
 private fun MemberCountLine(
     memberCount: Int,
     pendingCount: Int,
+    onNewTag: (() -> Unit)?,
     modifier: Modifier = Modifier
 ) {
-    Text(
-        text = buildAnnotatedString {
-            append(pluralStringResource(Res.plurals.members_count, memberCount, memberCount))
-            if (pendingCount > 0) {
-                withStyle(SpanStyle(color = MusterColors.Muted, fontWeight = FontWeight.Normal)) {
-                    append(stringResource(Res.string.members_pending_suffix, pendingCount))
+    Row(
+        modifier = modifier.fillMaxWidth().padding(start = 20.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = buildAnnotatedString {
+                append(pluralStringResource(Res.plurals.members_count, memberCount, memberCount))
+                if (pendingCount > 0) {
+                    withStyle(SpanStyle(color = MusterColors.Muted, fontWeight = FontWeight.Normal)) {
+                        append(stringResource(Res.string.members_pending_suffix, pendingCount))
+                    }
                 }
-            }
-        },
-        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-        color = MusterColors.Secondary,
-        modifier = modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 4.dp)
-    )
+            },
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+            color = MusterColors.Secondary,
+            modifier = Modifier.weight(1f)
+        )
+        if (onNewTag != null) {
+            TonalPill(text = stringResource(Res.string.members_new_tag), onClick = onNewTag)
+        }
+    }
 }
 
 @Composable
@@ -641,7 +656,7 @@ private fun MembersTabAdminNoTagsPreview() {
     MusterTheme {
         Surface {
             MembersTab(
-                state = MembersUiState.Success(rows = AdminPreviewRows, canAddMembers = true, showTagsIntro = true),
+                state = MembersUiState.Success(rows = AdminPreviewRows, canAddMembers = true, canManageTags = true),
                 actions = PreviewActions
             )
         }

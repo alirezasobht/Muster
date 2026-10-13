@@ -123,7 +123,10 @@ fun TagNameDialog(
                     )
                 }
             }
-            LaunchedEffect(Unit) { focusRequester.requestFocus() }
+            // Rename isn't focused: the field can't place the cursor after the pre-filled name.
+            if (rename == null) {
+                LaunchedEffect(Unit) { focusRequester.requestFocus() }
+            }
         }
     }
 }
