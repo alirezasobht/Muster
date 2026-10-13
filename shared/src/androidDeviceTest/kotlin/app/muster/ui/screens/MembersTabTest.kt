@@ -11,6 +11,7 @@ import app.muster.ui.screens.group.members.MemberStatus
 import app.muster.ui.screens.group.members.MembersActions
 import app.muster.ui.screens.group.members.MembersTab
 import app.muster.ui.screens.group.members.MembersUiState
+import app.muster.ui.screens.group.members.Reorder
 import app.muster.ui.screens.group.members.TagSection
 import app.muster.ui.theme.MusterTheme
 import org.junit.Rule
@@ -33,7 +34,8 @@ class MembersTabTest {
         onRevokeInvitation: (String) -> Unit = {},
         onResendInvitation: (String) -> Unit = {},
         onRetry: () -> Unit = {},
-        onNewTag: () -> Unit = {}
+        onNewTag: () -> Unit = {},
+        onMoveToTag: (String) -> Unit = {}
     ) {
         composeRule.setContent {
             MusterTheme {
@@ -47,7 +49,8 @@ class MembersTabTest {
                         onRevokeInvitation = onRevokeInvitation,
                         onResendInvitation = onResendInvitation,
                         onRetry = onRetry,
-                        onNewTag = onNewTag
+                        onNewTag = onNewTag,
+                        onMoveToTag = onMoveToTag
                     ),
                     actionErrorMessage = actionErrorMessage,
                     spinnerDelayMillis = 0
@@ -106,7 +109,12 @@ class MembersTabTest {
         composeRule.onNodeWithText("2 members").assertIsDisplayed()
     }
 
-    private val regular = TagSection(id = "t1", name = "Regular", rows = listOf(other))
+    private val regular = TagSection(
+        id = "t1",
+        name = "Regular",
+        rows = listOf(other),
+        reorder = Reorder(canMoveUp = false, canMoveDown = false)
+    )
 
     @Test
     fun theCountLineIncludesTaggedMembers() {
@@ -152,6 +160,23 @@ class MembersTabTest {
         composeRule.onNodeWithText("+ New tag").assertDoesNotExist()
     }
 
+    // Untagged rows are A–Z, so their menu has Move to tag… but no Move up / Move down.
+    @Test
+    fun anUntaggedRowOffersMoveToTagOnly() {
+        var moved: String? = null
+        show(
+            state = MembersUiState.Success(
+                rows = listOf(self, other.copy(canMoveToTag = true)),
+                canManageTags = true
+            ),
+            onMoveToTag = { moved = it }
+        )
+        composeRule.onNodeWithContentDescription("More options").performClick()
+        composeRule.onNodeWithText("Move up").assertDoesNotExist()
+        composeRule.onNodeWithText("Move to tag…").performClick()
+        assert(moved == "2")
+    }
+
     @Test
     fun theTagsIntroIsHiddenByDefault() {
         show(state = MembersUiState.Success(rows = listOf(self, other), canAddMembers = true))
@@ -194,7 +219,7 @@ class MembersTabTest {
     }
 
     @Test
-    fun selfRowShowsTheYouSuffixAndNoMenu() {
+    fun selfRowShowsTheYouBadgeAndNoMenu() {
         show(
             state = MembersUiState.Success(
                 rows = listOf(
@@ -209,7 +234,8 @@ class MembersTabTest {
                 )
             )
         )
-        composeRule.onNodeWithText("Alex Doyle · you").assertIsDisplayed()
+        composeRule.onNodeWithText("Alex Doyle").assertIsDisplayed()
+        composeRule.onNodeWithText("You").assertIsDisplayed()
         // Only Sam's row has a menu — a single match proves self's row has none.
         composeRule.onNodeWithContentDescription("More options").assertIsDisplayed()
     }
