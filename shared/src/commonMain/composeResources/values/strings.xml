@@ -126,7 +126,7 @@
     <string name="members_empty_body">Add teammates by email to fill out the group.</string>
     <string name="members_failed_title">Couldn’t load members</string>
     <string name="members_try_again">Try again</string>
-    <string name="members_you_suffix"> · you</string>
+    <string name="members_you_badge">You</string>
     <plurals name="members_count">
         <item quantity="one">%1$d member</item>
         <item quantity="other">%1$d members</item>
@@ -137,6 +137,13 @@
     <string name="members_new_tag">+ New tag</string>
     <string name="tags_intro_title">Sort members with tags</string>
     <string name="tags_intro_body">Put people into tags like Regular or Casual, then add a whole tag to an event at once. Only admins see tags.</string>
+    <string name="members_action_move_to_tag">Move to tag…</string>
+    <string name="action_move_up">Move up</string>
+    <string name="action_move_down">Move down</string>
+    <string name="tag_action_rename">Rename</string>
+    <string name="tag_action_delete">Delete tag</string>
+    <string name="tag_empty_hint">No one yet. Drag members here, or use ⋮ › Move to tag.</string>
+    <string name="content_description_tag_options">Tag options</string>
     <string name="tag_name_new_title">New tag</string>
     <string name="tag_name_rename_title">Rename tag</string>
     <string name="tag_name_create">Create</string>

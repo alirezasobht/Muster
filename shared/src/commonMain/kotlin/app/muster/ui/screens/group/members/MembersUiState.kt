@@ -6,11 +6,20 @@ import app.muster.ui.common.util.initials
 
 enum class MemberStatus { Admin, Member, Pending }
 
+// Move up / Move down are greyed out, not hidden, at the ends.
+data class Reorder(
+    val canMoveUp: Boolean,
+    val canMoveDown: Boolean
+)
+
 data class MemberRow(
     val id: String,
     val displayName: String,
     val status: MemberStatus,
     val isSelf: Boolean = false,
+    val canMoveToTag: Boolean = false,
+    // Null for untagged rows: Untagged is A–Z, so it has no Move up / Move down.
+    val reorder: Reorder? = null,
     val canPromote: Boolean = false,
     val canDemote: Boolean = false,
     val canRemove: Boolean = false,
@@ -18,13 +27,17 @@ data class MemberRow(
     val canResendInvitation: Boolean = false,
     val initials: String = displayName.initials()
 ) {
-    val hasMenu: Boolean get() = canPromote || canDemote || canRemove || canRevokeInvitation || canResendInvitation
+    val hasRoleActions: Boolean
+        get() = canPromote || canDemote || canRemove || canRevokeInvitation || canResendInvitation
+
+    val hasMenu: Boolean get() = canMoveToTag || hasRoleActions
 }
 
 data class TagSection(
     val id: String,
     val name: String,
-    val rows: List<MemberRow>
+    val rows: List<MemberRow>,
+    val reorder: Reorder
 )
 
 sealed interface MembersUiState : UiState<MembersUiState.Success> {

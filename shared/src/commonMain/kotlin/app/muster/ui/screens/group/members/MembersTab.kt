@@ -17,12 +17,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -34,11 +29,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -52,7 +42,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.muster.domain.error.DomainError
 import app.muster.ui.common.components.ConfirmDialog
 import app.muster.ui.common.components.MessageState
-import app.muster.ui.common.components.MusterIcons
 import app.muster.ui.common.components.MusterPullToRefreshBox
 import app.muster.ui.common.components.MusterSpinner
 import app.muster.ui.common.components.TonalPill
@@ -60,12 +49,6 @@ import app.muster.ui.common.toMessage
 import app.muster.ui.theme.MusterColors
 import app.muster.ui.theme.MusterTheme
 import muster.shared.generated.resources.Res
-import muster.shared.generated.resources.content_description_more
-import muster.shared.generated.resources.members_action_demote
-import muster.shared.generated.resources.members_action_promote
-import muster.shared.generated.resources.members_action_remove
-import muster.shared.generated.resources.members_action_resend
-import muster.shared.generated.resources.members_action_revoke
 import muster.shared.generated.resources.members_add_by_email
 import muster.shared.generated.resources.members_count
 import muster.shared.generated.resources.members_demote_body
@@ -93,11 +76,7 @@ import muster.shared.generated.resources.members_revoke_body
 import muster.shared.generated.resources.members_revoke_cancel
 import muster.shared.generated.resources.members_revoke_confirm
 import muster.shared.generated.resources.members_revoke_title
-import muster.shared.generated.resources.members_status_admin
-import muster.shared.generated.resources.members_status_invited
-import muster.shared.generated.resources.members_status_member
 import muster.shared.generated.resources.members_try_again
-import muster.shared.generated.resources.members_you_suffix
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -113,7 +92,10 @@ data class MembersActions(
     val onResendInvitation: (id: String) -> Unit,
     val onRetry: () -> Unit,
     val onRefresh: () -> Unit = {},
-    val onNewTag: () -> Unit = {}
+    val onNewTag: () -> Unit = {},
+    val onMoveToTag: (profileId: String) -> Unit = {},
+    val onMoveMemberUp: (profileId: String) -> Unit = {},
+    val onMoveMemberDown: (profileId: String) -> Unit = {}
 )
 
 @Composable
@@ -286,23 +268,28 @@ private fun MembersContent(
                     items(state.rows, key = { it.id }) { row ->
                         MemberRowItem(
                             row = row,
+                            actions = MemberRowActions(
+                                onMoveToTag = { actions.onMoveToTag(row.id) },
+                                onMoveUp = { actions.onMoveMemberUp(row.id) },
+                                onMoveDown = { actions.onMoveMemberDown(row.id) },
+                                onPromote = {
+                                    pendingConfirmation = PendingConfirmation(row, PromoteDialog) { actions.onPromote(row.id) }
+                                },
+                                onDemote = {
+                                    pendingConfirmation = PendingConfirmation(row, DemoteDialog) { actions.onDemote(row.id) }
+                                },
+                                onRemove = {
+                                    pendingConfirmation = PendingConfirmation(row, RemoveDialog) { actions.onRemove(row.id) }
+                                },
+                                onRevokeInvitation = {
+                                    pendingConfirmation = PendingConfirmation(row, RevokeDialog) { actions.onRevokeInvitation(row.id) }
+                                },
+                                onResendInvitation = {
+                                    pendingConfirmation = PendingConfirmation(row, ResendDialog) { actions.onResendInvitation(row.id) }
+                                }
+                            ),
                             inFlight = state.actionTargetId == row.id,
                             errorMessage = actionErrorMessage.takeIf { state.failedActionId == row.id },
-                            onPromote = {
-                                pendingConfirmation = PendingConfirmation(row, PromoteDialog) { actions.onPromote(row.id) }
-                            },
-                            onDemote = {
-                                pendingConfirmation = PendingConfirmation(row, DemoteDialog) { actions.onDemote(row.id) }
-                            },
-                            onRequestRemove = {
-                                pendingConfirmation = PendingConfirmation(row, RemoveDialog) { actions.onRemove(row.id) }
-                            },
-                            onRevokeInvitation = {
-                                pendingConfirmation = PendingConfirmation(row, RevokeDialog) { actions.onRevokeInvitation(row.id) }
-                            },
-                            onResendInvitation = {
-                                pendingConfirmation = PendingConfirmation(row, ResendDialog) { actions.onResendInvitation(row.id) }
-                            },
                             modifier = Modifier.animateItem()
                         )
                     }
@@ -379,219 +366,6 @@ private fun AddMemberByEmailRow(
         Text(
             text = stringResource(Res.string.members_add_by_email),
             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
-        )
-    }
-}
-
-@Composable
-private fun MemberRowItem(
-    row: MemberRow,
-    inFlight: Boolean,
-    errorMessage: String?,
-    onPromote: () -> Unit,
-    onDemote: () -> Unit,
-    onRequestRemove: () -> Unit,
-    onRevokeInvitation: () -> Unit,
-    onResendInvitation: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val isPending = row.status == MemberStatus.Pending
-
-    Column(modifier = modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (isPending) PendingAvatar() else InitialsAvatar(row.initials)
-            Spacer(Modifier.width(12.dp))
-            if (isPending) {
-                Text(
-                    text = row.displayName,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp, color = MusterColors.Secondary),
-                    modifier = Modifier.weight(1f)
-                )
-            } else {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = buildAnnotatedString {
-                            append(row.displayName)
-                            if (row.isSelf) {
-                                withStyle(SpanStyle(fontSize = 14.sp, color = MusterColors.Hint, fontWeight = FontWeight.Normal)) {
-                                    append(stringResource(Res.string.members_you_suffix))
-                                }
-                            }
-                        },
-                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium)
-                    )
-                    Text(
-                        text = stringResource(
-                            if (row.status == MemberStatus.Admin) {
-                                Res.string.members_status_admin
-                            } else {
-                                Res.string.members_status_member
-                            }
-                        ),
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.5.sp),
-                        color = MusterColors.Muted
-                    )
-                }
-            }
-            if (isPending) {
-                Spacer(Modifier.width(8.dp))
-                InvitedBadge()
-            }
-            if (row.hasMenu) {
-                Spacer(Modifier.width(4.dp))
-                RowMenu(
-                    row = row,
-                    inFlight = inFlight,
-                    onPromote = onPromote,
-                    onDemote = onDemote,
-                    onRemove = onRequestRemove,
-                    onRevoke = onRevokeInvitation,
-                    onResend = onResendInvitation
-                )
-            }
-        }
-        if (errorMessage != null) {
-            Spacer(Modifier.height(6.dp))
-            Text(text = errorMessage, style = MaterialTheme.typography.bodySmall, color = MusterColors.OutText)
-        }
-    }
-}
-
-// Reads row.canPromote/canDemote/canRemove/canRevokeInvitation/canResendInvitation as given —
-// which of them is true was already decided by the ViewModel.
-@Composable
-private fun RowMenu(
-    row: MemberRow,
-    inFlight: Boolean,
-    onPromote: () -> Unit,
-    onDemote: () -> Unit,
-    onRemove: () -> Unit,
-    onRevoke: () -> Unit,
-    onResend: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var expanded by remember { mutableStateOf(false) }
-    Box(modifier = modifier) {
-        if (inFlight) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(36.dp).padding(8.dp),
-                color = MusterColors.Muted,
-                strokeWidth = 2.dp
-            )
-        } else {
-            IconButton(onClick = { expanded = true }, modifier = Modifier.size(36.dp)) {
-                Icon(
-                    imageVector = MusterIcons.MoreVert,
-                    contentDescription = stringResource(Res.string.content_description_more),
-                    tint = MusterColors.Muted,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                if (row.canPromote) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(Res.string.members_action_promote)) },
-                        onClick = {
-                            expanded = false
-                            onPromote()
-                        }
-                    )
-                }
-                if (row.canDemote) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(Res.string.members_action_demote)) },
-                        onClick = {
-                            expanded = false
-                            onDemote()
-                        }
-                    )
-                }
-                if (row.canRemove) {
-                    DropdownMenuItem(
-                        text = {
-                            Text(text = stringResource(Res.string.members_action_remove), color = MusterColors.OutText)
-                        },
-                        onClick = {
-                            expanded = false
-                            onRemove()
-                        }
-                    )
-                }
-                if (row.canResendInvitation) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(Res.string.members_action_resend)) },
-                        onClick = {
-                            expanded = false
-                            onResend()
-                        }
-                    )
-                }
-                if (row.canRevokeInvitation) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(Res.string.members_action_revoke)) },
-                        onClick = {
-                            expanded = false
-                            onRevoke()
-                        }
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun InitialsAvatar(
-    initials: String,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier.size(40.dp),
-        shape = RoundedCornerShape(percent = 50),
-        color = MusterColors.AvatarFill
-    ) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(
-                text = initials,
-                style = MaterialTheme.typography.labelMedium.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
-                color = MusterColors.Secondary
-            )
-        }
-    }
-}
-
-// Compose has no built-in dashed border, so it's drawn by hand — same
-// technique as MessageState's DashedIconPlaceholder, circular and smaller.
-@Composable
-private fun PendingAvatar(modifier: Modifier = Modifier) {
-    val density = LocalDensity.current
-    val stroke = Stroke(
-        width = with(density) { 1.5.dp.toPx() },
-        pathEffect = PathEffect.dashPathEffect(floatArrayOf(3f, 3f))
-    )
-    Box(
-        modifier = modifier.size(40.dp).drawBehind {
-            drawOval(color = MusterColors.DashedOutline, style = stroke, size = Size(size.width, size.height))
-        },
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text = "@", fontSize = 16.sp, color = MusterColors.Hint)
-    }
-}
-
-@Composable
-private fun InvitedBadge(modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(percent = 50),
-        border = BorderStroke(1.dp, MusterColors.Outline),
-        color = MusterColors.White
-    ) {
-        Text(
-            text = stringResource(Res.string.members_status_invited),
-            style = MaterialTheme.typography.labelSmall,
-            color = MusterColors.Muted,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
         )
     }
 }
