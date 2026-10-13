@@ -11,6 +11,7 @@ import app.muster.ui.screens.group.members.MemberStatus
 import app.muster.ui.screens.group.members.MembersActions
 import app.muster.ui.screens.group.members.MembersTab
 import app.muster.ui.screens.group.members.MembersUiState
+import app.muster.ui.screens.group.members.TagSection
 import app.muster.ui.theme.MusterTheme
 import org.junit.Rule
 import org.junit.Test
@@ -105,10 +106,50 @@ class MembersTabTest {
         composeRule.onNodeWithText("2 members").assertIsDisplayed()
     }
 
+    private val regular = TagSection(id = "t1", name = "Regular", rows = listOf(other))
+
     @Test
-    fun theTagsIntroIsShownWhenAsked() {
-        show(state = MembersUiState.Success(rows = listOf(self, other), canAddMembers = true, showTagsIntro = true))
+    fun theCountLineIncludesTaggedMembers() {
+        show(state = MembersUiState.Success(rows = listOf(self, invite), tags = listOf(regular)))
+        composeRule.onNodeWithText("2 members · 1 pending").assertIsDisplayed()
+    }
+
+    @Test
+    fun theTagsIntroIsShownToAdminsWithNoTags() {
+        show(state = MembersUiState.Success(rows = listOf(self, other), canAddMembers = true, canManageTags = true))
         composeRule.onNodeWithText("Sort members with tags").assertIsDisplayed()
+    }
+
+    // The intro and the count line's button are never on screen together.
+    @Test
+    fun theCountLineNewTagReplacesTheIntroOnceTagsExist() {
+        show(
+            state = MembersUiState.Success(
+                rows = listOf(self),
+                tags = listOf(regular),
+                canAddMembers = true,
+                canManageTags = true
+            )
+        )
+        composeRule.onNodeWithText("Sort members with tags").assertDoesNotExist()
+        composeRule.onNodeWithText("+ New tag").assertIsDisplayed()
+    }
+
+    @Test
+    fun tappingNewTagOnTheCountLineReachesTheCallback() {
+        var tapped = false
+        show(
+            state = MembersUiState.Success(rows = listOf(self), tags = listOf(regular), canManageTags = true),
+            onNewTag = { tapped = true }
+        )
+        composeRule.onNodeWithText("+ New tag").performClick()
+        assert(tapped)
+    }
+
+    @Test
+    fun newTagIsHiddenFromNonAdmins() {
+        show(state = MembersUiState.Success(rows = listOf(self), tags = listOf(regular)))
+        composeRule.onNodeWithText("+ New tag").assertDoesNotExist()
     }
 
     @Test
@@ -122,7 +163,7 @@ class MembersTabTest {
     fun tappingNewTagInTheIntroReachesTheCallback() {
         var tapped = false
         show(
-            state = MembersUiState.Success(rows = listOf(self, other), canAddMembers = true, showTagsIntro = true),
+            state = MembersUiState.Success(rows = listOf(self, other), canAddMembers = true, canManageTags = true),
             onNewTag = { tapped = true }
         )
         composeRule.onNodeWithText("+ New tag").performClick()
