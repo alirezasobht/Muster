@@ -60,15 +60,16 @@ import muster.shared.generated.resources.members_you_badge
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
+// Each takes the row's id: a profile id for members, an invitation id for pending rows.
 data class MemberRowActions(
-    val onMoveToTag: () -> Unit = {},
-    val onMoveUp: () -> Unit = {},
-    val onMoveDown: () -> Unit = {},
-    val onPromote: () -> Unit = {},
-    val onDemote: () -> Unit = {},
-    val onRemove: () -> Unit = {},
-    val onRevokeInvitation: () -> Unit = {},
-    val onResendInvitation: () -> Unit = {}
+    val onMoveToTag: (id: String) -> Unit = {},
+    val onMoveUp: (id: String) -> Unit = {},
+    val onMoveDown: (id: String) -> Unit = {},
+    val onPromote: (id: String) -> Unit = {},
+    val onDemote: (id: String) -> Unit = {},
+    val onRemove: (id: String) -> Unit = {},
+    val onRevokeInvitation: (id: String) -> Unit = {},
+    val onResendInvitation: (id: String) -> Unit = {}
 )
 
 @Composable
@@ -150,7 +151,7 @@ private fun RowMenu(
     @Composable
     fun Item(
         label: StringResource,
-        onClick: () -> Unit,
+        onClick: (id: String) -> Unit,
         enabled: Boolean = true,
         destructive: Boolean = false
     ) {
@@ -164,7 +165,7 @@ private fun RowMenu(
             enabled = enabled,
             onClick = {
                 expanded = false
-                onClick()
+                onClick(row.id)
             }
         )
     }

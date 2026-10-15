@@ -34,6 +34,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -76,6 +77,9 @@ import muster.shared.generated.resources.members_revoke_body
 import muster.shared.generated.resources.members_revoke_cancel
 import muster.shared.generated.resources.members_revoke_confirm
 import muster.shared.generated.resources.members_revoke_title
+import muster.shared.generated.resources.members_section_invited
+import muster.shared.generated.resources.members_section_untagged
+import muster.shared.generated.resources.members_section_untagged_sort
 import muster.shared.generated.resources.members_try_again
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
@@ -85,17 +89,11 @@ import org.koin.core.parameter.parametersOf
 
 data class MembersActions(
     val onAddMemberByEmail: () -> Unit,
-    val onPromote: (id: String) -> Unit,
-    val onDemote: (id: String) -> Unit,
-    val onRemove: (id: String) -> Unit,
-    val onRevokeInvitation: (id: String) -> Unit,
-    val onResendInvitation: (id: String) -> Unit,
     val onRetry: () -> Unit,
     val onRefresh: () -> Unit = {},
     val onNewTag: () -> Unit = {},
-    val onMoveToTag: (profileId: String) -> Unit = {},
-    val onMoveMemberUp: (profileId: String) -> Unit = {},
-    val onMoveMemberDown: (profileId: String) -> Unit = {}
+    val memberRowActions: MemberRowActions,
+    val tagCardActions: TagCardActions = TagCardActions()
 )
 
 @Composable
@@ -112,13 +110,15 @@ fun MembersRoute(
         state = state,
         actions = MembersActions(
             onAddMemberByEmail = onAddMemberByEmail,
-            onPromote = viewModel::onPromote,
-            onDemote = viewModel::onDemote,
-            onRemove = viewModel::onRemove,
-            onRevokeInvitation = viewModel::onRevokeInvitation,
-            onResendInvitation = viewModel::onResendInvitation,
             onRetry = viewModel::onRetry,
-            onRefresh = viewModel::onRefresh
+            onRefresh = viewModel::onRefresh,
+            memberRowActions = MemberRowActions(
+                onPromote = viewModel::onPromote,
+                onDemote = viewModel::onDemote,
+                onRemove = viewModel::onRemove,
+                onRevokeInvitation = viewModel::onRevokeInvitation,
+                onResendInvitation = viewModel::onResendInvitation
+            )
         ),
         actionErrorMessage = (state as? MembersUiState.Success)?.actionError?.toMessage(),
         modifier = modifier
@@ -226,6 +226,37 @@ private fun MembersContent(
 ) {
     var pendingConfirmation by remember { mutableStateOf<PendingConfirmation?>(null) }
 
+    // The role and invitation items ask for confirmation first; the tag items go straight through.
+    fun rowActions(row: MemberRow): MemberRowActions {
+        val passed = actions.memberRowActions
+        fun confirm(dialog: DialogStrings, call: (String) -> Unit): (String) -> Unit = { id ->
+            pendingConfirmation = PendingConfirmation(row, dialog) { call(id) }
+        }
+        return passed.copy(
+            onPromote = confirm(PromoteDialog, passed.onPromote),
+            onDemote = confirm(DemoteDialog, passed.onDemote),
+            onRemove = confirm(RemoveDialog, passed.onRemove),
+            onRevokeInvitation = confirm(RevokeDialog, passed.onRevokeInvitation),
+            onResendInvitation = confirm(ResendDialog, passed.onResendInvitation)
+        )
+    }
+
+    @Composable
+    fun MemberItem(
+        row: MemberRow,
+        modifier: Modifier = Modifier,
+        horizontalPadding: Dp = 20.dp
+    ) {
+        MemberRowItem(
+            row = row,
+            actions = rowActions(row),
+            inFlight = state.actionTargetId == row.id,
+            errorMessage = actionErrorMessage.takeIf { state.failedActionId == row.id },
+            horizontalPadding = horizontalPadding,
+            modifier = modifier
+        )
+    }
+
     Column(modifier = modifier.fillMaxSize()) {
         MemberCountLine(
             memberCount = state.memberCount,
@@ -265,33 +296,35 @@ private fun MembersContent(
                             )
                         }
                     }
-                    items(state.rows, key = { it.id }) { row ->
-                        MemberRowItem(
-                            row = row,
-                            actions = MemberRowActions(
-                                onMoveToTag = { actions.onMoveToTag(row.id) },
-                                onMoveUp = { actions.onMoveMemberUp(row.id) },
-                                onMoveDown = { actions.onMoveMemberDown(row.id) },
-                                onPromote = {
-                                    pendingConfirmation = PendingConfirmation(row, PromoteDialog) { actions.onPromote(row.id) }
-                                },
-                                onDemote = {
-                                    pendingConfirmation = PendingConfirmation(row, DemoteDialog) { actions.onDemote(row.id) }
-                                },
-                                onRemove = {
-                                    pendingConfirmation = PendingConfirmation(row, RemoveDialog) { actions.onRemove(row.id) }
-                                },
-                                onRevokeInvitation = {
-                                    pendingConfirmation = PendingConfirmation(row, RevokeDialog) { actions.onRevokeInvitation(row.id) }
-                                },
-                                onResendInvitation = {
-                                    pendingConfirmation = PendingConfirmation(row, ResendDialog) { actions.onResendInvitation(row.id) }
-                                }
-                            ),
-                            inFlight = state.actionTargetId == row.id,
-                            errorMessage = actionErrorMessage.takeIf { state.failedActionId == row.id },
-                            modifier = Modifier.animateItem()
-                        )
+                    if (state.tags.isEmpty()) {
+                        items(state.rows, key = { it.id }) { MemberItem(it, Modifier.animateItem()) }
+                    } else {
+                        // 5a/5b: tag cards in the admin's order, then Untagged A–Z, then Invited.
+                        items(state.tags, key = { "tag_${it.id}" }) { section ->
+                            TagCard(
+                                section = section,
+                                actions = actions.tagCardActions,
+                                modifier = Modifier.animateItem().padding(horizontal = 16.dp, vertical = 6.dp)
+                            ) { MemberItem(it, horizontalPadding = 16.dp) }
+                        }
+                        val untagged = state.untaggedRows
+                        if (untagged.isNotEmpty()) {
+                            item(key = "untagged_header") {
+                                SectionHeader(
+                                    title = stringResource(Res.string.members_section_untagged),
+                                    count = untagged.size,
+                                    trailing = stringResource(Res.string.members_section_untagged_sort)
+                                )
+                            }
+                            items(untagged, key = { it.id }) { MemberItem(it, Modifier.animateItem()) }
+                        }
+                        val invited = state.invitedRows
+                        if (invited.isNotEmpty()) {
+                            item(key = "invited_header") {
+                                SectionHeader(title = stringResource(Res.string.members_section_invited), count = invited.size)
+                            }
+                            items(invited, key = { it.id }) { MemberItem(it, Modifier.animateItem()) }
+                        }
                     }
                 }
             }
@@ -344,6 +377,35 @@ private fun MemberCountLine(
 }
 
 @Composable
+private fun SectionHeader(
+    title: String,
+    count: Int,
+    modifier: Modifier = Modifier,
+    trailing: String? = null
+) {
+    Row(
+        modifier = modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 18.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = MusterColors.Ink
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = count.toString(),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MusterColors.Muted,
+            modifier = Modifier.weight(1f)
+        )
+        if (trailing != null) {
+            Text(text = trailing, style = MaterialTheme.typography.labelSmall, color = MusterColors.Hint)
+        }
+    }
+}
+
+@Composable
 private fun AddMemberByEmailRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -372,11 +434,7 @@ private fun AddMemberByEmailRow(
 
 private val PreviewActions = MembersActions(
     onAddMemberByEmail = {},
-    onPromote = {},
-    onDemote = {},
-    onRemove = {},
-    onRevokeInvitation = {},
-    onResendInvitation = {},
+    memberRowActions = MemberRowActions(),
     onRetry = {}
 )
 
@@ -431,6 +489,76 @@ private fun MembersTabAdminNoTagsPreview() {
         Surface {
             MembersTab(
                 state = MembersUiState.Success(rows = AdminPreviewRows, canAddMembers = true, canManageTags = true),
+                actions = PreviewActions
+            )
+        }
+    }
+}
+
+private fun previewTagged(
+    id: String,
+    name: String,
+    status: MemberStatus,
+    canMoveUp: Boolean,
+    canMoveDown: Boolean,
+    isSelf: Boolean = false
+) = MemberRow(
+    id = id,
+    displayName = name,
+    status = status,
+    isSelf = isSelf,
+    canMoveToTag = true,
+    reorder = Reorder(canMoveUp = canMoveUp, canMoveDown = canMoveDown),
+    canPromote = !isSelf && status == MemberStatus.Member,
+    canDemote = !isSelf && status == MemberStatus.Admin,
+    canRemove = !isSelf
+)
+
+private val PreviewTags = listOf(
+    TagSection(
+        id = "t1",
+        name = "Regular",
+        rows = listOf(
+            previewTagged("1", "Alex Doyle", MemberStatus.Admin, canMoveUp = false, canMoveDown = true, isSelf = true),
+            previewTagged("2", "Dan Whelan", MemberStatus.Admin, canMoveUp = true, canMoveDown = true),
+            previewTagged("3", "Marcus Keane", MemberStatus.Member, canMoveUp = true, canMoveDown = false)
+        ),
+        reorder = Reorder(canMoveUp = false, canMoveDown = true)
+    ),
+    TagSection(
+        id = "t2",
+        name = "Casual",
+        rows = listOf(previewTagged("4", "Leo Fanning", MemberStatus.Member, canMoveUp = false, canMoveDown = false)),
+        reorder = Reorder(canMoveUp = true, canMoveDown = true)
+    ),
+    TagSection(id = "t3", name = "Juniors", rows = emptyList(), reorder = Reorder(canMoveUp = true, canMoveDown = false))
+)
+
+private val PreviewUntaggedAndInvited = listOf(
+    MemberRow(id = "5", displayName = "Conor Blake", status = MemberStatus.Member, canMoveToTag = true, canPromote = true, canRemove = true),
+    MemberRow(id = "6", displayName = "Priya Nair", status = MemberStatus.Member, canMoveToTag = true, canPromote = true, canRemove = true),
+    MemberRow(
+        id = "7",
+        displayName = "kate.byrne@outlook.com",
+        status = MemberStatus.Pending,
+        canRevokeInvitation = true,
+        canResendInvitation = true
+    )
+)
+
+// 5a, 5b
+@Preview(heightDp = 1400)
+@Composable
+private fun MembersTabAdminWithTagsPreview() {
+    MusterTheme {
+        Surface {
+            MembersTab(
+                state = MembersUiState.Success(
+                    rows = PreviewUntaggedAndInvited,
+                    tags = PreviewTags,
+                    canAddMembers = true,
+                    canManageTags = true
+                ),
                 actions = PreviewActions
             )
         }

@@ -144,6 +144,9 @@
     <string name="tag_action_delete">Delete tag</string>
     <string name="tag_empty_hint">No one yet. Drag members here, or use ⋮ › Move to tag.</string>
     <string name="content_description_tag_options">Tag options</string>
+    <string name="members_section_untagged">Untagged</string>
+    <string name="members_section_untagged_sort">A–Z</string>
+    <string name="members_section_invited">Invited</string>
     <string name="tag_name_new_title">New tag</string>
     <string name="tag_name_rename_title">Rename tag</string>
     <string name="tag_name_create">Create</string>
