@@ -21,7 +21,7 @@ node_modules/
 .env
 .env.*
 edge.env
-/.claude/launch.json
+/.claude/*
 
 /scripts/netlify/*
 .netlify
