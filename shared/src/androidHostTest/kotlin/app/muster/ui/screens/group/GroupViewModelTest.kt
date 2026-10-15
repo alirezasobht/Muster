@@ -3,10 +3,13 @@ package app.muster.ui.screens.group
 import app.muster.data.fake.FakeGroupRepository
 import app.muster.data.fake.FakeMemberRepository
 import app.muster.domain.error.DomainError
+import app.muster.domain.event.DataChanges
 import app.muster.domain.model.GroupRole
 import app.muster.domain.usecase.ArchiveGroupUseCase
+import app.muster.domain.usecase.GetGroupUseCase
 import app.muster.domain.usecase.GetMyGroupRoleUseCase
 import app.muster.domain.usecase.LeaveGroupUseCase
+import app.muster.domain.usecase.UpdateGroupUseCase
 import app.muster.testing.MainDispatcherRule
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -24,13 +27,16 @@ class GroupViewModelTest {
         groupId: String = "group-1",
         groupName: String = "Westgate Wednesday 7s",
         groups: FakeGroupRepository = FakeGroupRepository(),
-        members: FakeMemberRepository = FakeMemberRepository()
+        members: FakeMemberRepository = FakeMemberRepository(),
+        dataChanges: DataChanges = DataChanges()
     ) = GroupViewModel(
         groupId = groupId,
         groupName = groupName,
         getMyGroupRole = GetMyGroupRoleUseCase(groups),
+        getGroup = GetGroupUseCase(groups),
         leaveGroup = LeaveGroupUseCase(members),
-        archiveGroup = ArchiveGroupUseCase(groups)
+        archiveGroup = ArchiveGroupUseCase(groups),
+        dataChanges = dataChanges
     )
 
     @Test
@@ -70,12 +76,12 @@ class GroupViewModelTest {
     }
 
     @Test
-    fun `an admin's overflow menu offers Archive above Leave`() = runTest {
+    fun `an admin's overflow menu offers Edit and Archive above Leave`() = runTest {
         val viewModel = viewModel(groups = FakeGroupRepository(myRole = GroupRole.Admin))
         advanceUntilIdle()
 
         assertEquals(
-            listOf(GroupOverflowAction.Archive, GroupOverflowAction.Leave),
+            listOf(GroupOverflowAction.Edit, GroupOverflowAction.Archive, GroupOverflowAction.Leave),
             (viewModel.state.value as GroupUiState.Success).overflowActions
         )
     }
@@ -314,6 +320,32 @@ class GroupViewModelTest {
         val dialog = (viewModel.state.value as GroupUiState.Success).overflowDialog
         assertEquals(GroupOverflowAction.Archive, dialog?.action)
         assertEquals(null, dialog?.error)
+    }
+
+    @Test
+    fun `editing the group replaces the name`() = runTest {
+        val dataChanges = DataChanges()
+        val groups = FakeGroupRepository(dataChanges = dataChanges)
+        val viewModel = viewModel(groupId = "group-1", groups = groups, dataChanges = dataChanges)
+        advanceUntilIdle()
+
+        UpdateGroupUseCase(groups)("group-1", "Westgate Thursday 7s")
+        advanceUntilIdle()
+
+        assertEquals("Westgate Thursday 7s", viewModel.state.value.groupName)
+    }
+
+    @Test
+    fun `editing another group leaves the name`() = runTest {
+        val dataChanges = DataChanges()
+        val groups = FakeGroupRepository(dataChanges = dataChanges)
+        val viewModel = viewModel(groupId = "group-1", groups = groups, dataChanges = dataChanges)
+        advanceUntilIdle()
+
+        UpdateGroupUseCase(groups)("group-2", "Someone else's")
+        advanceUntilIdle()
+
+        assertEquals("Westgate Wednesday 7s", viewModel.state.value.groupName)
     }
 
     @Test

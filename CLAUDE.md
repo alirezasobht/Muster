@@ -1,7 +1,9 @@
 # CLAUDE.md
 
 Muster — a personal football-team organizing app replacing Teamer.
-Private use, not a product. Android, iOS and Web from one Kotlin codebase.
+Android, iOS and Web from one Kotlin codebase. Published on Google Play
+and the web; iOS is in App Store review. The repo is public and serves as
+a portfolio.
 
 ## Read before proposing anything
 
@@ -16,11 +18,12 @@ editing** — they change often, and other sessions edit them too.
 | `docs/SCHEMA.md` | Tables, constraints, what the DB enforces vs the app |
 | `docs/SCREENS.md` | Screen map, navigation, per-screen behaviour |
 | `docs/DECISIONS.md` | Why closed choices were closed |
-| `docs/design/DESIGN.md` | Visual design of record, frames 1a–1t and 2a–2d |
-| `docs/design/muster-screens-v6.html` | The frames — open in a browser. v1–v5 superseded, kept as history |
+| `docs/design/DESIGN.md` | Visual design of record; names the current frames file |
 | `supabase/docs/environment_setup.md` | Bringing up an environment: Vault, secrets, Resend, Auth |
 | `supabase/docs/deploying.md` | Deploy scripts, one line each, and how the CLI is authorised |
 | `docs/CI.md` | Branch flow, rulesets, PR checks, CI deploys, secrets, backups |
+| `docs/RUNBOOK.md` | Setup from a clone, every command, and the workflows |
+| `README.md` | Public overview for visitors |
 
 Keep them updated when decisions change.
 
@@ -42,7 +45,8 @@ notifications deferred past MVP.
 ./gradlew ktlintCheck                          verify style
 ```
 
-iOS builds from Xcode: open `iosApp/`.
+iOS builds from Xcode: open `iosApp/`. Every other command, and the
+setup a clone needs first: `docs/RUNBOOK.md`.
 
 Migrations in `supabase/migrations/`. Migrations, Edge Function secrets
 and deploys go through `supabase/scripts/`, never by hand; a full prod
@@ -58,6 +62,9 @@ into `dev`, from a branch made with `--no-track`. See `docs/CI.md`.
 - **Screens first**, then domain, then data, then wire up.
 - Understand the architectural implications before writing code.
 - Report differences rather than silently replacing files.
+- **The README is public-facing.** Keep development detail out of it and
+  link to `docs/` instead. Its claims must match the code: nothing that
+  isn't built, tested or released.
 - **Run `./gradlew ktlintFormat` before a task is done**, then
   `ktlintCheck` must pass. Only formatting changes it makes to files you
   touched belong in the change.
@@ -100,22 +107,22 @@ or event invitation (both throttled to once per calendar day), Events
 tab, New event, Event — roster with RSVP and per-row admin actions, all
 of which confirm first, standby queue with drag-to-reorder, Add players,
 account deletion (Settings and the web app's `/delete-account` page),
-Privacy policy (embedded `privacy.html`).
+Privacy policy (embedded `privacy.html`), Edit group and Edit event
+(screens, use cases, and the `update_group` / `update_event` RPCs;
+unreleased, shipping in 1.0.5).
 
-**Dev** and **prod** both exist; the prod web app is live.
+**Dev** and **prod** both exist. Android is published on Play, the web
+app is live, and iOS is in App Store review.
 
 All writes go through definer RPCs, and every table's write grants are
 revoked — SCHEMA.md → Grants.
 
 Not built:
-- **Edit group** — renaming a group. No screen or entry point, and
-  `create_group`'s RPC has no rename counterpart.
-- **Edit event** — title, time, location. Not capacity: it is set at
-  creation and never editable, which is what keeps the capacity
-  invariant to one entry point (SCHEMA.md rule 11).
+- **Member tags** — tables and RPCs exist (the 2026-10-13 migrations);
+  no domain layer or UI yet.
 - **The 2a–2d error treatment** — done on 1a, 1b, 1g and Add by email.
   Still outstanding on 1c and 1f, which carry a single `error` field and
   put everything in the field's slot, including errors that aren't about
   the field.
 
-Next: Edit group and Edit event.
+Next: member tags — domain and UI.

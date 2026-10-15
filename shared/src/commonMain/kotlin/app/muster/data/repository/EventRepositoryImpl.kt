@@ -8,6 +8,7 @@ import app.muster.data.dto.GetEventDetailDto
 import app.muster.data.dto.ListUpcomingEventsDto
 import app.muster.data.dto.SetEventRsvpDto
 import app.muster.data.dto.UpcomingEventDto
+import app.muster.data.dto.UpdateEventDto
 import app.muster.data.mapper.mapErrors
 import app.muster.data.mapper.toDbValue
 import app.muster.data.mapper.toEvent
@@ -66,6 +67,26 @@ internal class EventRepositoryImpl(
         client.postgrest.rpc(GET_EVENT_DETAIL_FUNCTION, GetEventDetailDto(eventId))
             .decodeSingle<EventDetailDto>()
             .toEventDetail()
+    }
+
+    override suspend fun updateEvent(
+        eventId: String,
+        groupId: String,
+        title: String,
+        startsAt: Instant,
+        location: String?
+    ): Unit = mapErrors {
+        client.postgrest.rpc(
+            UPDATE_EVENT_FUNCTION,
+            UpdateEventDto(
+                eventId = eventId,
+                title = title,
+                startsAt = startsAt.toString(),
+                location = location
+            )
+        )
+        dataChanges.notify(DataChange.Roster(eventId))
+        dataChanges.notify(DataChange.Events(groupId))
     }
 
     override suspend fun setRsvp(
@@ -148,6 +169,7 @@ internal class EventRepositoryImpl(
         const val GET_EVENT_DETAIL_FUNCTION = "get_event_detail"
         const val LIST_UPCOMING_EVENTS_FUNCTION = "list_upcoming_events"
         const val CREATE_EVENT_FUNCTION = "create_event"
+        const val UPDATE_EVENT_FUNCTION = "update_event"
         const val SET_EVENT_RSVP_FUNCTION = "set_event_rsvp"
         const val SET_STANDBY_ORDER_FUNCTION = "set_standby_order"
         const val DISINVITE_PLAYER_FUNCTION = "disinvite_player"

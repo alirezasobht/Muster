@@ -6,6 +6,7 @@ import app.muster.data.dto.GroupDto
 import app.muster.data.dto.GroupMemberRoleDto
 import app.muster.data.dto.GroupMembershipDto
 import app.muster.data.dto.PendingInvitationDto
+import app.muster.data.dto.UpdateGroupDto
 import app.muster.data.mapper.mapErrors
 import app.muster.data.mapper.toGroup
 import app.muster.data.mapper.toGroupInvitation
@@ -52,6 +53,19 @@ internal class GroupRepositoryImpl(
             .toGroup()
     }
 
+    override suspend fun updateGroup(
+        groupId: String,
+        name: String
+    ): Group = mapErrors {
+        client.postgrest.rpc(UPDATE_GROUP_FUNCTION, UpdateGroupDto(groupId = groupId, name = name))
+            .decodeSingle<GroupDto>()
+            .toGroup()
+            .also {
+                dataChanges.notify(DataChange.GroupDetails(groupId))
+                dataChanges.notify(DataChange.MyGroups)
+            }
+    }
+
     override suspend fun getMyRole(groupId: String): GroupRole = mapErrors {
         client.from(GROUP_MEMBERS_TABLE)
             .select(Columns.raw("role")) {
@@ -94,6 +108,7 @@ internal class GroupRepositoryImpl(
         const val GROUPS_TABLE = "groups"
         const val GROUP_MEMBERS_TABLE = "group_members"
         const val CREATE_GROUP_FUNCTION = "create_group"
+        const val UPDATE_GROUP_FUNCTION = "update_group"
         const val ARCHIVE_GROUP_FUNCTION = "archive_group"
         const val GET_MY_PENDING_INVITATIONS_FUNCTION = "get_my_pending_invitations"
         const val ACCEPT_INVITATION_FUNCTION = "accept_group_invitation"

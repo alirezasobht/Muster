@@ -18,6 +18,7 @@ class FakeGroupRepository(
     var getMyGroupsError: DomainError? = null,
     var createGroupError: DomainError? = null,
     var getGroupError: DomainError? = null,
+    var updateGroupError: DomainError? = null,
     var getMyRoleError: DomainError? = null,
     var getPendingInvitationsError: DomainError? = null,
     var acceptError: DomainError? = null,
@@ -45,6 +46,9 @@ class FakeGroupRepository(
     var archivedGroupIds = listOf<String>()
         private set
 
+    var updatedGroupNames = listOf<String>()
+        private set
+
     override suspend fun getMyGroups(): List<Group> {
         delay(latency.milliseconds)
         getMyGroupsError?.let { throw it }
@@ -65,6 +69,21 @@ class FakeGroupRepository(
         delay(latency.milliseconds)
         getGroupError?.let { throw it }
         return group
+    }
+
+    override suspend fun updateGroup(
+        groupId: String,
+        name: String
+    ): Group {
+        delay(latency.milliseconds)
+        updateGroupError?.let { throw it }
+        val updated = Group(id = groupId, name = name)
+        group = updated
+        groups = groups.map { if (it.id == groupId) updated else it }
+        updatedGroupNames = updatedGroupNames + name
+        dataChanges?.notify(DataChange.GroupDetails(groupId))
+        dataChanges?.notify(DataChange.MyGroups)
+        return updated
     }
 
     override suspend fun getMyRole(groupId: String): GroupRole {

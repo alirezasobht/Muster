@@ -316,3 +316,5 @@ Rules:
   assertive live region on appearance — assumed yes, unverified.
 - Group and event screens have no designed loading or failure frames yet;
   they should follow 1s/1t (in-place spinner, empty-state-shaped failure).
+- Edit group and Edit event have no frames; they reuse 1g and 1k (no
+  capacity stepper) with Save as the action.

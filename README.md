@@ -1,135 +1,199 @@
 # Muster
 
-A football-team organizing app, built to replace Teamer. Create events,
-invite players, keep an ordered standby queue, and see who is actually
-turning up on Sunday.
+[![PR checks](https://github.com/alirezasobht/Muster/actions/workflows/pr-checks.yml/badge.svg)](https://github.com/alirezasobht/Muster/actions/workflows/pr-checks.yml)
 
-Personal project, not a product. Android, iOS and web from one Kotlin
-codebase.
+Muster organises groups that meet up regularly. Admins create events with
+a fixed number of places and invite players by email. Anyone beyond the
+limit joins an ordered standby queue, and when someone drops out, the next
+person in line is invited automatically.
 
-## How it works
+I built it to replace Teamer for my own football teams. I independently
+designed and built the Android, iOS and web apps, the backend, and the CI/CD
+pipelines that deliver them.
 
-**Groups** are squads. You belong to as many as you like, and each has
-its own members and events. Anyone can sign up, but creating a group is
-allowlisted — a flag on your profile, set by hand. Everyone else joins by
-invitation.
+**[Google Play](https://play.google.com/store/apps/details?id=app.muster.prod)**
+· **iOS:** in App Store review <!-- TODO: TestFlight public link -->
+· **[Web app](https://www.musterapp.fyi/)**
 
-**Invitations** are by email address, whether or not that person has an
-account yet. They get an email saying they've been invited; the
-invitation itself lives in the app and waits for them to sign in. Nothing
-is visible to them until they accept.
+| Home | Events |
+|:---:|:---:|
+| <img src="docs/assets/Screenshot_home.png" width="260" alt="Home: groups and pending invitations"> | <img src="docs/assets/Screenshot_events.png" width="260" alt="A group's upcoming events"> |
 
-**Roles** are admin or member. The group's creator is its first admin,
-admins can promote others, and a group can never be left without one.
-Admins create events, invite and remove people, and can change anyone's
-RSVP. Members can see everything and change only their own.
+| Event | Members |
+|:---:|:---:|
+| <img src="docs/assets/Screenshot_event.png" width="260" alt="Event roster and standby queue"> | <img src="docs/assets/Screenshot_members.png" width="260" alt="Members and admin actions"> |
 
-**Events** have a capacity. Admins invite up to that many players;
-anyone beyond it joins an ordered standby queue. When someone drops out,
-the player at the front of the queue is invited automatically — no admin
-action, and it happens in the database, so it works even when nobody has
-the app open. The queue can be reordered, which is how an admin decides
-who gets the next free spot.
+## Technical highlights
 
-Once an event's start time passes it freezes: no RSVP changes, no
-promotions, no new invites.
+- **One codebase, three platforms.** Android, iOS and web share the
+  Compose UI, ViewModels and data layer in one Kotlin Multiplatform
+  (KMP) module; each platform app is a thin host. The web app uses
+  Kotlin/Wasm with a JS fallback for browsers without Wasm GC, so shared
+  dependencies must also support Wasm.
 
-**Signing in** is a six-digit code emailed to you. No passwords, so
-nothing to reset and no separate signup step — the first code creates the
-account.
+- **Security is enforced in PostgreSQL.** The app communicates directly
+  with Supabase, so the client cannot be trusted to enforce permissions.
+  Row Level Security controls data access, while database write permissions
+  are restricted to Postgres functions that validate the caller and
+  enforce business rules.
 
-Groups are archived rather than deleted, and archiving hides and freezes
-everything without losing it.
+- **Capacity and standby management live in the database.** PostgreSQL
+  triggers enforce event capacity and automatically promote players from
+  the standby queue when places become available. Deferred triggers
+  handle cascading deletes too, and since it all runs in the database,
+  nobody needs the app open.
+
+- **Concurrent changes stay consistent.** Writes take row locks in a
+  consistent order. Locking the event row stops two simultaneous
+  drop-outs from promoting the same player twice; locking the group row
+  stops two admins demoting each other at once and leaving the group
+  with none.
+
+- **Database errors become typed errors.** Postgres error codes are
+  mapped to a `DomainError` in one place. The UI uses it to decide
+  whether an error belongs under a field or above the button, and
+  whether to keep the action available.
+
+- **Automated testing and delivery.** GitHub Actions runs ktlint,
+  Android unit and UI tests, iOS simulator tests, and a web build.
+  Production deployment requires approval and includes an encrypted
+  database backup, backend and web deployment, and mobile builds
+  uploaded to Google Play's internal track and TestFlight.
+
+## Tech stack
+
+| Area | Choice |
+|---|---|
+| Language | Kotlin |
+| Shared code | Kotlin Multiplatform (KMP): Android, iOS, web (Wasm with JS fallback) |
+| UI | Compose Multiplatform, Material 3 |
+| Presentation | MVVM, coroutines, `StateFlow` |
+| Dependency injection | Koin |
+| Navigation | Navigation Compose, type-safe routes |
+| Backend | Supabase: Postgres, Auth, Row Level Security, Edge Functions |
+| Client | supabase-kt on Ktor |
+| Email | Resend |
+| CI/CD | GitHub Actions |
+| Distribution | Google Play, TestFlight/App Store Connect, Cloudflare Pages |
+| Code style | ktlint with custom rules |
+
+## Architecture
+
+```
+shared/       Compose UI, ViewModels, domain and data, for every platform
+androidApp/   Android host
+iosApp/       Xcode project, thin SwiftUI wrapper
+webApp/       web host and static pages
+supabase/     migrations, Edge Functions, deploy scripts
+buildSrc/     build-time config generation
+```
+
+Inside `shared`, code is split into `ui`, `domain` and `data` packages,
+with imports pointing inward: `ui → domain ← data`. Each screen has a
+composable, a UI state class and a ViewModel exposing `StateFlow`.
+
+Repository interfaces live in `domain` and are implemented in `data` with
+supabase-kt, with in-memory fakes behind the same interfaces for tests.
+Koin wires each layer through its own module.
+
+The domain layer is deliberately thin. Capacity, standby promotion, the
+last-admin rule and the event freeze are enforced in Postgres; a second
+copy in Kotlin would drift and couldn't be enforced on the client anyway.
+
+More in [ARCHITECTURE.md](docs/ARCHITECTURE.md) and
+[SCHEMA.md](docs/SCHEMA.md).
+
+## Features
+
+- Sign in with a six-digit email code. No passwords.
+- Groups with admins and members. People are invited by email, whether or
+  not they have an account yet, and see nothing until they accept.
+- Events with a capacity. Players reply in or out; admins can change
+  anyone's reply.
+- An ordered standby queue that admins reorder by dragging. The first in
+  line is invited as soon as a place frees up.
+- Events lock at their start time: no more replies, invitations or
+  promotions.
+- Groups are archived, never deleted. Accounts can be deleted in the app
+  or on the web.
+
+## Testing and CI/CD
+
+Tests:
+
+- ViewModel tests on the JVM, against in-memory fakes. The ViewModels are
+  common code, so these cover every platform.
+- Mapper and use-case tests.
+- Compose UI tests for the screens, on an Android emulator.
+- The common tests also run on the iOS simulator and in headless Chrome.
+
+CI/CD, all on GitHub Actions:
+
+- **Pull requests** run ktlint, unit tests with an Android build,
+  Compose UI tests on an API 34 emulator, iOS tests on macOS and a web
+  build. Platform-specific jobs run when code changes; docs-only changes
+  skip those builds.
+- **Backend changes merged into `dev`** back up the dev database, then
+  deploy its migrations and Edge Functions.
+- **Releases** use three workflows. The first bumps the version and opens
+  the release PR into `main`. After the merge, the production deploy waits
+  for approval, backs up the database, and deploys the backend, the web
+  app to Cloudflare Pages, Android to Play's internal track and iOS to
+  TestFlight. Store publication is handled separately.
+  The last workflow tags the release and merges `main` back into `dev`.
+
+Dev and production are separate Supabase projects. Details in
+[CI.md](docs/CI.md).
 
 ## Getting started
 
-You need JDK 17+, Android Studio with the Kotlin Multiplatform plugin,
-and the [Supabase CLI](https://supabase.com/docs/guides/cli). Xcode as
-well, if you want to build for iOS.
+You need JDK 17+, Android Studio with the Kotlin Multiplatform plugin and
+the [Supabase CLI](https://supabase.com/docs/guides/cli), plus Xcode for
+iOS. Secrets and per-environment values live in a separate private repo,
+so a clone can build and run against its own Supabase project but can't
+deploy this one.
 
-**1. Set up a Supabase environment.** Project, schema, email, Vault,
-Edge Function secrets and Auth — all in
-[supabase/docs/environment_setup.md](supabase/docs/environment_setup.md).
-Invitations won't work until every step there is done.
+1. **Set up a Supabase project**: schema, Vault, Resend and Auth, in
+   [environment_setup.md](supabase/docs/environment_setup.md).
+   Invitations won't work until every step is done.
 
-**2. Add your build values** to `local.properties` (gitignored):
+2. **Add the build values** to `local.properties` (gitignored):
 
-```
-SUPABASE_URL=https://<project>.supabase.co
-SUPABASE_PUBLISHABLE_KEY=<publishable key>
-WEB_APP_URL=<where the web app is served>
-CONTACT_EMAIL=<support address; needed for web build only>
-```
+   ```
+   SUPABASE_URL=https://<project>.supabase.co
+   SUPABASE_PUBLISHABLE_KEY=<publishable key>
+   WEB_APP_URL=<where the web app is served>
+   CONTACT_EMAIL=<support address; web build only>
+   ```
 
-The same names as environment variables take precedence;
-`. scripts/set-env-vars.sh <env>` exports them from that environment's
-`Muster-env` folder. Without them, the build fails and tells you which is
-missing.
+   The publishable key ships in every build by design; RLS protects the
+   data.
 
-The publishable key ships in every build and is meant to — RLS is what
-protects the data. The service role key belongs nowhere near this repo.
+3. **Run it:**
 
-**3. Allow yourself to create groups.** Sign in once so your profile
-exists, then in the Supabase table editor set `can_create_groups` to true
-on your row in `profiles`. Without it you can accept invitations but not
-start a group, and the app will look empty.
+   | | |
+   |---|---|
+   | Android | `./gradlew :androidApp:installDebug` |
+   | Web | `./gradlew :webApp:wasmJsBrowserDevelopmentRun` |
+   | iOS | open `iosApp/` in Xcode and run |
+   | Tests | `./gradlew :shared:testAndroidHostTest` |
 
-## Running
+Every account can create one live group. To lift the limit for an
+address, add it to `private.group_creator_emails` in the Supabase
+dashboard. Every other command is in [RUNBOOK.md](docs/RUNBOOK.md).
 
-| | |
+## Documentation
+
+| Doc | Covers |
 |---|---|
-| Android | `./gradlew :androidApp:assembleDebug`, or run from Android Studio |
-| Web (wasm) | `./gradlew :webApp:wasmJsBrowserDevelopmentRun` |
-| iOS | open `iosApp/` in Xcode and run |
-
-Tests: `./gradlew :shared:testAndroidHostTest` covers the shared logic
-and every ViewModel. `:shared:iosSimulatorArm64Test` and
-`:shared:wasmJsTest` run the same common tests on those targets.
-`:shared:connectedAndroidTest` needs a running emulator.
-
-## Deploying
-
-Backend changes go out with `supabase/scripts/deploy-backend.sh <env>`;
-a full production deploy is `scripts/deploy-prod.sh`, then manual uploads
-of the two paths it prints. Every script, and how the Supabase CLI is
-authorised: [supabase/docs/deploying.md](supabase/docs/deploying.md).
-
-In practice CI does it: every PR runs checks, dev's backend deploys when
-a change merges into `dev`, and a release deploys all of prod after
-approval. Releasing, the rules and the secrets: [docs/CI.md](docs/CI.md).
-
-## Layout
-
-```
-shared/       Compose UI, domain, data — nearly all the code
-androidApp/   Android host, MainActivity only
-iosApp/       Xcode project, thin SwiftUI wrapper
-webApp/       web host
-supabase/     migrations, Edge Functions, deploy scripts and docs
-scripts/      app build environment and the prod deploy
-buildSrc/     build-time Supabase config generation
-docs/         see below
-```
-
-Rules live in the database — RLS policies, constraints and triggers —
-never in the client. The app talks to Supabase directly, so the client is
-not a trust boundary: anything it can ask for, a hand-written request
-could ask for too.
-
-## Docs
-
-| File | What it covers |
-|---|---|
-| [docs/CONTEXT.md](docs/CONTEXT.md) | Scope, roles, product rules |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Layers, DI, navigation, conventions, testing |
-| [docs/SCHEMA.md](docs/SCHEMA.md) | Tables, RLS, triggers — what the database enforces |
-| [docs/SCREENS.md](docs/SCREENS.md) | Screen map and per-screen behaviour |
-| [docs/DECISIONS.md](docs/DECISIONS.md) | Why closed choices were closed |
-| [docs/design/DESIGN.md](docs/design/DESIGN.md) | Visual design of record |
-| [docs/design/muster-screens-v6.html](docs/design/muster-screens-v6.html) | The frames — open in a browser |
-| [supabase/docs/environment_setup.md](supabase/docs/environment_setup.md) | Bringing up an environment |
-| [supabase/docs/deploying.md](supabase/docs/deploying.md) | Deploy scripts and how they are authorised |
-| [docs/CI.md](docs/CI.md) | Branch rules, PR checks, CI deploys, secrets and backups |
-
-[CLAUDE.md](CLAUDE.md) at the root holds the same map plus conventions
-and current state, read automatically by Claude Code.
+| [CONTEXT.md](docs/CONTEXT.md) | Scope, roles and product rules |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Layers, DI, navigation, testing, versioning |
+| [SCHEMA.md](docs/SCHEMA.md) | Tables, RLS, triggers and functions |
+| [DECISIONS.md](docs/DECISIONS.md) | Why the main choices were made |
+| [SCREENS.md](docs/SCREENS.md) | Screen map and navigation |
+| [DESIGN.md](docs/design/DESIGN.md) | Visual design |
+| [CI.md](docs/CI.md) | Branches, PR checks, deploys |
+| [RUNBOOK.md](docs/RUNBOOK.md) | Every command, from a fresh clone |
+| [environment_setup.md](supabase/docs/environment_setup.md) | Bringing up a Supabase environment |
+| [deploying.md](supabase/docs/deploying.md) | Backend deploy scripts |
+| [CHANGELOG.md](CHANGELOG.md) | Releases |

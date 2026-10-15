@@ -6,7 +6,7 @@ import app.muster.ui.common.util.UiState
 
 enum class GroupTab { Events, Members }
 
-enum class GroupOverflowAction { Leave, Archive }
+enum class GroupOverflowAction { Edit, Archive, Leave }
 
 data class OverflowDialogState(
     val action: GroupOverflowAction,
@@ -18,27 +18,30 @@ sealed interface GroupUiState : UiState<GroupUiState.Success> {
 
     val groupName: String
 
-    data class Loading(override val groupName: String) : GroupUiState
+    fun withGroupName(groupName: String): GroupUiState
+
+    data class Loading(override val groupName: String) : GroupUiState {
+        override fun withGroupName(groupName: String) = copy(groupName = groupName)
+    }
 
     data class Success(
         override val groupName: String,
         val myRole: GroupRole,
+        // Set by the ViewModel from the viewer's role; the menu only renders it.
+        val overflowActions: List<GroupOverflowAction> = emptyList(),
         val selectedTab: GroupTab = GroupTab.Events,
         val overflowDialog: OverflowDialogState? = null,
         val exitedGroup: Boolean = false
     ) : GroupUiState {
         override fun asSuccessOrNull(): Success = this
+        override fun withGroupName(groupName: String) = copy(groupName = groupName)
         val isAdmin: Boolean get() = myRole == GroupRole.Admin
-
-        val overflowActions: List<GroupOverflowAction>
-            get() = buildList {
-                if (isAdmin) add(GroupOverflowAction.Archive)
-                add(GroupOverflowAction.Leave)
-            }
     }
 
     data class Error(
         override val groupName: String,
         val error: DomainError
-    ) : GroupUiState
+    ) : GroupUiState {
+        override fun withGroupName(groupName: String) = copy(groupName = groupName)
+    }
 }

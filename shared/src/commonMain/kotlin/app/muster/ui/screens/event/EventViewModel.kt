@@ -214,10 +214,19 @@ class EventViewModel(
             myStatus = detail.event.myStatus,
             roster = detail.toRosterRows(myId, isAdmin),
             standby = detail.toStandbyRows(myId),
+            overflowActions = overflowActionsFor(isAdmin, isFrozen),
             isFrozen = isFrozen,
-            startTime = detail.event.startsAt.toDisplayTime()
+            startsAt = detail.event.startsAt,
+            startsAtDisplay = detail.event.startsAt.toDisplayTime()
         )
     }
+}
+
+private fun overflowActionsFor(
+    isAdmin: Boolean,
+    isFrozen: Boolean
+): List<EventOverflowAction> = buildList {
+    if (isAdmin && !isFrozen) add(EventOverflowAction.Edit)
 }
 
 private val statusOrder = mapOf(RsvpStatus.In to 0, RsvpStatus.Pending to 1, RsvpStatus.Out to 2)

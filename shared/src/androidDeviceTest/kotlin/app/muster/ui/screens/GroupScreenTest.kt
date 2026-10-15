@@ -39,6 +39,7 @@ class GroupScreenTest {
                     state = GroupUiState.Success(
                         groupName = "Westgate Wednesday 7s",
                         myRole = myRole,
+                        overflowActions = if (myRole == GroupRole.Admin) adminActions else memberActions,
                         overflowDialog = overflowDialog
                     ),
                     actions = GroupActions(
@@ -53,6 +54,9 @@ class GroupScreenTest {
             }
         }
     }
+
+    private val adminActions = listOf(GroupOverflowAction.Edit, GroupOverflowAction.Archive, GroupOverflowAction.Leave)
+    private val memberActions = listOf(GroupOverflowAction.Leave)
 
     private fun openOverflowMenu() {
         composeRule.onNodeWithContentDescription("More options").performClick()
@@ -94,6 +98,22 @@ class GroupScreenTest {
         openOverflowMenu()
         composeRule.onNodeWithText("Archive group").assertIsDisplayed()
         composeRule.onNodeWithText("Leave group").assertIsDisplayed()
+    }
+
+    @Test
+    fun aMemberDoesNotSeeEditInTheOverflowMenu() {
+        show(myRole = GroupRole.Member)
+        openOverflowMenu()
+        composeRule.onNodeWithText("Edit group").assertDoesNotExist()
+    }
+
+    @Test
+    fun tappingEditGroupReachesTheRequestedCallbackWithEdit() {
+        var requested: GroupOverflowAction? = null
+        show(myRole = GroupRole.Admin, onOverflowActionRequested = { requested = it })
+        openOverflowMenu()
+        composeRule.onNodeWithText("Edit group").performClick()
+        assert(requested == GroupOverflowAction.Edit)
     }
 
     @Test

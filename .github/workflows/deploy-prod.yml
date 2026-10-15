@@ -1,12 +1,27 @@
-# On every push to main, each job after approval: back up and
+# Manual, from main. Ticked jobs run after approval: back up and
 # deploy the backend, then web to Cloudflare, Android to Play and iOS
 # to TestFlight.
 name: Deploy prod
 
 on:
-    push:
-        branches: [main]
     workflow_dispatch:
+        inputs:
+            backend:
+                description: Backend
+                type: boolean
+                default: true
+            web:
+                description: Web
+                type: boolean
+                default: true
+            android:
+                description: Android
+                type: boolean
+                default: true
+            ios:
+                description: iOS
+                type: boolean
+                default: true
 
 concurrency:
     group: deploy-prod
@@ -15,6 +30,7 @@ concurrency:
 jobs:
     backend:
         name: Backend
+        if: inputs.backend
         runs-on: ubuntu-latest
         environment: prod
         env:
@@ -99,6 +115,7 @@ jobs:
     web:
         name: Web
         needs: backend
+        if: ${{ !cancelled() && inputs.web && needs.backend.result != 'failure' }}
         runs-on: ubuntu-latest
         environment: prod
         env:
@@ -131,6 +148,7 @@ jobs:
     android:
         name: Android
         needs: backend
+        if: ${{ !cancelled() && inputs.android && needs.backend.result != 'failure' }}
         runs-on: ubuntu-latest
         environment: prod
         env:
@@ -163,12 +181,13 @@ jobs:
                   serviceAccountJsonPlainText: ${{ secrets.PROD_PLAY_SERVICE_ACCOUNT_JSON }}
                   packageName: app.muster.prod
                   releaseFiles: androidApp/build/outputs/bundle/release/androidApp-release.aab
-                  track: internal
+                  tracks: internal
                   status: completed
 
     ios:
         name: iOS
         needs: backend
+        if: ${{ !cancelled() && inputs.ios && needs.backend.result != 'failure' }}
         runs-on: macos-latest
         environment: prod
         env:

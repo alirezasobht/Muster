@@ -67,8 +67,9 @@ Two roles only: `admin` and `member`.
   removes its address from the list.
 - Group creator becomes the first admin.
 - Admins can promote members to admin.
-- Admins can create events, invite members, remove members, and archive
-  the group.
+- Admins can create and edit events, edit the group, invite members,
+  remove members, and archive the group. An event's capacity is fixed
+  at creation.
 - Admins can change any player's RSVP status and reorder the standby
   queue.
 - A member can see every player's status on an event but can change only

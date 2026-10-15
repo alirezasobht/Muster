@@ -65,6 +65,7 @@ import app.muster.ui.common.util.SharedTransitionKeys
 import app.muster.ui.common.util.sharedBoundsOrNone
 import app.muster.ui.theme.MusterColors
 import app.muster.ui.theme.MusterTheme
+import kotlin.time.Instant
 import muster.shared.generated.resources.Res
 import muster.shared.generated.resources.action_cant_make_it
 import muster.shared.generated.resources.action_change
@@ -83,6 +84,7 @@ import muster.shared.generated.resources.event_cancel_invite_confirm
 import muster.shared.generated.resources.event_cancel_invite_title
 import muster.shared.generated.resources.event_failed_title
 import muster.shared.generated.resources.event_frozen_strip
+import muster.shared.generated.resources.event_menu_edit
 import muster.shared.generated.resources.event_players_header
 import muster.shared.generated.resources.event_remove_from_event_body
 import muster.shared.generated.resources.event_remove_from_event_cancel
@@ -132,7 +134,8 @@ data class EventActions(
     val onReorderStandby: (orderedIds: List<String>) -> Unit,
     val onRetry: () -> Unit,
     val onRefresh: () -> Unit = {},
-    val onAddPlayers: () -> Unit = {}
+    val onAddPlayers: () -> Unit = {},
+    val onOverflowAction: (EventOverflowAction) -> Unit = {}
 )
 
 @Composable
@@ -140,6 +143,7 @@ fun EventRoute(
     initialSummary: EventSummary,
     onBack: () -> Unit,
     onAddPlayers: (eventId: String, groupId: String) -> Unit,
+    onEditEvent: (summary: EventSummary, startsAt: Instant) -> Unit,
     viewModel: EventViewModel = koinViewModel { parametersOf(initialSummary) }
 ) {
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onResume() }
@@ -153,7 +157,13 @@ fun EventRoute(
             onReorderStandby = viewModel::onReorderStandby,
             onRetry = viewModel::onRetry,
             onRefresh = viewModel::onRefresh,
-            onAddPlayers = { onAddPlayers(state.summary.eventId, state.summary.groupId) }
+            onAddPlayers = { onAddPlayers(state.summary.eventId, state.summary.groupId) },
+            onOverflowAction = { action ->
+                when (action) {
+                    EventOverflowAction.Edit ->
+                        (state as? EventUiState.Success)?.let { onEditEvent(it.summary, it.startsAt) }
+                }
+            }
         )
     )
 }
@@ -170,7 +180,12 @@ fun EventScreen(
             Column(modifier = Modifier.fillMaxSize()) {
                 // Known from the route, not the fetch — renders on every
                 // branch below, including Loading and Error.
-                EventAppBar(summary = state.summary, onBack = actions.onBack)
+                EventAppBar(
+                    summary = state.summary,
+                    overflowActions = (state as? EventUiState.Success)?.overflowActions ?: emptyList(),
+                    onBack = actions.onBack,
+                    onOverflowAction = actions.onOverflowAction
+                )
                 when (state) {
                     is EventUiState.Loading -> {
                         HorizontalDivider(color = MusterColors.Hairline)
@@ -222,7 +237,9 @@ fun EventScreen(
 @Composable
 private fun EventAppBar(
     summary: EventSummary,
+    overflowActions: List<EventOverflowAction>,
     onBack: () -> Unit,
+    onOverflowAction: (EventOverflowAction) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -251,16 +268,35 @@ private fun EventAppBar(
                 modifier = Modifier.sharedBoundsOrNone(SharedTransitionKeys.eventTitle(summary.eventId)).padding(bottom = 8.dp)
             )
         }
-        // No menu wired up yet — placeholder to match the 4a–4c app bar.
-        IconButton(onClick = {}, modifier = Modifier.padding(horizontal = 4.dp)) {
-            Icon(
-                imageVector = MusterIcons.MoreVert,
-                contentDescription = stringResource(Res.string.content_description_more),
-                tint = MusterColors.Ink,
-                modifier = Modifier.size(24.dp)
-            )
+        if (overflowActions.isNotEmpty()) {
+            var expanded by remember { mutableStateOf(false) }
+            Box(modifier = Modifier.padding(horizontal = 4.dp)) {
+                IconButton(onClick = { expanded = true }) {
+                    Icon(
+                        imageVector = MusterIcons.MoreVert,
+                        contentDescription = stringResource(Res.string.content_description_more),
+                        tint = MusterColors.Ink,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    overflowActions.forEach { action ->
+                        DropdownMenuItem(
+                            text = { Text(stringResource(action.menuLabel())) },
+                            onClick = {
+                                expanded = false
+                                onOverflowAction(action)
+                            }
+                        )
+                    }
+                }
+            }
         }
     }
+}
+
+private fun EventOverflowAction.menuLabel() = when (this) {
+    EventOverflowAction.Edit -> Res.string.event_menu_edit
 }
 
 private data class DialogStrings(
@@ -321,7 +357,7 @@ private fun EventContent(
         if (state.isFrozen) {
             Surface(color = MusterColors.QuietSurface) {
                 Text(
-                    text = stringResource(Res.string.event_frozen_strip, state.startTime),
+                    text = stringResource(Res.string.event_frozen_strip, state.startsAtDisplay),
                     style = MaterialTheme.typography.bodySmall,
                     color = MusterColors.Secondary,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 10.dp)
@@ -1069,7 +1105,8 @@ private val PreviewSuccess = EventUiState.Success(
     summary = PreviewSummary,
     isAdmin = true,
     myStatus = RsvpStatus.Out,
-    roster = PreviewRoster
+    roster = PreviewRoster,
+    overflowActions = listOf(EventOverflowAction.Edit)
 )
 
 @Preview
@@ -1097,8 +1134,9 @@ private fun EventScreenFrozenPreview() {
     MusterTheme {
         EventScreen(
             state = PreviewSuccess.copy(
+                overflowActions = emptyList(),
                 isFrozen = true,
-                startTime = "7:00 pm",
+                startsAtDisplay = "7:00 pm",
                 myStatus = RsvpStatus.In
             ),
             actions = PreviewActions
@@ -1199,8 +1237,9 @@ private fun EventScreenFrozenWithStandbyPreview() {
         EventScreen(
             state = PreviewSuccess.copy(
                 isAdmin = true,
+                overflowActions = emptyList(),
                 isFrozen = true,
-                startTime = "7:00 pm",
+                startsAtDisplay = "7:00 pm",
                 myStatus = RsvpStatus.In,
                 standby = PreviewStandby
             ),

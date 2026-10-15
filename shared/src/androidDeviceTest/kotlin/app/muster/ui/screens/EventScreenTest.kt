@@ -14,6 +14,7 @@ import androidx.compose.ui.test.performScrollToNode
 import app.muster.domain.error.DomainError
 import app.muster.domain.model.RsvpStatus
 import app.muster.ui.screens.event.EventActions
+import app.muster.ui.screens.event.EventOverflowAction
 import app.muster.ui.screens.event.EventScreen
 import app.muster.ui.screens.event.EventSummary
 import app.muster.ui.screens.event.EventUiState
@@ -60,7 +61,8 @@ class EventScreenTest {
         onRsvp: (RsvpStatus) -> Unit = {},
         onRosterAction: (String, RosterAction) -> Unit = { _, _ -> },
         onReorderStandby: (List<String>) -> Unit = {},
-        onRetry: () -> Unit = {}
+        onRetry: () -> Unit = {},
+        onOverflowAction: (EventOverflowAction) -> Unit = {}
     ) {
         composeRule.setContent {
             MusterTheme {
@@ -71,7 +73,8 @@ class EventScreenTest {
                         onRsvp = onRsvp,
                         onRosterAction = onRosterAction,
                         onReorderStandby = onReorderStandby,
-                        onRetry = onRetry
+                        onRetry = onRetry,
+                        onOverflowAction = onOverflowAction
                     ),
                     spinnerDelayMillis = 0
                 )
@@ -95,9 +98,27 @@ class EventScreenTest {
     }
 
     @Test
-    fun theAppBarShowsThePlaceholderMoreOptionsIcon() {
-        show(state = successState)
-        composeRule.onNodeWithContentDescription("More options").assertIsDisplayed()
+    fun tappingEditEventReachesTheCallbackWithEdit() {
+        var picked: EventOverflowAction? = null
+        show(
+            state = successState.copy(overflowActions = listOf(EventOverflowAction.Edit)),
+            onOverflowAction = { picked = it }
+        )
+        composeRule.onNodeWithContentDescription("More options").performClick()
+        composeRule.onNodeWithText("Edit event").performClick()
+        assert(picked == EventOverflowAction.Edit)
+    }
+
+    @Test
+    fun noOverflowActionsShowsNoMoreOptions() {
+        show(state = successState.copy(overflowActions = emptyList()))
+        composeRule.onNodeWithContentDescription("More options").assertDoesNotExist()
+    }
+
+    @Test
+    fun loadingShowsNoMoreOptions() {
+        show(state = EventUiState.Loading(summary))
+        composeRule.onNodeWithContentDescription("More options").assertDoesNotExist()
     }
 
     @Test
@@ -199,13 +220,13 @@ class EventScreenTest {
 
     @Test
     fun frozenShowsTheStripText() {
-        show(state = successState.copy(isFrozen = true, startTime = "7:00 pm", myStatus = RsvpStatus.In))
+        show(state = successState.copy(isFrozen = true, startsAtDisplay = "7:00 pm", myStatus = RsvpStatus.In))
         composeRule.onNodeWithText("Started at 7:00 pm · no more changes").assertIsDisplayed()
     }
 
     @Test
     fun frozenSlotsLineReadsNoReplyInsteadOfPending() {
-        show(state = successState.copy(isFrozen = true, startTime = "7:00 pm"))
+        show(state = successState.copy(isFrozen = true, startsAtDisplay = "7:00 pm"))
         composeRule.onNodeWithText("of 10 slots").assertIsDisplayed()
         composeRule.onNodeWithText("6 open").assertIsDisplayed()
         composeRule.onNodeWithText("3 in").assertIsDisplayed()
@@ -216,7 +237,7 @@ class EventScreenTest {
 
     @Test
     fun frozenRsvpBlockIsStaticWithNoChangeButton() {
-        show(state = successState.copy(isFrozen = true, startTime = "7:00 pm", myStatus = RsvpStatus.In))
+        show(state = successState.copy(isFrozen = true, startsAtDisplay = "7:00 pm", myStatus = RsvpStatus.In))
         composeRule.onNodeWithText("You played").assertIsDisplayed()
         composeRule.onNodeWithText("Change").assertDoesNotExist()
     }
@@ -226,7 +247,7 @@ class EventScreenTest {
         show(
             state = successState.copy(
                 isFrozen = true,
-                startTime = "7:00 pm",
+                startsAtDisplay = "7:00 pm",
                 roster = listOf(RosterRow(id = "p2", name = "Tomás Neale", status = RsvpStatus.Pending))
             )
         )
@@ -437,7 +458,7 @@ class EventScreenTest {
             state = successState.copy(
                 isAdmin = true,
                 isFrozen = true,
-                startTime = "7:00 pm",
+                startsAtDisplay = "7:00 pm",
                 roster = listOf(pendingRow(listOf(RosterAction.SetIn, RosterAction.CancelInvite)))
             )
         )
@@ -492,7 +513,7 @@ class EventScreenTest {
             state = successState.copy(
                 isAdmin = true,
                 isFrozen = true,
-                startTime = "7:00 pm",
+                startsAtDisplay = "7:00 pm",
                 standby = standby
             )
         )
