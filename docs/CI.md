@@ -208,42 +208,14 @@ Values go to `gh secret set` through stdin and never print. Binary files
 
 `Muster-backups` is a private repo. Each deploy adds
 `<env>/<UTC timestamp>-<commit>.tar.gz.age`: roles, schema and data, tarred
-and encrypted with `age`. CI holds only the public key; the private key is
-`backup.key` at the root of `Muster-env`, with a copy in the password
-manager. Without it no backup can be opened.
-
-To read one, from `Muster-env`, into a folder outside every repo — the
-dump holds users' emails:
-
-```
-git -C ../Muster-backups pull
-mkdir -p ~/Muster-restore
-age -d -i backup.key "$(ls -t ../Muster-backups/prod/*.age | head -n 1)" \
-  | tar -xzf - -C ~/Muster-restore
-```
-
-Delete `~/Muster-restore` afterwards.
+and encrypted with `age`. CI holds only the public key. Restoring one:
+`Muster-env`'s README.
 
 ## Credentials
 
-| Credential | Scope | Stored in | Renew |
-|---|---|---|---|
-| `MUSTER_SECRETS_TOKEN` | fine-grained, Muster: Secrets, Environments write | `Muster-env` secret | yearly |
-| `MUSTER_BACKUPS_TOKEN` | fine-grained, `Muster-backups`: Contents write | Muster `dev`, `prod` | yearly |
-| Release app key | the app on Muster only | `Muster-env/release-app.pem` | when rotated |
-| Supabase "GitHub Actions" token | whole Supabase account | `Muster-env` `*/env` | on expiry |
-| Cloudflare API token | Pages edit | `Muster-env/prod/env` | on expiry |
-| Play service account key | `play-upload`, Muster on Play | `Muster-env/prod/play-service-account.json` | when rotated |
-| Upload keystore | Play upload key | `Muster-env/prod/upload-keystore.jks` | — |
-| Apple Distribution certificate | team signing | `Muster-env/prod/ios-distribution.p12` | yearly |
-| Muster App Store profile | `app.muster.prod` | `Muster-env/prod/ios-app-store.mobileprovision` | yearly, with the certificate |
-| App Store Connect API key | App Manager | `Muster-env/prod/app-store-connect-key.p8` | when rotated |
-
-Replace a file or value in `Muster-env` and push; the sync does the rest.
-
-The Play key exists because the Google Cloud organisation's
-`iam.managed.disableServiceAccountKeyCreation` policy is overridden
-(enforcement off) on project `muster-ci` only.
+What each credential is, its scope, where it is kept and when it renews:
+`Muster-env`'s README. Replace a file or value in `Muster-env` and push;
+the sync does the rest.
 
 ## Not done
 
