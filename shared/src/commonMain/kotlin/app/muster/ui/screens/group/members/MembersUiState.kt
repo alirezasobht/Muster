@@ -63,7 +63,10 @@ sealed interface MembersUiState : UiState<MembersUiState.Success> {
         val memberCount: Int get() = allRows.count { it.status != MemberStatus.Pending }
 
         // Pending rows are only built for admins, so members always see 0.
-        val pendingCount: Int get() = rows.count { it.status == MemberStatus.Pending }
+        val pendingCount: Int get() = invitedRows.size
+
+        val untaggedRows: List<MemberRow> get() = rows.filter { it.status != MemberStatus.Pending }
+        val invitedRows: List<MemberRow> get() = rows.filter { it.status == MemberStatus.Pending }
 
         // 5m: until the first tag exists, the intro panel holds the only New tag button.
         val showTagsIntro: Boolean get() = canManageTags && tags.isEmpty()

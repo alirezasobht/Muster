@@ -47,10 +47,10 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 data class TagCardActions(
-    val onRename: () -> Unit = {},
-    val onMoveUp: () -> Unit = {},
-    val onMoveDown: () -> Unit = {},
-    val onDelete: () -> Unit = {}
+    val onRename: (tagId: String) -> Unit = {},
+    val onMoveUp: (tagId: String) -> Unit = {},
+    val onMoveDown: (tagId: String) -> Unit = {},
+    val onDelete: (tagId: String) -> Unit = {}
 )
 
 // 5a/5b. Rows come from the caller, which owns their menus and confirmations.
@@ -84,7 +84,7 @@ fun TagCard(
                     color = MusterColors.Muted,
                     modifier = Modifier.weight(1f)
                 )
-                CardMenu(reorder = section.reorder, actions = actions)
+                CardMenu(tagId = section.id, reorder = section.reorder, actions = actions)
             }
             if (section.rows.isEmpty()) {
                 EmptyTagHint(modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp))
@@ -101,6 +101,7 @@ fun TagCard(
 // Delete is ink like the other items: the palette has no destructive colour.
 @Composable
 private fun CardMenu(
+    tagId: String,
     reorder: Reorder,
     actions: TagCardActions,
     modifier: Modifier = Modifier
@@ -110,7 +111,7 @@ private fun CardMenu(
     @Composable
     fun Item(
         label: StringResource,
-        onClick: () -> Unit,
+        onClick: (tagId: String) -> Unit,
         enabled: Boolean = true
     ) {
         DropdownMenuItem(
@@ -118,7 +119,7 @@ private fun CardMenu(
             enabled = enabled,
             onClick = {
                 expanded = false
-                onClick()
+                onClick(tagId)
             }
         )
     }

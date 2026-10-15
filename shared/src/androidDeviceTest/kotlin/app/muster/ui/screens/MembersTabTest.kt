@@ -7,11 +7,13 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import app.muster.domain.error.DomainError
 import app.muster.ui.screens.group.members.MemberRow
+import app.muster.ui.screens.group.members.MemberRowActions
 import app.muster.ui.screens.group.members.MemberStatus
 import app.muster.ui.screens.group.members.MembersActions
 import app.muster.ui.screens.group.members.MembersTab
 import app.muster.ui.screens.group.members.MembersUiState
 import app.muster.ui.screens.group.members.Reorder
+import app.muster.ui.screens.group.members.TagCardActions
 import app.muster.ui.screens.group.members.TagSection
 import app.muster.ui.theme.MusterTheme
 import org.junit.Rule
@@ -35,7 +37,8 @@ class MembersTabTest {
         onResendInvitation: (String) -> Unit = {},
         onRetry: () -> Unit = {},
         onNewTag: () -> Unit = {},
-        onMoveToTag: (String) -> Unit = {}
+        onMoveToTag: (String) -> Unit = {},
+        onRenameTag: (String) -> Unit = {}
     ) {
         composeRule.setContent {
             MusterTheme {
@@ -43,14 +46,17 @@ class MembersTabTest {
                     state = state,
                     actions = MembersActions(
                         onAddMemberByEmail = onAddMemberByEmail,
-                        onPromote = onPromote,
-                        onDemote = onDemote,
-                        onRemove = onRemove,
-                        onRevokeInvitation = onRevokeInvitation,
-                        onResendInvitation = onResendInvitation,
+                        memberRowActions = MemberRowActions(
+                            onMoveToTag = onMoveToTag,
+                            onPromote = onPromote,
+                            onDemote = onDemote,
+                            onRemove = onRemove,
+                            onRevokeInvitation = onRevokeInvitation,
+                            onResendInvitation = onResendInvitation
+                        ),
                         onRetry = onRetry,
                         onNewTag = onNewTag,
-                        onMoveToTag = onMoveToTag
+                        tagCardActions = TagCardActions(onRename = onRenameTag)
                     ),
                     actionErrorMessage = actionErrorMessage,
                     spinnerDelayMillis = 0
@@ -175,6 +181,46 @@ class MembersTabTest {
         composeRule.onNodeWithText("Move up").assertDoesNotExist()
         composeRule.onNodeWithText("Move to tag…").performClick()
         assert(moved == "2")
+    }
+
+    @Test
+    fun withTagsTheListShowsCardsThenUntaggedThenInvited() {
+        show(
+            state = MembersUiState.Success(
+                rows = listOf(self, invite),
+                tags = listOf(regular),
+                canManageTags = true
+            )
+        )
+        composeRule.onNodeWithText("Regular").assertIsDisplayed()
+        composeRule.onNodeWithText("Dan Whelan").assertIsDisplayed()
+        composeRule.onNodeWithText("Untagged").assertIsDisplayed()
+        composeRule.onNodeWithText("A–Z").assertIsDisplayed()
+        composeRule.onNodeWithText("priya.n@gmail.com").assertIsDisplayed()
+    }
+
+    @Test
+    fun withoutTagsThereAreNoSectionHeaders() {
+        show(state = MembersUiState.Success(rows = listOf(self, other), canManageTags = true))
+        composeRule.onNodeWithText("Untagged").assertDoesNotExist()
+    }
+
+    @Test
+    fun anEmptyUntaggedSectionIsLeftOut() {
+        show(state = MembersUiState.Success(rows = listOf(invite), tags = listOf(regular.copy(rows = listOf(self, other)))))
+        composeRule.onNodeWithText("Untagged").assertDoesNotExist()
+    }
+
+    @Test
+    fun renamingFromTheCardMenuReachesTheCallbackWithTheTag() {
+        var renamed: String? = null
+        show(
+            state = MembersUiState.Success(rows = listOf(self), tags = listOf(regular), canManageTags = true),
+            onRenameTag = { renamed = it }
+        )
+        composeRule.onNodeWithContentDescription("Tag options").performClick()
+        composeRule.onNodeWithText("Rename").performClick()
+        assert(renamed == "t1")
     }
 
     @Test
