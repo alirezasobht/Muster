@@ -292,6 +292,9 @@
     <string name="error_invitation_sent_too_recently">Already sent today — try again tomorrow.</string>
     <string name="error_network">Can’t connect. Check your connection and try again.</string>
     <string name="error_not_signed_in">You’ve been signed out. Sign in again.</string>
+    <string name="error_tag_name_taken">There’s already a tag called %1$s</string>
+    <string name="error_tag_name_too_long">Tag name is too long</string>
+    <string name="error_tag_list_changed">The list changed. Check it and try again.</string>
     <string name="error_unknown">Something went wrong. Try again.</string>
 
 </resources>

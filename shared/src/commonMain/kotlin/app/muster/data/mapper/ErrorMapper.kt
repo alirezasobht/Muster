@@ -44,7 +44,11 @@ private fun AuthRestException.toDomainError(): DomainError = when (errorCode) {
 
 private fun PostgrestRestException.toDomainError(): DomainError = when (code) {
     // Auto-named from profiles.name's CHECK; renaming the constraint breaks this.
-    "23514" -> if ("profiles_name_check" in error) DomainError.InvalidName() else DomainError.Unknown(this)
+    "23514" -> when {
+        "profiles_name_check" in error -> DomainError.InvalidName()
+        "group_tags_name_length" in error -> DomainError.TagNameTooLong()
+        else -> DomainError.Unknown(this)
+    }
     // group_invitations_one_pending partial unique index: a second open
     // invitation to the same address in the same group.
     "23505" -> if ("group_invitations_one_pending" in error) DomainError.AlreadyInvited() else DomainError.Unknown(this)
@@ -63,6 +67,7 @@ private fun PostgrestRestException.toDomainError(): DomainError = when (code) {
         "event has already started" in error -> DomainError.EventFrozen()
         "event start time must be in the future" in error -> DomainError.EventStartsInPast()
         "invitation sent too recently" in error -> DomainError.InvitationSentTooRecently()
+        "tag not found" in error -> DomainError.TagListChanged()
         else -> DomainError.Unknown(this)
     }
     // create_group's allowlist guard preserves groups_insert's permission error.
