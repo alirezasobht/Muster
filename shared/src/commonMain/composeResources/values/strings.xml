@@ -151,6 +151,10 @@
     <string name="tag_name_rename_title">Rename tag</string>
     <string name="tag_name_create">Create</string>
     <string name="tag_name_cancel">Cancel</string>
+    <string name="move_to_tag_title">Move %1$s to</string>
+    <string name="move_to_tag_subtitle">Joins the end of the tag. Reorder from the list.</string>
+    <string name="move_to_tag_none">No tag</string>
+    <string name="move_to_tag_new">New tag…</string>
     <string name="tag_name_admins_hint">Only admins see tags.</string>
     <plurals name="tag_name_members_hint">
         <item quantity="one">%1$d member keeps this tag.</item>
