@@ -229,7 +229,10 @@ private fun MembersContent(
     // The role and invitation items ask for confirmation first; the tag items go straight through.
     fun rowActions(row: MemberRow): MemberRowActions {
         val passed = actions.memberRowActions
-        fun confirm(dialog: DialogStrings, call: (String) -> Unit): (String) -> Unit = { id ->
+        fun confirm(
+            dialog: DialogStrings,
+            call: (String) -> Unit
+        ): (String) -> Unit = { id ->
             pendingConfirmation = PendingConfirmation(row, dialog) { call(id) }
         }
         return passed.copy(
