@@ -32,7 +32,8 @@ class MembersTabTest {
         onRetry: () -> Unit = {},
         onNewTag: () -> Unit = {},
         onMoveToTag: (String) -> Unit = {},
-        onRenameTag: (String) -> Unit = {}
+        onRenameTag: (String) -> Unit = {},
+        onDeleteTag: (String) -> Unit = {}
     ) {
         composeRule.setContent {
             MusterTheme {
@@ -50,7 +51,7 @@ class MembersTabTest {
                         ),
                         onRetry = onRetry,
                         onNewTag = onNewTag,
-                        tagCardActions = TagCardActions(onRename = onRenameTag)
+                        tagCardActions = TagCardActions(onRename = onRenameTag, onDelete = onDeleteTag)
                     ),
                     actionErrorMessage = actionErrorMessage,
                     spinnerDelayMillis = 0
@@ -215,6 +216,49 @@ class MembersTabTest {
         composeRule.onNodeWithContentDescription("Tag options").performClick()
         composeRule.onNodeWithText("Rename").performClick()
         assert(renamed == "t1")
+    }
+
+    private fun showTagWithDeleteOpen(
+        tag: TagSection,
+        untagged: List<MemberRow> = emptyList(),
+        onDeleteTag: (String) -> Unit = {}
+    ) {
+        show(
+            state = MembersUiState.Success(rows = listOf(self) + untagged, tags = listOf(tag), canManageTags = true),
+            onDeleteTag = onDeleteTag
+        )
+        composeRule.onNodeWithContentDescription("Tag options").performClick()
+        composeRule.onNodeWithText("Delete tag").performClick()
+    }
+
+    @Test
+    fun deletingATagAsksForConfirmationBeforeCallingBack() {
+        var deleted: String? = null
+        showTagWithDeleteOpen(regular, onDeleteTag = { deleted = it })
+
+        composeRule.onNodeWithText("Delete “Regular”?").assertIsDisplayed()
+        composeRule.onNodeWithText("Its 1 member moves", substring = true).assertIsDisplayed()
+        assert(deleted == null)
+
+        composeRule.onNodeWithText("Delete", substring = false).performClick()
+        assert(deleted == "t1")
+    }
+
+    @Test
+    fun deletingAnEmptyTagStillAsksForConfirmation() {
+        // The list needs someone besides you, or the tab shows its empty state instead of the cards.
+        showTagWithDeleteOpen(regular.copy(rows = emptyList()), untagged = listOf(other))
+        composeRule.onNodeWithText("No one has this tag.").assertIsDisplayed()
+    }
+
+    @Test
+    fun dismissingTheDeleteTagConfirmationDoesNotCallBack() {
+        var deleted: String? = null
+        showTagWithDeleteOpen(regular, onDeleteTag = { deleted = it })
+        composeRule.onNodeWithText("Cancel").performClick()
+
+        composeRule.onNodeWithText("Delete “Regular”?").assertDoesNotExist()
+        assert(deleted == null)
     }
 
     @Test
