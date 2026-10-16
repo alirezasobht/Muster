@@ -28,6 +28,8 @@ val DomainError.presentation: ErrorPresentation
         is DomainError.InvalidName,
         is DomainError.AlreadyInvited,
         is DomainError.AlreadyMember,
+        is DomainError.TagNameTaken,
+        is DomainError.TagNameTooLong,
         is DomainError.EventStartsInPast ->
             ErrorPresentation.Field
 
@@ -49,6 +51,8 @@ val DomainError.presentation: ErrorPresentation
         // Resubmitting the same stale list fails the same way — a refresh
         // has to happen first, not a bare retry.
         is DomainError.StandbyQueueStale,
+        // Same as StandbyQueueStale: the list reloads in place first (5i).
+        is DomainError.TagListChanged,
         // Same reasoning as EventFull/EventFrozen above: retrying resend
         // fails identically until the next day.
         is DomainError.InvitationSentTooRecently ->

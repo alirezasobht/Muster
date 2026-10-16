@@ -20,7 +20,7 @@ import app.muster.ui.theme.MusterTheme
 import org.junit.Rule
 import org.junit.Test
 
-class TagCardTest {
+class MemberTagCardTest {
 
     @get:Rule
     val composeRule = createComposeRule()

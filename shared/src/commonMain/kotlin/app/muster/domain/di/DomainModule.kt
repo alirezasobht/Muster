@@ -5,8 +5,10 @@ import app.muster.domain.usecase.AddPlayersUseCase
 import app.muster.domain.usecase.ArchiveGroupUseCase
 import app.muster.domain.usecase.CreateEventUseCase
 import app.muster.domain.usecase.CreateGroupUseCase
+import app.muster.domain.usecase.CreateTagUseCase
 import app.muster.domain.usecase.DeclineGroupInvitationUseCase
 import app.muster.domain.usecase.DeleteAccountUseCase
+import app.muster.domain.usecase.DeleteTagUseCase
 import app.muster.domain.usecase.DemoteMemberUseCase
 import app.muster.domain.usecase.DisinvitePlayerUseCase
 import app.muster.domain.usecase.GetEventUseCase
@@ -23,6 +25,7 @@ import app.muster.domain.usecase.ListUpcomingEventsUseCase
 import app.muster.domain.usecase.ObserveSessionUseCase
 import app.muster.domain.usecase.PromoteMemberUseCase
 import app.muster.domain.usecase.RemoveMemberUseCase
+import app.muster.domain.usecase.RenameTagUseCase
 import app.muster.domain.usecase.ReorderStandbyUseCase
 import app.muster.domain.usecase.RequestSignInCodeUseCase
 import app.muster.domain.usecase.ResendEventInvitationUseCase
@@ -30,6 +33,8 @@ import app.muster.domain.usecase.ResendInvitationUseCase
 import app.muster.domain.usecase.RetrySessionUseCase
 import app.muster.domain.usecase.RevokeInvitationUseCase
 import app.muster.domain.usecase.SetRsvpUseCase
+import app.muster.domain.usecase.SetTagLayoutUseCase
+import app.muster.domain.usecase.SetTagOrderUseCase
 import app.muster.domain.usecase.SignOutUseCase
 import app.muster.domain.usecase.UpdateEventUseCase
 import app.muster.domain.usecase.UpdateGroupUseCase
@@ -66,6 +71,11 @@ val domainModule = module {
     factoryOf(::PromoteMemberUseCase)
     factoryOf(::DemoteMemberUseCase)
     factoryOf(::RemoveMemberUseCase)
+    factoryOf(::CreateTagUseCase)
+    factoryOf(::DeleteTagUseCase)
+    factoryOf(::RenameTagUseCase)
+    factoryOf(::SetTagLayoutUseCase)
+    factoryOf(::SetTagOrderUseCase)
     factoryOf(::RevokeInvitationUseCase)
     factoryOf(::ResendInvitationUseCase)
     factoryOf(::LeaveGroupUseCase)

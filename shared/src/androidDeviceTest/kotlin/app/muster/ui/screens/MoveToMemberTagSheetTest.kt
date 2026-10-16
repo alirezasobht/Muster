@@ -13,7 +13,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
-class MoveToTagSheetTest {
+class MoveToMemberTagSheetTest {
 
     @get:Rule
     val composeRule = createComposeRule()
