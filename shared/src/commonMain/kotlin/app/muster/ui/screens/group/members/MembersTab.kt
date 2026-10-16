@@ -81,6 +81,10 @@ import muster.shared.generated.resources.members_section_invited
 import muster.shared.generated.resources.members_section_untagged
 import muster.shared.generated.resources.members_section_untagged_sort
 import muster.shared.generated.resources.members_try_again
+import muster.shared.generated.resources.tag_delete_body
+import muster.shared.generated.resources.tag_delete_cancel
+import muster.shared.generated.resources.tag_delete_confirm
+import muster.shared.generated.resources.tag_delete_title
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -225,6 +229,7 @@ private fun MembersContent(
     modifier: Modifier = Modifier
 ) {
     var pendingConfirmation by remember { mutableStateOf<PendingConfirmation?>(null) }
+    var pendingTagDelete by remember { mutableStateOf<TagSection?>(null) }
 
     // The role and invitation items ask for confirmation first; the tag items go straight through.
     fun rowActions(row: MemberRow): MemberRowActions {
@@ -306,7 +311,9 @@ private fun MembersContent(
                         items(state.tags, key = { "tag_${it.id}" }) { section ->
                             TagCard(
                                 section = section,
-                                actions = actions.tagCardActions,
+                                actions = actions.tagCardActions.copy(
+                                    onDelete = { id -> pendingTagDelete = state.tags.firstOrNull { it.id == id } }
+                                ),
                                 modifier = Modifier.animateItem().padding(horizontal = 16.dp, vertical = 6.dp)
                             ) { MemberItem(it, horizontalPadding = 16.dp) }
                         }
@@ -332,6 +339,22 @@ private fun MembersContent(
                 }
             }
         }
+    }
+
+    // 5s: even an empty tag asks first
+    pendingTagDelete?.let { tag ->
+        ConfirmDialog(
+            title = stringResource(Res.string.tag_delete_title, tag.name),
+            body = pluralStringResource(Res.plurals.tag_delete_body, tag.rows.size, tag.rows.size),
+            confirmText = stringResource(Res.string.tag_delete_confirm),
+            cancelText = stringResource(Res.string.tag_delete_cancel),
+            onConfirm = {
+                pendingTagDelete = null
+                actions.tagCardActions.onDelete(tag.id)
+            },
+            onDismiss = { pendingTagDelete = null },
+            destructive = true
+        )
     }
 
     pendingConfirmation?.let { pending ->

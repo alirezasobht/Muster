@@ -155,6 +155,14 @@
     <string name="move_to_tag_subtitle">Joins the end of the tag. Reorder from the list.</string>
     <string name="move_to_tag_none">No tag</string>
     <string name="move_to_tag_new">New tag…</string>
+    <string name="tag_delete_title">Delete “%1$s”?</string>
+    <plurals name="tag_delete_body">
+        <item quantity="zero">No one has this tag.</item>
+        <item quantity="one">Its %1$d member moves to Untagged. They stay in the group and on their events. Only the tag goes.</item>
+        <item quantity="other">Its %1$d members move to Untagged. They stay in the group and on their events. Only the tag goes.</item>
+    </plurals>
+    <string name="tag_delete_confirm">Delete</string>
+    <string name="tag_delete_cancel">Cancel</string>
     <string name="tag_name_admins_hint">Only admins see tags.</string>
     <plurals name="tag_name_members_hint">
         <item quantity="one">%1$d member keeps this tag.</item>
