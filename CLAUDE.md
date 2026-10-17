@@ -57,6 +57,10 @@ into `dev`, from a branch made with `--no-track`. See `docs/CI.md`.
 
 ## How to work
 
+- **Ask before proposing.** On any task with a real design choice, ask
+  how I'd approach it first and wait for an answer. Then give your own
+  proposal with the tradeoffs, including where you disagree. Skip this
+  for mechanical work — renames, wiring, a fix I've already specified.
 - **Step by step.** One step at a time, show the work, wait for a go
   before the next. Never batch a multi-step task into one pass.
 - **Screens first**, then domain, then data, then wire up.
