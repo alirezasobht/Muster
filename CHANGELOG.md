@@ -3,6 +3,14 @@
 One entry per release, newest first. Each lists what changed for users,
 then the backend and tooling, and the platforms it shipped to.
 
+## 1.0.5 — 2026-10-11
+
+Platforms: iOS (App Store and TestFlight), Android (Play internal testing).
+
+- No user-facing changes.
+- Tooling: CI on every PR, dev and prod deploy workflows, release
+  prepare and finish workflows, version check and guard on `main` PRs.
+
 ## 1.0.4 — 2026-10-06
 
 Platforms: backend only.
