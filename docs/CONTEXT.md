@@ -20,6 +20,7 @@ In scope:
 - Invite players to events
 - Standby players with an ordered queue
 - Manage invitations (group-level and event-level)
+- Member tags, for admins to sort members
 
 Explicitly out of scope:
 - Payments
@@ -75,6 +76,20 @@ Two roles only: `admin` and `member`.
 - A member can see every player's status on an event but can change only
   their own.
 - A group can never be left without an admin.
+
+## Member tags
+
+Admins sort members into tags such as Regular or Casual, then add a
+whole tag to an event.
+
+- **Admins only.** Members never see a tag, theirs or anyone else's.
+- A member has **zero or one** tag. Pending invitees can't be tagged.
+- A group can have any number of tags. Names are unique per group,
+  ignoring case, and at most 30 characters.
+- Admins order the tags and the members within each tag. Untagged
+  members have no order; they show A–Z.
+- Leaving or being removed drops your tag; rejoining starts untagged.
+  Deleting a tag untags its members and nothing else.
 
 ## Membership model
 

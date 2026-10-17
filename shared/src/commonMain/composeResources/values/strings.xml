@@ -126,12 +126,48 @@
     <string name="members_empty_body">Add teammates by email to fill out the group.</string>
     <string name="members_failed_title">Couldn’t load members</string>
     <string name="members_try_again">Try again</string>
-    <string name="members_you_suffix"> · you</string>
+    <string name="members_you_badge">You</string>
     <plurals name="members_count">
         <item quantity="one">%1$d member</item>
         <item quantity="other">%1$d members</item>
     </plurals>
     <string name="members_pending_suffix"> · %1$d pending</string>
+
+    <!-- Member tags (5a–5w) -->
+    <string name="members_new_tag">+ New tag</string>
+    <string name="tags_intro_title">Sort members with tags</string>
+    <string name="tags_intro_body">Put people into tags like Regular or Casual, then add a whole tag to an event at once. Only admins see tags.</string>
+    <string name="members_action_move_to_tag">Move to tag…</string>
+    <string name="action_move_up">Move up</string>
+    <string name="action_move_down">Move down</string>
+    <string name="tag_action_rename">Rename</string>
+    <string name="tag_action_delete">Delete tag</string>
+    <string name="tag_empty_hint">No one yet. Drag members here, or use ⋮ › Move to tag.</string>
+    <string name="content_description_tag_options">Tag options</string>
+    <string name="members_section_untagged">Untagged</string>
+    <string name="members_section_untagged_sort">A–Z</string>
+    <string name="members_section_invited">Invited</string>
+    <string name="tag_name_new_title">New tag</string>
+    <string name="tag_name_rename_title">Rename tag</string>
+    <string name="tag_name_create">Create</string>
+    <string name="tag_name_cancel">Cancel</string>
+    <string name="move_to_tag_title">Move %1$s to</string>
+    <string name="move_to_tag_subtitle">Joins the end of the tag. Reorder from the list.</string>
+    <string name="move_to_tag_none">No tag</string>
+    <string name="move_to_tag_new">New tag…</string>
+    <string name="tag_delete_title">Delete “%1$s”?</string>
+    <plurals name="tag_delete_body">
+        <item quantity="zero">No one has this tag.</item>
+        <item quantity="one">Its %1$d member moves to Untagged. They stay in the group and on their events. Only the tag goes.</item>
+        <item quantity="other">Its %1$d members move to Untagged. They stay in the group and on their events. Only the tag goes.</item>
+    </plurals>
+    <string name="tag_delete_confirm">Delete</string>
+    <string name="tag_delete_cancel">Cancel</string>
+    <string name="tag_name_admins_hint">Only admins see tags.</string>
+    <plurals name="tag_name_members_hint">
+        <item quantity="one">%1$d member keeps this tag.</item>
+        <item quantity="other">%1$d members keep this tag.</item>
+    </plurals>
 
     <!-- Group — Events tab (1h) -->
     <string name="events_new">New event</string>
@@ -256,6 +292,9 @@
     <string name="error_invitation_sent_too_recently">Already sent today — try again tomorrow.</string>
     <string name="error_network">Can’t connect. Check your connection and try again.</string>
     <string name="error_not_signed_in">You’ve been signed out. Sign in again.</string>
+    <string name="error_tag_name_taken">There’s already a tag called %1$s</string>
+    <string name="error_tag_name_too_long">Tag name is too long</string>
+    <string name="error_tag_list_changed">The list changed. Check it and try again.</string>
     <string name="error_unknown">Something went wrong. Try again.</string>
 
 </resources>
