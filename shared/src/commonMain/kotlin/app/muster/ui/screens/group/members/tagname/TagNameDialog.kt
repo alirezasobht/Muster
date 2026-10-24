@@ -1,4 +1,4 @@
-package app.muster.ui.screens.group.members
+package app.muster.ui.screens.group.members.tagname
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
@@ -56,10 +56,10 @@ data class TagNameActions(
 // 5n–5r: New tag and Rename tag are the same dialog.
 @Composable
 fun TagNameDialog(
-    state: TagNameUiState,
+    state: TagNameDialogUiState,
     actions: TagNameActions
 ) {
-    if (state !is TagNameUiState.Open) return
+    if (state !is TagNameDialogUiState.Open) return
     val rename = state.mode as? TagNameMode.Rename
 
     // While saving, closing it would orphan the in-flight call.
@@ -134,7 +134,7 @@ fun TagNameDialog(
 private val PreviewActions = TagNameActions(onNameChange = {}, onSubmit = {}, onDismiss = {})
 
 @Composable
-private fun TagNamePreview(state: TagNameUiState) {
+private fun TagNamePreview(state: TagNameDialogUiState) {
     MusterTheme {
         Surface {
             Box(Modifier.fillMaxSize()) {
@@ -148,25 +148,25 @@ private fun TagNamePreview(state: TagNameUiState) {
 @Preview
 @Composable
 private fun TagNameNewPreview() {
-    TagNamePreview(TagNameUiState.Open(mode = TagNameMode.New, name = "Regular"))
+    TagNamePreview(TagNameDialogUiState.Open(mode = TagNameMode.New, name = "Regular"))
 }
 
 @Preview
 @Composable
 private fun TagNameBlankPreview() {
-    TagNamePreview(TagNameUiState.Open(mode = TagNameMode.New))
+    TagNamePreview(TagNameDialogUiState.Open(mode = TagNameMode.New))
 }
 
 @Preview
 @Composable
 private fun TagNameSavingPreview() {
-    TagNamePreview(TagNameUiState.Open(mode = TagNameMode.New, name = "Regular", saving = true))
+    TagNamePreview(TagNameDialogUiState.Open(mode = TagNameMode.New, name = "Regular", saving = true))
 }
 
 @Preview
 @Composable
 private fun TagNameFailedPreview() {
-    TagNamePreview(TagNameUiState.Open(mode = TagNameMode.New, name = "Regular", error = DomainError.Network()))
+    TagNamePreview(TagNameDialogUiState.Open(mode = TagNameMode.New, name = "Regular", error = DomainError.Network()))
 }
 
 // 5r
@@ -174,6 +174,6 @@ private fun TagNameFailedPreview() {
 @Composable
 private fun TagNameRenamePreview() {
     TagNamePreview(
-        TagNameUiState.Open(mode = TagNameMode.Rename(tagId = "t1", memberCount = 3), name = "Casual")
+        TagNameDialogUiState.Open(mode = TagNameMode.Rename(tagId = "t1", memberCount = 3), name = "Casual")
     )
 }

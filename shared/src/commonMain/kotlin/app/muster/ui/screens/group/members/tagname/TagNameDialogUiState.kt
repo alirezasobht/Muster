@@ -1,4 +1,4 @@
-package app.muster.ui.screens.group.members
+package app.muster.ui.screens.group.members.tagname
 
 import app.muster.domain.error.DomainError
 import app.muster.ui.common.isTerminal
@@ -13,9 +13,9 @@ sealed interface TagNameMode {
     ) : TagNameMode
 }
 
-sealed interface TagNameUiState {
+sealed interface TagNameDialogUiState {
 
-    data object Hidden : TagNameUiState
+    data object Hidden : TagNameDialogUiState
 
     data class Open(
         val mode: TagNameMode,
@@ -23,7 +23,7 @@ sealed interface TagNameUiState {
         val saving: Boolean = false,
         val nameError: DomainError? = null,
         val error: DomainError? = null
-    ) : TagNameUiState {
+    ) : TagNameDialogUiState {
         val canSubmit: Boolean
             get() = name.isNotBlank() && error?.isTerminal != true
     }

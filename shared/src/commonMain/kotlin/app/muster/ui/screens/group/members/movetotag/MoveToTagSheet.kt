@@ -1,4 +1,4 @@
-package app.muster.ui.screens.group.members
+package app.muster.ui.screens.group.members.movetotag
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border

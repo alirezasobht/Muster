@@ -9,10 +9,10 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import app.muster.domain.error.DomainError
-import app.muster.ui.screens.group.members.TagNameActions
-import app.muster.ui.screens.group.members.TagNameDialog
-import app.muster.ui.screens.group.members.TagNameMode
-import app.muster.ui.screens.group.members.TagNameUiState
+import app.muster.ui.screens.group.members.tagname.TagNameActions
+import app.muster.ui.screens.group.members.tagname.TagNameDialog
+import app.muster.ui.screens.group.members.tagname.TagNameDialogUiState
+import app.muster.ui.screens.group.members.tagname.TagNameMode
 import app.muster.ui.theme.MusterTheme
 import org.junit.Rule
 import org.junit.Test
@@ -25,7 +25,7 @@ class MemberTagNameDialogTest {
     private val networkError = "Can’t connect. Check your connection and try again."
 
     private fun show(
-        state: TagNameUiState,
+        state: TagNameDialogUiState,
         onNameChange: (String) -> Unit = {},
         onSubmit: () -> Unit = {},
         onDismiss: () -> Unit = {}
@@ -42,14 +42,14 @@ class MemberTagNameDialogTest {
 
     @Test
     fun hiddenShowsNothing() {
-        show(state = TagNameUiState.Hidden)
+        show(state = TagNameDialogUiState.Hidden)
         composeRule.onNodeWithText("New tag").assertDoesNotExist()
         composeRule.onNodeWithText("Rename tag").assertDoesNotExist()
     }
 
     @Test
     fun newShowsTitleHintAndCreate() {
-        show(state = TagNameUiState.Open(mode = TagNameMode.New))
+        show(state = TagNameDialogUiState.Open(mode = TagNameMode.New))
         composeRule.onNodeWithText("New tag").assertIsDisplayed()
         composeRule.onNodeWithText("Only admins see tags.").assertIsDisplayed()
         composeRule.onNodeWithText("Create").assertIsDisplayed()
@@ -57,7 +57,7 @@ class MemberTagNameDialogTest {
 
     @Test
     fun renameShowsTitleMemberCountAndSave() {
-        show(state = TagNameUiState.Open(mode = TagNameMode.Rename(tagId = "t1", memberCount = 3), name = "Casual"))
+        show(state = TagNameDialogUiState.Open(mode = TagNameMode.Rename(tagId = "t1", memberCount = 3), name = "Casual"))
         composeRule.onNodeWithText("Rename tag").assertIsDisplayed()
         composeRule.onNodeWithText("Casual").assertIsDisplayed()
         composeRule.onNodeWithText("3 members keep this tag.").assertIsDisplayed()
@@ -66,28 +66,28 @@ class MemberTagNameDialogTest {
 
     @Test
     fun renamingAnEmptyTagShowsTheAdminsHint() {
-        show(state = TagNameUiState.Open(mode = TagNameMode.Rename(tagId = "t1", memberCount = 0), name = "Casual"))
+        show(state = TagNameDialogUiState.Open(mode = TagNameMode.Rename(tagId = "t1", memberCount = 0), name = "Casual"))
         composeRule.onNodeWithText("Only admins see tags.").assertIsDisplayed()
     }
 
     @Test
     fun typingReachesTheCallback() {
         var typed = ""
-        show(state = TagNameUiState.Open(mode = TagNameMode.New), onNameChange = { typed = it })
+        show(state = TagNameDialogUiState.Open(mode = TagNameMode.New), onNameChange = { typed = it })
         composeRule.onNode(hasSetTextAction()).performTextInput("Regular")
         assert(typed == "Regular")
     }
 
     @Test
     fun createIsDisabledWhenBlank() {
-        show(state = TagNameUiState.Open(mode = TagNameMode.New, name = "  "))
+        show(state = TagNameDialogUiState.Open(mode = TagNameMode.New, name = "  "))
         composeRule.onNodeWithText("Create").assertIsNotEnabled()
     }
 
     @Test
     fun createReachesTheCallback() {
         var submitted = false
-        show(state = TagNameUiState.Open(mode = TagNameMode.New, name = "Regular"), onSubmit = { submitted = true })
+        show(state = TagNameDialogUiState.Open(mode = TagNameMode.New, name = "Regular"), onSubmit = { submitted = true })
         composeRule.onNodeWithText("Create").performClick()
         assert(submitted)
     }
@@ -95,20 +95,20 @@ class MemberTagNameDialogTest {
     @Test
     fun cancelReachesTheCallback() {
         var dismissed = false
-        show(state = TagNameUiState.Open(mode = TagNameMode.New), onDismiss = { dismissed = true })
+        show(state = TagNameDialogUiState.Open(mode = TagNameMode.New), onDismiss = { dismissed = true })
         composeRule.onNodeWithText("Cancel").performClick()
         assert(dismissed)
     }
 
     @Test
     fun aFieldErrorShowsUnderTheField() {
-        show(state = TagNameUiState.Open(mode = TagNameMode.New, nameError = DomainError.InvalidName()))
+        show(state = TagNameDialogUiState.Open(mode = TagNameMode.New, nameError = DomainError.InvalidName()))
         composeRule.onNodeWithText("Enter your name.").assertIsDisplayed()
     }
 
     @Test
     fun aFailedSaveShowsTheFormError() {
-        show(state = TagNameUiState.Open(mode = TagNameMode.New, name = "Regular", error = DomainError.Network()))
+        show(state = TagNameDialogUiState.Open(mode = TagNameMode.New, name = "Regular", error = DomainError.Network()))
         composeRule.onNodeWithText(networkError).assertIsDisplayed()
         composeRule.onNodeWithText("Create").assertIsEnabled()
     }
@@ -116,7 +116,7 @@ class MemberTagNameDialogTest {
     // While saving, the label is replaced by a spinner and Cancel is locked.
     @Test
     fun savingLocksTheDialog() {
-        show(state = TagNameUiState.Open(mode = TagNameMode.New, name = "Regular", saving = true))
+        show(state = TagNameDialogUiState.Open(mode = TagNameMode.New, name = "Regular", saving = true))
         composeRule.onNodeWithText("Create").assertDoesNotExist()
         composeRule.onNodeWithText("Cancel").assertIsNotEnabled()
     }

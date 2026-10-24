@@ -1,4 +1,4 @@
-package app.muster.ui.screens.group.members
+package app.muster.ui.screens.group.members.tagcard
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
@@ -34,6 +34,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import app.muster.ui.common.components.MusterIcons
+import app.muster.ui.screens.group.members.MemberRow
+import app.muster.ui.screens.group.members.MemberStatus
+import app.muster.ui.screens.group.members.Reorder
+import app.muster.ui.screens.group.members.TagSection
+import app.muster.ui.screens.group.members.memberrow.MemberRowActions
+import app.muster.ui.screens.group.members.memberrow.MemberRowItem
 import app.muster.ui.theme.MusterColors
 import app.muster.ui.theme.MusterTheme
 import muster.shared.generated.resources.Res

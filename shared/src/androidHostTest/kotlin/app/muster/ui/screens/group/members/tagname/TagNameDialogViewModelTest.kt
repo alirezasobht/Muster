@@ -1,4 +1,4 @@
-package app.muster.ui.screens.group.members
+package app.muster.ui.screens.group.members.tagname
 
 import app.muster.data.fake.FakeMemberRepository
 import app.muster.domain.error.DomainError
@@ -15,20 +15,20 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 
-class TagNameViewModelTest {
+class TagNameDialogViewModelTest {
 
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
     private val casual = MemberTag(id = "t1", name = "Casual", memberIds = listOf("a", "b"))
 
-    private fun viewModel(members: FakeMemberRepository = FakeMemberRepository(memberTags = listOf(casual))) = TagNameViewModel("group-1", CreateTagUseCase(members), RenameTagUseCase(members))
+    private fun viewModel(members: FakeMemberRepository = FakeMemberRepository(memberTags = listOf(casual))) = TagNameDialogViewModel("group-1", CreateTagUseCase(members), RenameTagUseCase(members))
 
-    private fun TagNameViewModel.open() = state.value as TagNameUiState.Open
+    private fun TagNameDialogViewModel.open() = state.value as TagNameDialogUiState.Open
 
     @Test
     fun `starts hidden`() {
-        assertEquals(TagNameUiState.Hidden, viewModel().state.value)
+        assertEquals(TagNameDialogUiState.Hidden, viewModel().state.value)
     }
 
     @Test
@@ -37,7 +37,7 @@ class TagNameViewModelTest {
 
         viewModel.onNewTag()
 
-        assertEquals(TagNameUiState.Open(mode = TagNameMode.New), viewModel.state.value)
+        assertEquals(TagNameDialogUiState.Open(mode = TagNameMode.New), viewModel.state.value)
         assertEquals(false, viewModel.open().canSubmit)
     }
 
@@ -48,7 +48,7 @@ class TagNameViewModelTest {
         viewModel.onRename(tagId = "t1", currentName = "Casual", memberCount = 2)
 
         assertEquals(
-            TagNameUiState.Open(mode = TagNameMode.Rename(tagId = "t1", memberCount = 2), name = "Casual"),
+            TagNameDialogUiState.Open(mode = TagNameMode.Rename(tagId = "t1", memberCount = 2), name = "Casual"),
             viewModel.state.value
         )
     }
@@ -63,7 +63,7 @@ class TagNameViewModelTest {
         assertTrue(viewModel.open().saving)
         advanceUntilIdle()
 
-        assertEquals(TagNameUiState.Hidden, viewModel.state.value)
+        assertEquals(TagNameDialogUiState.Hidden, viewModel.state.value)
         assertEquals(listOf("Regular"), members.tags.map { it.name })
     }
 
@@ -115,7 +115,7 @@ class TagNameViewModelTest {
         viewModel.onSubmit()
         advanceUntilIdle()
 
-        assertEquals(TagNameUiState.Hidden, viewModel.state.value)
+        assertEquals(TagNameDialogUiState.Hidden, viewModel.state.value)
         assertEquals("Social", members.tags.single().name)
     }
 
@@ -176,7 +176,7 @@ class TagNameViewModelTest {
         viewModel.onSubmit()
         advanceUntilIdle()
 
-        assertEquals(TagNameUiState.Hidden, viewModel.state.value)
+        assertEquals(TagNameDialogUiState.Hidden, viewModel.state.value)
     }
 
     @Test
@@ -210,7 +210,7 @@ class TagNameViewModelTest {
 
         viewModel.onDismiss()
 
-        assertEquals(TagNameUiState.Hidden, viewModel.state.value)
+        assertEquals(TagNameDialogUiState.Hidden, viewModel.state.value)
     }
 
     @Test

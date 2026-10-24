@@ -9,13 +9,13 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import app.muster.ui.screens.group.members.MemberRow
-import app.muster.ui.screens.group.members.MemberRowActions
-import app.muster.ui.screens.group.members.MemberRowItem
 import app.muster.ui.screens.group.members.MemberStatus
 import app.muster.ui.screens.group.members.Reorder
-import app.muster.ui.screens.group.members.TagCard
-import app.muster.ui.screens.group.members.TagCardActions
 import app.muster.ui.screens.group.members.TagSection
+import app.muster.ui.screens.group.members.memberrow.MemberRowActions
+import app.muster.ui.screens.group.members.memberrow.MemberRowItem
+import app.muster.ui.screens.group.members.tagcard.TagCard
+import app.muster.ui.screens.group.members.tagcard.TagCardActions
 import app.muster.ui.theme.MusterTheme
 import org.junit.Rule
 import org.junit.Test

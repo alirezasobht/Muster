@@ -5,9 +5,9 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import app.muster.ui.screens.group.members.MoveToTagActions
-import app.muster.ui.screens.group.members.MoveToTagSheet
-import app.muster.ui.screens.group.members.TagOption
+import app.muster.ui.screens.group.members.movetotag.MoveToTagActions
+import app.muster.ui.screens.group.members.movetotag.MoveToTagSheet
+import app.muster.ui.screens.group.members.movetotag.TagOption
 import app.muster.ui.theme.MusterTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule

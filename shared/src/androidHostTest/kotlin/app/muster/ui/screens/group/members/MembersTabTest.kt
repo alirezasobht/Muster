@@ -6,6 +6,8 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import app.muster.domain.error.DomainError
+import app.muster.ui.screens.group.members.memberrow.MemberRowActions
+import app.muster.ui.screens.group.members.tagcard.TagCardActions
 import app.muster.ui.theme.MusterTheme
 import org.junit.Rule
 import org.junit.Test

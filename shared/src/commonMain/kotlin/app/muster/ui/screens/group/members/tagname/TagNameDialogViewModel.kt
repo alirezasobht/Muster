@@ -1,4 +1,4 @@
-package app.muster.ui.screens.group.members
+package app.muster.ui.screens.group.members.tagname
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -12,21 +12,21 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class TagNameViewModel(
+class TagNameDialogViewModel(
     private val groupId: String,
     private val createTag: CreateTagUseCase,
     private val renameTag: RenameTagUseCase
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow<TagNameUiState>(TagNameUiState.Hidden)
-    val state: StateFlow<TagNameUiState> = _state.asStateFlow()
+    private val _state = MutableStateFlow<TagNameDialogUiState>(TagNameDialogUiState.Hidden)
+    val state: StateFlow<TagNameDialogUiState> = _state.asStateFlow()
 
     // "New tag…" from Move to tag creates the tag and moves this member in, in one call.
     private var memberToMove: String? = null
 
     fun onNewTag(memberId: String? = null) {
         memberToMove = memberId
-        _state.value = TagNameUiState.Open(mode = TagNameMode.New)
+        _state.value = TagNameDialogUiState.Open(mode = TagNameMode.New)
     }
 
     fun onRename(
@@ -35,25 +35,25 @@ class TagNameViewModel(
         memberCount: Int
     ) {
         memberToMove = null
-        _state.value = TagNameUiState.Open(
+        _state.value = TagNameDialogUiState.Open(
             mode = TagNameMode.Rename(tagId = tagId, memberCount = memberCount),
             name = currentName
         )
     }
 
     fun onNameChange(name: String) {
-        val current = _state.value as? TagNameUiState.Open ?: return
+        val current = _state.value as? TagNameDialogUiState.Open ?: return
         if (current.saving) return
         _state.value = current.copy(name = name, nameError = null, error = null)
     }
 
     fun onDismiss() {
-        val current = _state.value as? TagNameUiState.Open ?: return
-        if (!current.saving) _state.value = TagNameUiState.Hidden
+        val current = _state.value as? TagNameDialogUiState.Open ?: return
+        if (!current.saving) _state.value = TagNameDialogUiState.Hidden
     }
 
     fun onSubmit() {
-        val current = _state.value as? TagNameUiState.Open ?: return
+        val current = _state.value as? TagNameDialogUiState.Open ?: return
         if (current.saving || !current.canSubmit) return
 
         val name = current.name.trim()
@@ -65,7 +65,7 @@ class TagNameViewModel(
                     is TagNameMode.Rename -> renameTag(groupId, mode.tagId, name)
                 }
                 // The Members tab reloads from the repository's change notification.
-                _state.value = TagNameUiState.Hidden
+                _state.value = TagNameDialogUiState.Hidden
             } catch (e: DomainError) {
                 _state.value = if (e.presentation is ErrorPresentation.Field) {
                     current.copy(saving = false, nameError = e)
