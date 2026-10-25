@@ -10,7 +10,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import app.muster.domain.error.DomainError
-import app.muster.ui.screens.addbyemail.AddMemberByEmailScreen
+import app.muster.ui.screens.group.members.addbyemail.AddMemberByEmailScreen
 import app.muster.ui.theme.MusterTheme
 import org.junit.Rule
 import org.junit.Test

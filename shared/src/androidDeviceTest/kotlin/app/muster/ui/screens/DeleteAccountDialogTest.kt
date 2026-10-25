@@ -6,8 +6,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import app.muster.domain.error.DomainError
-import app.muster.ui.screens.settings.DeleteAccountDialog
-import app.muster.ui.screens.settings.DeleteAccountUiState
+import app.muster.ui.screens.home.settings.deleteaccount.DeleteAccountDialog
+import app.muster.ui.screens.home.settings.deleteaccount.DeleteAccountUiState
 import app.muster.ui.theme.MusterTheme
 import org.junit.Rule
 import org.junit.Test

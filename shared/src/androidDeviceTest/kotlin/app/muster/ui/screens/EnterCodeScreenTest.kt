@@ -8,7 +8,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import app.muster.domain.error.DomainError
-import app.muster.ui.screens.signin.EnterCodeScreen
+import app.muster.ui.screens.auth.signin.EnterCodeScreen
 import app.muster.ui.theme.MusterTheme
 import org.junit.Rule
 import org.junit.Test
