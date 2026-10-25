@@ -1,4 +1,4 @@
-package app.muster.ui.screens
+package app.muster.ui.screens.event
 
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
@@ -13,18 +13,13 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import app.muster.domain.error.DomainError
 import app.muster.domain.model.RsvpStatus
-import app.muster.ui.screens.event.EventActions
-import app.muster.ui.screens.event.EventOverflowAction
-import app.muster.ui.screens.event.EventScreen
-import app.muster.ui.screens.event.EventSummary
-import app.muster.ui.screens.event.EventUiState
-import app.muster.ui.screens.event.RosterAction
-import app.muster.ui.screens.event.RosterRow
-import app.muster.ui.screens.event.StandbyRow
 import app.muster.ui.theme.MusterTheme
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
+@RunWith(RobolectricTestRunner::class)
 class EventScreenTest {
 
     @get:Rule

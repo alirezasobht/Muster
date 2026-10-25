@@ -1,4 +1,4 @@
-package app.muster.ui.screens
+package app.muster.ui.screens.group.events.newevent
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -10,15 +10,15 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import app.muster.domain.error.DomainError
-import app.muster.ui.screens.group.events.newevent.NewEventActions
-import app.muster.ui.screens.group.events.newevent.NewEventScreen
-import app.muster.ui.screens.group.events.newevent.NewEventUiState
 import app.muster.ui.theme.MusterTheme
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
+@RunWith(RobolectricTestRunner::class)
 class NewEventScreenTest {
 
     @get:Rule

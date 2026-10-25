@@ -1,4 +1,4 @@
-package app.muster.ui.screens
+package app.muster.ui.screens.event.editevent
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -9,14 +9,15 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import app.muster.domain.error.DomainError
 import app.muster.ui.common.components.EventFormActions
-import app.muster.ui.screens.event.editevent.EditEventScreen
-import app.muster.ui.screens.event.editevent.EditEventUiState
 import app.muster.ui.theme.MusterTheme
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
+@RunWith(RobolectricTestRunner::class)
 class EditEventScreenTest {
 
     @get:Rule

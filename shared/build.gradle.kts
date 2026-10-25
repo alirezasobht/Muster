@@ -108,6 +108,10 @@ kotlin {
                 implementation(libs.junit)
                 implementation(libs.kotlinx.coroutines.test)
                 implementation(libs.mockk)
+                implementation(libs.robolectric)
+                implementation(libs.compose.uiTest)
+                implementation(libs.compose.uiTestJUnit4)
+                implementation(libs.compose.uiTestManifest)
             }
         }
         val androidDeviceTest by getting {
