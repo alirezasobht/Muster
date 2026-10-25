@@ -10,34 +10,20 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.toRoute
-import app.muster.ui.common.util.LocalAnimatedVisibilityScope
 import app.muster.ui.common.util.LocalSharedTransitionScope
-import app.muster.ui.common.util.toDisplayDate
 import app.muster.ui.platform.SystemBarIcons
-import app.muster.ui.screens.auth.launch.LaunchRoute
+import app.muster.ui.screens.auth.Launch
+import app.muster.ui.screens.auth.RequestCode
+import app.muster.ui.screens.auth.SetName
+import app.muster.ui.screens.auth.authGraph
 import app.muster.ui.screens.auth.launch.LaunchUiState
 import app.muster.ui.screens.auth.launch.LaunchViewModel
-import app.muster.ui.screens.auth.setname.SetNameRoute
-import app.muster.ui.screens.auth.signin.EnterCodeRoute
-import app.muster.ui.screens.auth.signin.RequestCodeRoute
-import app.muster.ui.screens.event.EventRoute
-import app.muster.ui.screens.event.EventSummary
-import app.muster.ui.screens.event.addplayers.AddPlayersRoute
-import app.muster.ui.screens.event.editevent.EditEventInitial
-import app.muster.ui.screens.event.editevent.EditEventRoute
-import app.muster.ui.screens.group.GroupRoute
-import app.muster.ui.screens.group.editgroup.EditGroupRoute
-import app.muster.ui.screens.group.events.newevent.NewEventRoute
-import app.muster.ui.screens.group.members.addbyemail.AddMemberByEmailRoute
-import app.muster.ui.screens.home.HomeRoute
-import app.muster.ui.screens.home.newgroup.NewGroupRoute
-import app.muster.ui.screens.home.settings.SettingsRoute
-import app.muster.ui.screens.home.settings.privacy.PrivacyPolicyScreen
-import kotlin.time.Instant
+import app.muster.ui.screens.event.eventGraph
+import app.muster.ui.screens.group.groupGraph
+import app.muster.ui.screens.home.Home
+import app.muster.ui.screens.home.homeGraph
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalSharedTransitionApi::class)
@@ -76,180 +62,10 @@ fun NavGraph(
     SharedTransitionLayout {
         CompositionLocalProvider(LocalSharedTransitionScope provides this) {
             NavHost(navController = navController, startDestination = Launch) {
-                composable<Launch> {
-                    CompositionLocalProvider(LocalAnimatedVisibilityScope provides this@composable) {
-                        LaunchRoute(viewModel = launchViewModel)
-                    }
-                }
-                composable<RequestCode> {
-                    CompositionLocalProvider(LocalAnimatedVisibilityScope provides this@composable) {
-                        RequestCodeRoute(
-                            onCodeSent = { navController.navigate(EnterCode(it)) }
-                        )
-                    }
-                }
-                composable<EnterCode> { entry ->
-                    EnterCodeRoute(
-                        email = entry.toRoute<EnterCode>().email,
-                        onBack = { navController.popBackStack() }
-                    )
-                }
-                composable<SetName> {
-                    SetNameRoute(onNameSet = launchViewModel::onNameSet)
-                }
-                composable<Home> {
-                    CompositionLocalProvider(LocalAnimatedVisibilityScope provides this@composable) {
-                        HomeRoute(
-                            onSettingsClick = { navController.navigate(Settings) },
-                            onGroupClick = { id, name -> navController.navigate(Group(id, name)) },
-                            onNewGroupClick = { navController.navigate(NewGroup) }
-                        )
-                    }
-                }
-                composable<Settings> {
-                    SettingsRoute(
-                        onBack = { navController.popBackStack() },
-                        onSignOut = launchViewModel::onSignOut,
-                        onOpenPrivacyPolicy = { navController.navigate(PrivacyPolicy) }
-                    )
-                }
-                composable<PrivacyPolicy> {
-                    PrivacyPolicyScreen(onBack = { navController.popBackStack() })
-                }
-                composable<NewGroup> {
-                    NewGroupRoute(
-                        onBack = { navController.popBackStack() },
-                        onGroupCreated = { group ->
-                            navController.navigate(Group(group.id, group.name)) {
-                                popUpTo(NewGroup) { inclusive = true }
-                            }
-                        }
-                    )
-                }
-                composable<Group> { entry ->
-                    val group = entry.toRoute<Group>()
-                    CompositionLocalProvider(LocalAnimatedVisibilityScope provides this@composable) {
-                        GroupRoute(
-                            groupId = group.id,
-                            groupName = group.name,
-                            onBack = { navController.popBackStack() },
-                            onEditGroup = { name -> navController.navigate(EditGroup(group.id, name)) },
-                            onAddMemberByEmail = { name -> navController.navigate(AddMemberByEmail(group.id, name)) },
-                            onSelectEvent = { groupId, groupName, event ->
-                                navController.navigate(
-                                    Event(
-                                        groupId = groupId,
-                                        groupName = groupName,
-                                        eventId = event.id,
-                                        title = event.title,
-                                        date = event.startsAt.toDisplayDate(),
-                                        location = event.location.orEmpty(),
-                                        capacity = event.capacity,
-                                        inCount = event.inCount,
-                                        pendingCount = event.pendingCount
-                                    )
-                                )
-                            },
-                            onNewEvent = { name -> navController.navigate(NewEvent(group.id, name)) }
-                        )
-                    }
-                }
-                composable<EditGroup> { entry ->
-                    val route = entry.toRoute<EditGroup>()
-                    EditGroupRoute(
-                        groupId = route.groupId,
-                        groupName = route.groupName,
-                        onBack = { navController.popBackStack() },
-                        onSaved = { navController.popBackStack() }
-                    )
-                }
-                composable<AddMemberByEmail> { entry ->
-                    val route = entry.toRoute<AddMemberByEmail>()
-                    AddMemberByEmailRoute(
-                        groupId = route.groupId,
-                        groupName = route.groupName,
-                        onClose = { navController.popBackStack() }
-                    )
-                }
-                composable<NewEvent> { entry ->
-                    val route = entry.toRoute<NewEvent>()
-                    NewEventRoute(
-                        groupId = route.groupId,
-                        onBack = { navController.popBackStack() },
-                        onEventCreated = { event ->
-                            navController.navigate(
-                                Event(
-                                    groupId = event.groupId,
-                                    groupName = route.groupName,
-                                    eventId = event.id,
-                                    title = event.title,
-                                    date = event.startsAt.toDisplayDate(),
-                                    location = event.location.orEmpty(),
-                                    capacity = event.capacity,
-                                    inCount = event.inCount,
-                                    pendingCount = event.pendingCount
-                                )
-                            ) {
-                                popUpTo(route) { inclusive = true }
-                            }
-                        }
-                    )
-                }
-                composable<Event> { entry ->
-                    val route = entry.toRoute<Event>()
-                    CompositionLocalProvider(LocalAnimatedVisibilityScope provides this@composable) {
-                        EventRoute(
-                            initialSummary = EventSummary(
-                                groupId = route.groupId,
-                                eventId = route.eventId,
-                                groupName = route.groupName,
-                                title = route.title,
-                                date = route.date,
-                                location = route.location,
-                                capacity = route.capacity,
-                                inCount = route.inCount,
-                                pendingCount = route.pendingCount
-                            ),
-                            onBack = { navController.popBackStack() },
-                            onAddPlayers = { eventId, groupId ->
-                                navController.navigate(AddPlayers(eventId, groupId))
-                            },
-                            onEditEvent = { summary, startsAt ->
-                                navController.navigate(
-                                    EditEvent(
-                                        eventId = summary.eventId,
-                                        groupId = summary.groupId,
-                                        title = summary.title,
-                                        startsAt = startsAt.toString(),
-                                        location = summary.location
-                                    )
-                                )
-                            }
-                        )
-                    }
-                }
-                composable<EditEvent> { entry ->
-                    val route = entry.toRoute<EditEvent>()
-                    EditEventRoute(
-                        initial = EditEventInitial(
-                            eventId = route.eventId,
-                            groupId = route.groupId,
-                            title = route.title,
-                            startsAt = Instant.parse(route.startsAt),
-                            location = route.location
-                        ),
-                        onBack = { navController.popBackStack() },
-                        onSaved = { navController.popBackStack() }
-                    )
-                }
-                composable<AddPlayers> { entry ->
-                    val route = entry.toRoute<AddPlayers>()
-                    AddPlayersRoute(
-                        eventId = route.eventId,
-                        groupId = route.groupId,
-                        onBack = { navController.popBackStack() }
-                    )
-                }
+                authGraph(navController, launchViewModel)
+                homeGraph(navController, onSignOut = launchViewModel::onSignOut)
+                groupGraph(navController)
+                eventGraph(navController)
             }
         }
     }
