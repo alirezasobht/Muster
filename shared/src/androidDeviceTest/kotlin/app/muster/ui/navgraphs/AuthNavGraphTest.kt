@@ -22,9 +22,9 @@ import app.muster.ui.screens.auth.SetName
 import app.muster.ui.screens.auth.authGraph
 import app.muster.ui.screens.auth.launch.LaunchUiState
 import app.muster.ui.screens.auth.launch.LaunchViewModel
-import kotlin.test.assertEquals
 import org.junit.Rule
 import org.junit.Test
+import kotlin.test.assertEquals
 
 class AuthNavGraphTest {
 
