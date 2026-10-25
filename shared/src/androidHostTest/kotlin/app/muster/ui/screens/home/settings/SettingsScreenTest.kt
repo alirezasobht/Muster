@@ -1,4 +1,4 @@
-package app.muster.ui.screens
+package app.muster.ui.screens.home.settings
 
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
@@ -12,13 +12,13 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import app.muster.APP_VERSION
 import app.muster.domain.error.DomainError
-import app.muster.ui.screens.home.settings.SettingsActions
-import app.muster.ui.screens.home.settings.SettingsScreen
-import app.muster.ui.screens.home.settings.SettingsUiState
 import app.muster.ui.theme.MusterTheme
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
+@RunWith(RobolectricTestRunner::class)
 class SettingsScreenTest {
 
     @get:Rule

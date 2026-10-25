@@ -1,4 +1,4 @@
-package app.muster.ui.screens
+package app.muster.ui.screens.event.addplayers
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -8,14 +8,13 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import app.muster.domain.error.DomainError
-import app.muster.ui.screens.event.addplayers.AddPlayersActions
-import app.muster.ui.screens.event.addplayers.AddPlayersScreen
-import app.muster.ui.screens.event.addplayers.AddPlayersUiState
-import app.muster.ui.screens.event.addplayers.CandidateRow
 import app.muster.ui.theme.MusterTheme
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
+@RunWith(RobolectricTestRunner::class)
 class AddPlayersScreenTest {
 
     @get:Rule

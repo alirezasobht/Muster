@@ -1,4 +1,4 @@
-package app.muster.ui.screens
+package app.muster.ui.screens.group
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -8,19 +8,17 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import app.muster.domain.error.DomainError
 import app.muster.domain.model.GroupRole
-import app.muster.ui.screens.group.GroupActions
-import app.muster.ui.screens.group.GroupOverflowAction
-import app.muster.ui.screens.group.GroupScreen
-import app.muster.ui.screens.group.GroupUiState
-import app.muster.ui.screens.group.OverflowDialogState
 import app.muster.ui.theme.MusterTheme
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
 // The overflow dialog itself is driven entirely by `overflowDialog` on
 // state — the screen never opens or closes one on its own. Tests either
 // check the menu asks the ViewModel to open one (onXRequested fires), or
 // preset `overflowDialog` and check the dialog it renders from that state.
+@RunWith(RobolectricTestRunner::class)
 class GroupScreenTest {
 
     @get:Rule
