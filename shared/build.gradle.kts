@@ -68,6 +68,7 @@ kotlin {
             sourceSetTreeName = "test"
         }.configure {
             instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+            instrumentationRunnerArguments["listener"] = "app.muster.ui.utils.AnimationRunListener"
         }
     }
 
