@@ -8,9 +8,9 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import app.muster.domain.error.DomainError
-import app.muster.ui.screens.editgroup.EditGroupActions
-import app.muster.ui.screens.editgroup.EditGroupScreen
-import app.muster.ui.screens.editgroup.EditGroupUiState
+import app.muster.ui.screens.group.editgroup.EditGroupActions
+import app.muster.ui.screens.group.editgroup.EditGroupScreen
+import app.muster.ui.screens.group.editgroup.EditGroupUiState
 import app.muster.ui.theme.MusterTheme
 import org.junit.Rule
 import org.junit.Test

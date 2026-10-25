@@ -10,9 +10,9 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import app.muster.domain.error.DomainError
-import app.muster.ui.screens.newevent.NewEventActions
-import app.muster.ui.screens.newevent.NewEventScreen
-import app.muster.ui.screens.newevent.NewEventUiState
+import app.muster.ui.screens.group.events.newevent.NewEventActions
+import app.muster.ui.screens.group.events.newevent.NewEventScreen
+import app.muster.ui.screens.group.events.newevent.NewEventUiState
 import app.muster.ui.theme.MusterTheme
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime

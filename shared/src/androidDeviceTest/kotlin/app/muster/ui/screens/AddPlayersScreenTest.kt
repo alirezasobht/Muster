@@ -8,10 +8,10 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import app.muster.domain.error.DomainError
-import app.muster.ui.screens.addplayers.AddPlayersActions
-import app.muster.ui.screens.addplayers.AddPlayersScreen
-import app.muster.ui.screens.addplayers.AddPlayersUiState
-import app.muster.ui.screens.addplayers.CandidateRow
+import app.muster.ui.screens.event.addplayers.AddPlayersActions
+import app.muster.ui.screens.event.addplayers.AddPlayersScreen
+import app.muster.ui.screens.event.addplayers.AddPlayersUiState
+import app.muster.ui.screens.event.addplayers.CandidateRow
 import app.muster.ui.theme.MusterTheme
 import org.junit.Rule
 import org.junit.Test
