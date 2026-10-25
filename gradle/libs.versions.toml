@@ -27,6 +27,7 @@ ktor = "3.5.1"
 material3 = "1.11.0-alpha07"
 navigation = "2.9.2"
 reorderable = "3.1.0"
+robolectric = "4.17"
 supabase = "3.8.0"
 
 [libraries]
@@ -64,6 +65,7 @@ koin-compose-viewmodel-navigation = { module = "io.insert-koin:koin-compose-view
 navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigation" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 compose-uiTest = { module = "org.jetbrains.compose.ui:ui-test", version.ref = "composeMultiplatform" }
 compose-uiTestJUnit4 = { module = "org.jetbrains.compose.ui:ui-test-junit4", version.ref = "composeMultiplatform" }
 compose-uiTestManifest = { module = "androidx.compose.ui:ui-test-manifest", version.ref = "androidx-composeUiTest" }

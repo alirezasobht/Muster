@@ -1,4 +1,4 @@
-package app.muster.ui.screens
+package app.muster.ui.screens.group.events
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -8,15 +8,13 @@ import androidx.compose.ui.test.performClick
 import app.muster.domain.error.DomainError
 import app.muster.domain.model.Event
 import app.muster.domain.model.emptyEvent
-import app.muster.ui.screens.group.events.EventRow
-import app.muster.ui.screens.group.events.EventsActions
-import app.muster.ui.screens.group.events.EventsTab
-import app.muster.ui.screens.group.events.EventsUiState
-import app.muster.ui.screens.group.events.MemberEventStatus
 import app.muster.ui.theme.MusterTheme
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
+@RunWith(RobolectricTestRunner::class)
 class EventsTabTest {
 
     @get:Rule
