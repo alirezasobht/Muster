@@ -1,4 +1,4 @@
-package app.muster.ui.screens
+package app.muster.ui.screens.group.members.tagname
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -9,14 +9,11 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import app.muster.domain.error.DomainError
-import app.muster.ui.screens.group.members.tagname.TagNameActions
-import app.muster.ui.screens.group.members.tagname.TagNameDialog
-import app.muster.ui.screens.group.members.tagname.TagNameDialogUiState
-import app.muster.ui.screens.group.members.tagname.TagNameMode
 import app.muster.ui.theme.MusterTheme
 import org.junit.Rule
 import org.junit.Test
 
+// A Compose Dialog with a text field never goes idle under Robolectric (and exhausts the heap), so this stays on the device.
 class MemberTagNameDialogTest {
 
     @get:Rule

@@ -1,18 +1,18 @@
-package app.muster.ui.screens
+package app.muster.ui.screens.group.members.movetotag
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import app.muster.ui.screens.group.members.movetotag.MoveToTagActions
-import app.muster.ui.screens.group.members.movetotag.MoveToTagSheet
-import app.muster.ui.screens.group.members.movetotag.TagOption
 import app.muster.ui.theme.MusterTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
+@RunWith(RobolectricTestRunner::class)
 class MoveToMemberTagSheetTest {
 
     @get:Rule

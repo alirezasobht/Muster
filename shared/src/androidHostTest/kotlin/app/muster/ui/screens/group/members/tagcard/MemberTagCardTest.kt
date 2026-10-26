@@ -1,4 +1,4 @@
-package app.muster.ui.screens
+package app.muster.ui.screens.group.members.tagcard
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -14,12 +14,13 @@ import app.muster.ui.screens.group.members.Reorder
 import app.muster.ui.screens.group.members.TagSection
 import app.muster.ui.screens.group.members.memberrow.MemberRowActions
 import app.muster.ui.screens.group.members.memberrow.MemberRowItem
-import app.muster.ui.screens.group.members.tagcard.TagCard
-import app.muster.ui.screens.group.members.tagcard.TagCardActions
 import app.muster.ui.theme.MusterTheme
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
+@RunWith(RobolectricTestRunner::class)
 class MemberTagCardTest {
 
     @get:Rule
