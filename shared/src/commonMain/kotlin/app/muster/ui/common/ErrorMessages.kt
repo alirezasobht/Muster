@@ -19,14 +19,23 @@ import muster.shared.generated.resources.error_not_allowed_to_create_groups
 import muster.shared.generated.resources.error_not_signed_in
 import muster.shared.generated.resources.error_rate_limited
 import muster.shared.generated.resources.error_standby_queue_stale
+import muster.shared.generated.resources.error_tag_list_changed
+import muster.shared.generated.resources.error_tag_name_taken
+import muster.shared.generated.resources.error_tag_name_too_long
 import muster.shared.generated.resources.error_unknown
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 // The only place a DomainError becomes display text. ViewModels keep the
 // error itself on their state, so no layer below the UI holds copy.
 @Composable
 fun DomainError.toMessage(): String = stringResource(
-    when (this) {
+    messageResource,
+    *(if (this is DomainError.TagNameTaken) arrayOf(name) else emptyArray())
+)
+
+private val DomainError.messageResource: StringResource
+    get() = when (this) {
         is DomainError.InvalidEmail -> Res.string.error_invalid_email
         is DomainError.InvalidCode -> Res.string.error_invalid_code
         is DomainError.RateLimited -> Res.string.error_rate_limited
@@ -43,6 +52,8 @@ fun DomainError.toMessage(): String = stringResource(
         is DomainError.InvitationSentTooRecently -> Res.string.error_invitation_sent_too_recently
         is DomainError.Network -> Res.string.error_network
         is DomainError.NotSignedIn -> Res.string.error_not_signed_in
+        is DomainError.TagNameTaken -> Res.string.error_tag_name_taken
+        is DomainError.TagNameTooLong -> Res.string.error_tag_name_too_long
+        is DomainError.TagListChanged -> Res.string.error_tag_list_changed
         is DomainError.Unknown -> Res.string.error_unknown
     }
-)

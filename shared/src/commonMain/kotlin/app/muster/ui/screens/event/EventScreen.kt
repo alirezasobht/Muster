@@ -60,6 +60,7 @@ import app.muster.ui.common.components.MusterPullToRefreshBox
 import app.muster.ui.common.components.MusterSpinner
 import app.muster.ui.common.components.PhoneWidth
 import app.muster.ui.common.components.PrimaryButton
+import app.muster.ui.common.components.TonalPill
 import app.muster.ui.common.toMessage
 import app.muster.ui.common.util.SharedTransitionKeys
 import app.muster.ui.common.util.sharedBoundsOrNone
@@ -404,7 +405,7 @@ private fun EventContent(
                             modifier = Modifier.weight(1f)
                         )
                         if (showAddAction && !state.isRosterEmpty) {
-                            AddPill(text = stringResource(Res.string.event_add), onClick = actions.onAddPlayers)
+                            TonalPill(text = stringResource(Res.string.event_add), onClick = actions.onAddPlayers)
                         }
                     }
                 }
@@ -484,24 +485,6 @@ private fun EventContent(
             },
             onDismiss = { pendingConfirmation = null }
         )
-    }
-}
-
-@Composable
-private fun AddPill(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        onClick = onClick,
-        modifier = modifier.height(36.dp),
-        shape = RoundedCornerShape(percent = 50),
-        color = MusterColors.InFill
-    ) {
-        Box(modifier = Modifier.padding(horizontal = 14.dp), contentAlignment = Alignment.Center) {
-            Text(text = text, style = MaterialTheme.typography.labelLarge, color = MusterColors.InText)
-        }
     }
 }
 

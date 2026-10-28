@@ -17,12 +17,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -34,16 +29,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -52,19 +43,18 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.muster.domain.error.DomainError
 import app.muster.ui.common.components.ConfirmDialog
 import app.muster.ui.common.components.MessageState
-import app.muster.ui.common.components.MusterIcons
 import app.muster.ui.common.components.MusterPullToRefreshBox
 import app.muster.ui.common.components.MusterSpinner
+import app.muster.ui.common.components.TonalPill
 import app.muster.ui.common.toMessage
+import app.muster.ui.screens.group.members.memberrow.MemberRowActions
+import app.muster.ui.screens.group.members.memberrow.MemberRowItem
+import app.muster.ui.screens.group.members.tagcard.TagCard
+import app.muster.ui.screens.group.members.tagcard.TagCardActions
+import app.muster.ui.screens.group.members.tagsintro.TagsIntroPanel
 import app.muster.ui.theme.MusterColors
 import app.muster.ui.theme.MusterTheme
 import muster.shared.generated.resources.Res
-import muster.shared.generated.resources.content_description_more
-import muster.shared.generated.resources.members_action_demote
-import muster.shared.generated.resources.members_action_promote
-import muster.shared.generated.resources.members_action_remove
-import muster.shared.generated.resources.members_action_resend
-import muster.shared.generated.resources.members_action_revoke
 import muster.shared.generated.resources.members_add_by_email
 import muster.shared.generated.resources.members_count
 import muster.shared.generated.resources.members_demote_body
@@ -74,6 +64,7 @@ import muster.shared.generated.resources.members_demote_title
 import muster.shared.generated.resources.members_empty_body
 import muster.shared.generated.resources.members_empty_title
 import muster.shared.generated.resources.members_failed_title
+import muster.shared.generated.resources.members_new_tag
 import muster.shared.generated.resources.members_pending_suffix
 import muster.shared.generated.resources.members_promote_body
 import muster.shared.generated.resources.members_promote_cancel
@@ -91,11 +82,15 @@ import muster.shared.generated.resources.members_revoke_body
 import muster.shared.generated.resources.members_revoke_cancel
 import muster.shared.generated.resources.members_revoke_confirm
 import muster.shared.generated.resources.members_revoke_title
-import muster.shared.generated.resources.members_status_admin
-import muster.shared.generated.resources.members_status_invited
-import muster.shared.generated.resources.members_status_member
+import muster.shared.generated.resources.members_section_invited
+import muster.shared.generated.resources.members_section_untagged
+import muster.shared.generated.resources.members_section_untagged_sort
 import muster.shared.generated.resources.members_try_again
-import muster.shared.generated.resources.members_you_suffix
+import muster.shared.generated.resources.tag_delete_body
+import muster.shared.generated.resources.tag_delete_body_empty
+import muster.shared.generated.resources.tag_delete_cancel
+import muster.shared.generated.resources.tag_delete_confirm
+import muster.shared.generated.resources.tag_delete_title
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -104,13 +99,11 @@ import org.koin.core.parameter.parametersOf
 
 data class MembersActions(
     val onAddMemberByEmail: () -> Unit,
-    val onPromote: (id: String) -> Unit,
-    val onDemote: (id: String) -> Unit,
-    val onRemove: (id: String) -> Unit,
-    val onRevokeInvitation: (id: String) -> Unit,
-    val onResendInvitation: (id: String) -> Unit,
     val onRetry: () -> Unit,
-    val onRefresh: () -> Unit = {}
+    val onRefresh: () -> Unit = {},
+    val onNewTag: () -> Unit = {},
+    val memberRowActions: MemberRowActions,
+    val tagCardActions: TagCardActions = TagCardActions()
 )
 
 @Composable
@@ -127,13 +120,15 @@ fun MembersRoute(
         state = state,
         actions = MembersActions(
             onAddMemberByEmail = onAddMemberByEmail,
-            onPromote = viewModel::onPromote,
-            onDemote = viewModel::onDemote,
-            onRemove = viewModel::onRemove,
-            onRevokeInvitation = viewModel::onRevokeInvitation,
-            onResendInvitation = viewModel::onResendInvitation,
             onRetry = viewModel::onRetry,
-            onRefresh = viewModel::onRefresh
+            onRefresh = viewModel::onRefresh,
+            memberRowActions = MemberRowActions(
+                onPromote = viewModel::onPromote,
+                onDemote = viewModel::onDemote,
+                onRemove = viewModel::onRemove,
+                onRevokeInvitation = viewModel::onRevokeInvitation,
+                onResendInvitation = viewModel::onResendInvitation
+            )
         ),
         actionErrorMessage = (state as? MembersUiState.Success)?.actionError?.toMessage(),
         modifier = modifier
@@ -240,13 +235,51 @@ private fun MembersContent(
     modifier: Modifier = Modifier
 ) {
     var pendingConfirmation by remember { mutableStateOf<PendingConfirmation?>(null) }
+    var pendingTagDelete by remember { mutableStateOf<TagSection?>(null) }
+
+    // The role and invitation items ask for confirmation first; the tag items go straight through.
+    fun rowActions(row: MemberRow): MemberRowActions {
+        val passed = actions.memberRowActions
+        fun confirm(
+            dialog: DialogStrings,
+            call: (String) -> Unit
+        ): (String) -> Unit = { id ->
+            pendingConfirmation = PendingConfirmation(row, dialog) { call(id) }
+        }
+        return passed.copy(
+            onPromote = confirm(PromoteDialog, passed.onPromote),
+            onDemote = confirm(DemoteDialog, passed.onDemote),
+            onRemove = confirm(RemoveDialog, passed.onRemove),
+            onRevokeInvitation = confirm(RevokeDialog, passed.onRevokeInvitation),
+            onResendInvitation = confirm(ResendDialog, passed.onResendInvitation)
+        )
+    }
+
+    @Composable
+    fun MemberItem(
+        row: MemberRow,
+        modifier: Modifier = Modifier,
+        horizontalPadding: Dp = 20.dp
+    ) {
+        MemberRowItem(
+            row = row,
+            actions = rowActions(row),
+            inFlight = state.actionTargetId == row.id,
+            errorMessage = actionErrorMessage.takeIf { state.failedActionId == row.id },
+            horizontalPadding = horizontalPadding,
+            modifier = modifier
+        )
+    }
 
     Column(modifier = modifier.fillMaxSize()) {
+        MemberCountLine(
+            memberCount = state.memberCount,
+            pendingCount = state.pendingCount,
+            onNewTag = actions.onNewTag.takeIf { state.showNewTagButton }
+        )
         if (state.canAddMembers) {
             AddMemberByEmailRow(onClick = actions.onAddMemberByEmail)
             HorizontalDivider(color = MusterColors.Hairline)
-        } else {
-            Spacer(Modifier.height(8.dp))
         }
         MusterPullToRefreshBox(
             isRefreshing = state.isRefreshing,
@@ -269,35 +302,70 @@ private fun MembersContent(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(vertical = 4.dp)
                 ) {
-                    item(key = "count") {
-                        MemberCountLine(memberCount = state.memberCount, pendingCount = state.pendingCount)
+                    if (state.showTagsIntro) {
+                        item(key = "tags_intro") {
+                            TagsIntroPanel(
+                                onNewTag = actions.onNewTag,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                            )
+                        }
                     }
-                    items(state.rows, key = { it.id }) { row ->
-                        MemberRowItem(
-                            row = row,
-                            inFlight = state.actionTargetId == row.id,
-                            errorMessage = actionErrorMessage.takeIf { state.failedActionId == row.id },
-                            onPromote = {
-                                pendingConfirmation = PendingConfirmation(row, PromoteDialog) { actions.onPromote(row.id) }
-                            },
-                            onDemote = {
-                                pendingConfirmation = PendingConfirmation(row, DemoteDialog) { actions.onDemote(row.id) }
-                            },
-                            onRequestRemove = {
-                                pendingConfirmation = PendingConfirmation(row, RemoveDialog) { actions.onRemove(row.id) }
-                            },
-                            onRevokeInvitation = {
-                                pendingConfirmation = PendingConfirmation(row, RevokeDialog) { actions.onRevokeInvitation(row.id) }
-                            },
-                            onResendInvitation = {
-                                pendingConfirmation = PendingConfirmation(row, ResendDialog) { actions.onResendInvitation(row.id) }
-                            },
-                            modifier = Modifier.animateItem()
-                        )
+                    if (state.tags.isEmpty()) {
+                        items(state.rows, key = { it.id }) { MemberItem(it, Modifier.animateItem()) }
+                    } else {
+                        // 5a/5b: tag cards in the admin's order, then Untagged A–Z, then Invited.
+                        items(state.tags, key = { "tag_${it.id}" }) { section ->
+                            TagCard(
+                                section = section,
+                                actions = actions.tagCardActions.copy(
+                                    onDelete = { id -> pendingTagDelete = state.tags.firstOrNull { it.id == id } }
+                                ),
+                                modifier = Modifier.animateItem().padding(horizontal = 16.dp, vertical = 6.dp)
+                            ) { MemberItem(it, horizontalPadding = 16.dp) }
+                        }
+                        val untagged = state.untaggedRows
+                        if (untagged.isNotEmpty()) {
+                            item(key = "untagged_header") {
+                                SectionHeader(
+                                    title = stringResource(Res.string.members_section_untagged),
+                                    count = untagged.size,
+                                    trailing = stringResource(Res.string.members_section_untagged_sort)
+                                )
+                            }
+                            items(untagged, key = { it.id }) { MemberItem(it, Modifier.animateItem()) }
+                        }
+                        val invited = state.invitedRows
+                        if (invited.isNotEmpty()) {
+                            item(key = "invited_header") {
+                                SectionHeader(title = stringResource(Res.string.members_section_invited), count = invited.size)
+                            }
+                            items(invited, key = { it.id }) { MemberItem(it, Modifier.animateItem()) }
+                        }
                     }
                 }
             }
         }
+    }
+
+    // 5s: even an empty tag asks first
+    pendingTagDelete?.let { tag ->
+        ConfirmDialog(
+            title = stringResource(Res.string.tag_delete_title, tag.name),
+            // English has no "zero" plural, so an empty tag can't use the plural's zero form.
+            body = if (tag.rows.isEmpty()) {
+                stringResource(Res.string.tag_delete_body_empty)
+            } else {
+                pluralStringResource(Res.plurals.tag_delete_body, tag.rows.size, tag.rows.size)
+            },
+            confirmText = stringResource(Res.string.tag_delete_confirm),
+            cancelText = stringResource(Res.string.tag_delete_cancel),
+            onConfirm = {
+                pendingTagDelete = null
+                actions.tagCardActions.onDelete(tag.id)
+            },
+            onDismiss = { pendingTagDelete = null },
+            destructive = true
+        )
     }
 
     pendingConfirmation?.let { pending ->
@@ -319,21 +387,59 @@ private fun MembersContent(
 private fun MemberCountLine(
     memberCount: Int,
     pendingCount: Int,
+    onNewTag: (() -> Unit)?,
     modifier: Modifier = Modifier
 ) {
-    Text(
-        text = buildAnnotatedString {
-            append(pluralStringResource(Res.plurals.members_count, memberCount, memberCount))
-            if (pendingCount > 0) {
-                withStyle(SpanStyle(color = MusterColors.Muted, fontWeight = FontWeight.Normal)) {
-                    append(stringResource(Res.string.members_pending_suffix, pendingCount))
+    Row(
+        modifier = modifier.fillMaxWidth().padding(start = 20.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = buildAnnotatedString {
+                append(pluralStringResource(Res.plurals.members_count, memberCount, memberCount))
+                if (pendingCount > 0) {
+                    withStyle(SpanStyle(color = MusterColors.Muted, fontWeight = FontWeight.Normal)) {
+                        append(stringResource(Res.string.members_pending_suffix, pendingCount))
+                    }
                 }
-            }
-        },
-        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-        color = MusterColors.Secondary,
-        modifier = modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 4.dp)
-    )
+            },
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+            color = MusterColors.Secondary,
+            modifier = Modifier.weight(1f)
+        )
+        if (onNewTag != null) {
+            TonalPill(text = stringResource(Res.string.members_new_tag), onClick = onNewTag)
+        }
+    }
+}
+
+@Composable
+private fun SectionHeader(
+    title: String,
+    count: Int,
+    modifier: Modifier = Modifier,
+    trailing: String? = null
+) {
+    Row(
+        modifier = modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 18.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = MusterColors.Ink
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = count.toString(),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MusterColors.Muted,
+            modifier = Modifier.weight(1f)
+        )
+        if (trailing != null) {
+            Text(text = trailing, style = MaterialTheme.typography.labelSmall, color = MusterColors.Hint)
+        }
+    }
 }
 
 @Composable
@@ -363,226 +469,9 @@ private fun AddMemberByEmailRow(
     }
 }
 
-@Composable
-private fun MemberRowItem(
-    row: MemberRow,
-    inFlight: Boolean,
-    errorMessage: String?,
-    onPromote: () -> Unit,
-    onDemote: () -> Unit,
-    onRequestRemove: () -> Unit,
-    onRevokeInvitation: () -> Unit,
-    onResendInvitation: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val isPending = row.status == MemberStatus.Pending
-
-    Column(modifier = modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (isPending) PendingAvatar() else InitialsAvatar(row.initials)
-            Spacer(Modifier.width(12.dp))
-            if (isPending) {
-                Text(
-                    text = row.displayName,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp, color = MusterColors.Secondary),
-                    modifier = Modifier.weight(1f)
-                )
-            } else {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = buildAnnotatedString {
-                            append(row.displayName)
-                            if (row.isSelf) {
-                                withStyle(SpanStyle(fontSize = 14.sp, color = MusterColors.Hint, fontWeight = FontWeight.Normal)) {
-                                    append(stringResource(Res.string.members_you_suffix))
-                                }
-                            }
-                        },
-                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium)
-                    )
-                    Text(
-                        text = stringResource(
-                            if (row.status == MemberStatus.Admin) {
-                                Res.string.members_status_admin
-                            } else {
-                                Res.string.members_status_member
-                            }
-                        ),
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.5.sp),
-                        color = MusterColors.Muted
-                    )
-                }
-            }
-            if (isPending) {
-                Spacer(Modifier.width(8.dp))
-                InvitedBadge()
-            }
-            if (row.hasMenu) {
-                Spacer(Modifier.width(4.dp))
-                RowMenu(
-                    row = row,
-                    inFlight = inFlight,
-                    onPromote = onPromote,
-                    onDemote = onDemote,
-                    onRemove = onRequestRemove,
-                    onRevoke = onRevokeInvitation,
-                    onResend = onResendInvitation
-                )
-            }
-        }
-        if (errorMessage != null) {
-            Spacer(Modifier.height(6.dp))
-            Text(text = errorMessage, style = MaterialTheme.typography.bodySmall, color = MusterColors.OutText)
-        }
-    }
-}
-
-// Reads row.canPromote/canDemote/canRemove/canRevokeInvitation/canResendInvitation as given —
-// which of them is true was already decided by the ViewModel.
-@Composable
-private fun RowMenu(
-    row: MemberRow,
-    inFlight: Boolean,
-    onPromote: () -> Unit,
-    onDemote: () -> Unit,
-    onRemove: () -> Unit,
-    onRevoke: () -> Unit,
-    onResend: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var expanded by remember { mutableStateOf(false) }
-    Box(modifier = modifier) {
-        if (inFlight) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(36.dp).padding(8.dp),
-                color = MusterColors.Muted,
-                strokeWidth = 2.dp
-            )
-        } else {
-            IconButton(onClick = { expanded = true }, modifier = Modifier.size(36.dp)) {
-                Icon(
-                    imageVector = MusterIcons.MoreVert,
-                    contentDescription = stringResource(Res.string.content_description_more),
-                    tint = MusterColors.Muted,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                if (row.canPromote) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(Res.string.members_action_promote)) },
-                        onClick = {
-                            expanded = false
-                            onPromote()
-                        }
-                    )
-                }
-                if (row.canDemote) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(Res.string.members_action_demote)) },
-                        onClick = {
-                            expanded = false
-                            onDemote()
-                        }
-                    )
-                }
-                if (row.canRemove) {
-                    DropdownMenuItem(
-                        text = {
-                            Text(text = stringResource(Res.string.members_action_remove), color = MusterColors.OutText)
-                        },
-                        onClick = {
-                            expanded = false
-                            onRemove()
-                        }
-                    )
-                }
-                if (row.canResendInvitation) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(Res.string.members_action_resend)) },
-                        onClick = {
-                            expanded = false
-                            onResend()
-                        }
-                    )
-                }
-                if (row.canRevokeInvitation) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(Res.string.members_action_revoke)) },
-                        onClick = {
-                            expanded = false
-                            onRevoke()
-                        }
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun InitialsAvatar(
-    initials: String,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier.size(40.dp),
-        shape = RoundedCornerShape(percent = 50),
-        color = MusterColors.AvatarFill
-    ) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(
-                text = initials,
-                style = MaterialTheme.typography.labelMedium.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
-                color = MusterColors.Secondary
-            )
-        }
-    }
-}
-
-// Compose has no built-in dashed border, so it's drawn by hand — same
-// technique as MessageState's DashedIconPlaceholder, circular and smaller.
-@Composable
-private fun PendingAvatar(modifier: Modifier = Modifier) {
-    val density = LocalDensity.current
-    val stroke = Stroke(
-        width = with(density) { 1.5.dp.toPx() },
-        pathEffect = PathEffect.dashPathEffect(floatArrayOf(3f, 3f))
-    )
-    Box(
-        modifier = modifier.size(40.dp).drawBehind {
-            drawOval(color = MusterColors.DashedOutline, style = stroke, size = Size(size.width, size.height))
-        },
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text = "@", fontSize = 16.sp, color = MusterColors.Hint)
-    }
-}
-
-@Composable
-private fun InvitedBadge(modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(percent = 50),
-        border = BorderStroke(1.dp, MusterColors.Outline),
-        color = MusterColors.White
-    ) {
-        Text(
-            text = stringResource(Res.string.members_status_invited),
-            style = MaterialTheme.typography.labelSmall,
-            color = MusterColors.Muted,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
-        )
-    }
-}
-
 private val PreviewActions = MembersActions(
     onAddMemberByEmail = {},
-    onPromote = {},
-    onDemote = {},
-    onRemove = {},
-    onRevokeInvitation = {},
-    onResendInvitation = {},
+    memberRowActions = MemberRowActions(),
     onRetry = {}
 )
 
@@ -623,6 +512,90 @@ private fun MembersTabAdminPreview() {
         Surface {
             MembersTab(
                 state = MembersUiState.Success(rows = AdminPreviewRows, canAddMembers = true),
+                actions = PreviewActions
+            )
+        }
+    }
+}
+
+// 5m
+@Preview
+@Composable
+private fun MembersTabAdminNoTagsPreview() {
+    MusterTheme {
+        Surface {
+            MembersTab(
+                state = MembersUiState.Success(rows = AdminPreviewRows, canAddMembers = true, canManageTags = true),
+                actions = PreviewActions
+            )
+        }
+    }
+}
+
+private fun previewTagged(
+    id: String,
+    name: String,
+    status: MemberStatus,
+    canMoveUp: Boolean,
+    canMoveDown: Boolean,
+    isSelf: Boolean = false
+) = MemberRow(
+    id = id,
+    displayName = name,
+    status = status,
+    isSelf = isSelf,
+    canMoveToTag = true,
+    reorder = Reorder(canMoveUp = canMoveUp, canMoveDown = canMoveDown),
+    canPromote = !isSelf && status == MemberStatus.Member,
+    canDemote = !isSelf && status == MemberStatus.Admin,
+    canRemove = !isSelf
+)
+
+private val PreviewTags = listOf(
+    TagSection(
+        id = "t1",
+        name = "Regular",
+        rows = listOf(
+            previewTagged("1", "Alex Doyle", MemberStatus.Admin, canMoveUp = false, canMoveDown = true, isSelf = true),
+            previewTagged("2", "Dan Whelan", MemberStatus.Admin, canMoveUp = true, canMoveDown = true),
+            previewTagged("3", "Marcus Keane", MemberStatus.Member, canMoveUp = true, canMoveDown = false)
+        ),
+        reorder = Reorder(canMoveUp = false, canMoveDown = true)
+    ),
+    TagSection(
+        id = "t2",
+        name = "Casual",
+        rows = listOf(previewTagged("4", "Leo Fanning", MemberStatus.Member, canMoveUp = false, canMoveDown = false)),
+        reorder = Reorder(canMoveUp = true, canMoveDown = true)
+    ),
+    TagSection(id = "t3", name = "Juniors", rows = emptyList(), reorder = Reorder(canMoveUp = true, canMoveDown = false))
+)
+
+private val PreviewUntaggedAndInvited = listOf(
+    MemberRow(id = "5", displayName = "Conor Blake", status = MemberStatus.Member, canMoveToTag = true, canPromote = true, canRemove = true),
+    MemberRow(id = "6", displayName = "Priya Nair", status = MemberStatus.Member, canMoveToTag = true, canPromote = true, canRemove = true),
+    MemberRow(
+        id = "7",
+        displayName = "kate.byrne@outlook.com",
+        status = MemberStatus.Pending,
+        canRevokeInvitation = true,
+        canResendInvitation = true
+    )
+)
+
+// 5a, 5b
+@Preview(heightDp = 1400)
+@Composable
+private fun MembersTabAdminWithTagsPreview() {
+    MusterTheme {
+        Surface {
+            MembersTab(
+                state = MembersUiState.Success(
+                    rows = PreviewUntaggedAndInvited,
+                    tags = PreviewTags,
+                    canAddMembers = true,
+                    canManageTags = true
+                ),
                 actions = PreviewActions
             )
         }

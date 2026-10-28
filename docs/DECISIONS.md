@@ -381,6 +381,49 @@ invitation emails), and access that differs by app version (the version
 is client-reported, and reviewers would see different behaviour from
 live users).
 
+## Member tags: their own table, admins only
+
+A member's tag is a row in `group_member_tags`, keyed by member, not a
+column on `group_members`. `group_keeps_an_admin` fires on every update
+to `group_members`, so a column would run it on every tag change; and
+allowing several tags later is a key change, not a migration of
+`group_members`.
+
+Tags are visible to admins only. A label like Casual next to someone's
+name can read as a ranking, and tags are an admin tool.
+
+The name limit (30) is a database CHECK only; the app maps the
+constraint to its own message rather than repeating the rule.
+
+Rejected: a `tag_id` column on `group_members`, and tags visible to
+everyone.
+
+## Tag layout is replaced whole, last write wins
+
+`set_group_tag_layout` takes every tag's ordered members in one call,
+like `set_standby_order`. A move between two tags is one atomic write,
+and the client never computes a position. Tag order has its own call,
+`set_group_tag_order`, so moving a card never re-sends members and
+can't undo another admin's member moves.
+`create_group_tag` takes optional members so "New tag…" from Move to
+tag creates the tag and moves the member in one transaction.
+
+Two admins saving at once: the later save wins. Accepted for groups with
+one or two admins.
+
+Rejected: one RPC per move (a cross-tag move would be two writes that
+can half-apply), and a revision token with a "list changed" error.
+
+## One members read, role included
+
+`get_group_members` returns the caller's role, members, and for admins
+pending invitations and tags, in one snapshot. One call replaces the
+role fetch plus the list, and members get empty admin parts at no extra
+cost, since the function checks the role once.
+
+Rejected: separate member and admin RPCs. The app would pick one from a
+role fetched earlier, and an admin demoted in between would hit an error.
+
 ## Releases run through a GitHub App
 
 Release prepare commits the version bump straight onto `dev` and opens
