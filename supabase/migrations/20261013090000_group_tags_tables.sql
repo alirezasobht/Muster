@@ -33,7 +33,6 @@ create table public.group_member_tags (
     group_id   uuid not null,
     profile_id uuid not null,
     tag_id     uuid not null,
-    position   int  not null check (position > 0),
 
     -- One tag per member.
     primary key (group_id, profile_id),
@@ -46,12 +45,6 @@ create table public.group_member_tags (
     foreign key (tag_id, group_id)
         references public.group_tags (id, group_id) on delete cascade
 );
-
-create unique index group_member_tags_position
-    on public.group_member_tags (tag_id, position);
-alter table public.group_member_tags
-    add constraint group_member_tags_position_unique
-    unique using index group_member_tags_position deferrable initially deferred;
 
 alter table public.group_tags        enable row level security;
 alter table public.group_member_tags enable row level security;

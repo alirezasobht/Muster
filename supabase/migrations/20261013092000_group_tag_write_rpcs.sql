@@ -5,7 +5,7 @@
 create or replace function public.create_group_tag(
     group_id uuid,
     name text,
-    profile_ids uuid[] default '{}'
+    profile_id uuid default null
 )
 returns setof public.group_tags
 language plpgsql
@@ -14,8 +14,6 @@ set search_path = ''
 as $$
 declare
     new_tag public.group_tags;
-    pid     uuid;
-    i       int := 0;
 begin
     if auth.uid() is null then
         raise exception 'not signed in';
@@ -33,12 +31,6 @@ begin
         raise exception 'only an admin can manage tags';
     end if;
 
-    if pg_catalog.cardinality(coalesce(profile_ids, '{}'::uuid[])) <> (
-        select count(distinct x) from pg_catalog.unnest(profile_ids) x
-    ) then
-        raise exception 'member listed twice';
-    end if;
-
     insert into public.group_tags as t (group_id, name, position)
     values (
         create_group_tag.group_id,
@@ -50,29 +42,25 @@ begin
     )
     returning t.* into new_tag;
 
-    -- Moves each listed member out of any other tag. Members who left
-    -- since the screen loaded are skipped.
-    foreach pid in array coalesce(profile_ids, '{}'::uuid[]) loop
-        if not exists (
-            select 1 from public.group_members gm
-            where gm.group_id = create_group_tag.group_id and gm.profile_id = pid
-        ) then
-            continue;
-        end if;
-
-        i := i + 1;
-        insert into public.group_member_tags (group_id, profile_id, tag_id, position)
-        values (create_group_tag.group_id, pid, new_tag.id, i)
+    -- Moves the member out of any other tag. A member who left since the
+    -- screen loaded is skipped.
+    if create_group_tag.profile_id is not null and exists (
+        select 1 from public.group_members gm
+        where gm.group_id = create_group_tag.group_id
+          and gm.profile_id = create_group_tag.profile_id
+    ) then
+        insert into public.group_member_tags (group_id, profile_id, tag_id)
+        values (create_group_tag.group_id, create_group_tag.profile_id, new_tag.id)
         on conflict on constraint group_member_tags_pkey
-        do update set tag_id = excluded.tag_id, position = excluded.position;
-    end loop;
+        do update set tag_id = excluded.tag_id;
+    end if;
 
     return next new_tag;
 end;
 $$;
 
-revoke all on function public.create_group_tag(uuid, text, uuid[]) from public, anon;
-grant execute on function public.create_group_tag(uuid, text, uuid[]) to authenticated;
+revoke all on function public.create_group_tag(uuid, text, uuid) from public, anon;
+grant execute on function public.create_group_tag(uuid, text, uuid) to authenticated;
 
 create or replace function public.update_group_tag(tag_id uuid, name text)
 returns setof public.group_tags

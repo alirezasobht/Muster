@@ -1,8 +1,8 @@
 -- The Members tab in one snapshot: the caller's role, every member, and
 -- for admins only the pending invitations and tags. Members get empty
 -- pending and tags; RLS already hides the tag tables from them.
--- A member's tag is not repeated on the member: the untagged members are
--- the ones no tag lists.
+-- Each member carries its tag_id, null when untagged; RLS hides the tag
+-- table from members, so for them it is always null.
 -- Nested arrays keep the API row limit from truncating any list.
 
 create or replace function public.get_group_members(group_id uuid)
@@ -30,7 +30,13 @@ as $$
                 pg_catalog.jsonb_build_object(
                     'profile_id', gm.profile_id,
                     'name', p.name,
-                    'role', gm.role
+                    'role', gm.role,
+                    'tag_id', (
+                        select mt.tag_id
+                        from public.group_member_tags mt
+                        where mt.group_id = gm.group_id
+                          and mt.profile_id = gm.profile_id
+                    )
                 )
             )
             from public.group_members gm
@@ -52,13 +58,7 @@ as $$
             select pg_catalog.jsonb_agg(
                 pg_catalog.jsonb_build_object(
                     'id', t.id,
-                    'name', t.name,
-                    'position', t.position,
-                    'members', coalesce((
-                        select pg_catalog.jsonb_agg(mt.profile_id order by mt.position)
-                        from public.group_member_tags mt
-                        where mt.tag_id = t.id
-                    ), '[]'::jsonb)
+                    'name', t.name
                 ) order by t.position
             )
             from public.group_tags t
