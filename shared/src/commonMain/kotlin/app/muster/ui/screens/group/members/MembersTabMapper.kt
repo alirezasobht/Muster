@@ -82,3 +82,21 @@ internal fun sortRows(memberRows: List<MemberRow>): List<MemberRow> {
         .sortedBy { it.displayName.lowercase() }
     return selfRows + admins + members
 }
+
+internal fun MembersTabUiState.Success.withMemberMoved(row: MemberRow, tagId: String?): MembersTabUiState.Success {
+    val moved = row.copy(tagId = tagId)
+    return copy(
+        tags = tags.map { section ->
+            val rows = section.rows.filter { it.id != row.id }
+            section.copy(rows = if (section.id == tagId) sortRows(rows + moved) else rows)
+        },
+        members = members.filter { it.id != row.id }.let { rest ->
+            if (tagId.isNullOrEmpty()) sortRows(rest + moved) else rest
+        },
+        movingProfileId = row.id,
+        actionTargetId = row.id,
+        actionError = null,
+        failedActionId = null,
+        moveError = null
+    )
+}

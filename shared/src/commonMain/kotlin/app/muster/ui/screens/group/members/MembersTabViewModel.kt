@@ -91,25 +91,9 @@ class MembersTabViewModel(
         val row = (current.tags.flatMap { it.rows } + current.members).firstOrNull { it.id == profileId } ?: return
         if (row.tagId.orEmpty() == tagId.orEmpty()) return
         if (!tagId.isNullOrEmpty() && current.tags.none { it.id == tagId }) return
-        val moved = row.copy(tagId = tagId)
         val previousTags = current.tags
         val previousMembers = current.members
-        _state.updateSuccess {
-            it.copy(
-                tags = it.tags.map { section ->
-                    val rows = section.rows.filter { r -> r.id != profileId }
-                    section.copy(rows = if (section.id == tagId) sortRows(rows + moved) else rows)
-                },
-                members = it.members.filter { r -> r.id != profileId }.let { rest ->
-                    if (tagId.isNullOrEmpty()) sortRows(rest + moved) else rest
-                },
-                movingProfileId = profileId,
-                actionTargetId = profileId,
-                actionError = null,
-                failedActionId = null,
-                moveError = null
-            )
-        }
+        _state.updateSuccess { it.withMemberMoved(row, tagId) }
         viewModelScope.launch {
             try {
                 setMemberTag(groupId, profileId, tagId)
