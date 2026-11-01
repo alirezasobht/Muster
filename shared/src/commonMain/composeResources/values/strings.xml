@@ -147,6 +147,7 @@
     <string name="content_description_tag_options">Tag options</string>
     <string name="members_section_untagged">Untagged</string>
     <string name="members_section_untagged_sort">A–Z</string>
+    <string name="members_untagged_drop_hint">Drop here to remove the tag</string>
     <string name="members_section_invited">Invited</string>
     <string name="tag_name_new_title">New tag</string>
     <string name="tag_name_rename_title">Rename tag</string>

@@ -48,6 +48,7 @@ import muster.shared.generated.resources.Res
 import muster.shared.generated.resources.action_move_down
 import muster.shared.generated.resources.action_move_up
 import muster.shared.generated.resources.content_description_tag_options
+import muster.shared.generated.resources.members_untagged_drop_hint
 import muster.shared.generated.resources.tag_action_delete
 import muster.shared.generated.resources.tag_action_rename
 import muster.shared.generated.resources.tag_empty_hint
@@ -180,8 +181,16 @@ fun TagCardRowFrame(
 @Composable
 fun MemberTagCardEmptyHint(modifier: Modifier = Modifier) {
     Box(modifier = modifier.fillMaxWidth().tagCardFrame(TagCardPosition.Last)) {
-        EmptyTagHint(modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp))
+        EmptyTagHint(
+            text = stringResource(Res.string.tag_empty_hint),
+            modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp)
+        )
     }
+}
+
+@Composable
+fun MemberUntaggedDropHint(modifier: Modifier = Modifier) {
+    EmptyTagHint(text = stringResource(Res.string.members_untagged_drop_hint), modifier = modifier)
 }
 
 // Delete is ink like the other items: the palette has no destructive colour.
@@ -229,7 +238,10 @@ private fun CardMenu(
 }
 
 @Composable
-private fun EmptyTagHint(modifier: Modifier = Modifier) {
+private fun EmptyTagHint(
+    text: String,
+    modifier: Modifier = Modifier
+) {
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -248,7 +260,7 @@ private fun EmptyTagHint(modifier: Modifier = Modifier) {
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = stringResource(Res.string.tag_empty_hint),
+            text = text,
             style = MaterialTheme.typography.bodySmall,
             color = MusterColors.Muted,
             textAlign = TextAlign.Center

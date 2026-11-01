@@ -53,6 +53,7 @@ import app.muster.ui.screens.group.members.components.MemberRowItem
 import app.muster.ui.screens.group.members.components.MemberTagCardActions
 import app.muster.ui.screens.group.members.components.MemberTagCardEmptyHint
 import app.muster.ui.screens.group.members.components.MemberTagCardHeader
+import app.muster.ui.screens.group.members.components.MemberUntaggedDropHint
 import app.muster.ui.screens.group.members.components.TagCardPosition
 import app.muster.ui.screens.group.members.components.TagCardRowFrame
 import app.muster.ui.screens.group.members.components.TagCardRowPadding
@@ -312,7 +313,7 @@ private fun MembersList(
     val drag = MemberDragCallbacks(
         enabled = state.actionTargetId == null && dragLayout?.settling != true,
         onStart = { rowId ->
-            val current = dragLayout?.entries ?: buildEntries(latestState)
+            val current = buildEntries(latestState, dragging = true)
             dragLayout = DragLayout(entries = current, draggedId = rowId, origin = current.sectionOf(rowId))
         },
         onStop = {
@@ -388,20 +389,44 @@ private data class RowEntry(val row: MemberRow) : MembersEntry {
     override val key: String get() = row.id
 }
 
-private fun buildEntries(state: MembersTabUiState.Success): List<MembersEntry> {
+// Drop placeholder of a section without rows. It is a swap target for the dragged row but never draggable.
+private data class HintEntry(val section: ListSection) : MembersEntry {
+    override val key: String
+        get() = when (section) {
+            is ListSection.Tag -> "tag_empty_${section.id}"
+            else -> "untagged_empty"
+        }
+}
+
+private fun buildEntries(
+    state: MembersTabUiState.Success,
+    dragging: Boolean = false
+): List<MembersEntry> {
     val hasTags = state.tags.isNotEmpty()
-    return buildList {
+    return buildList<MembersEntry> {
         state.tags.forEach { section ->
             add(HeaderEntry(ListSection.Tag(section.id)))
             section.rows.forEach { add(RowEntry(it)) }
         }
-        if (state.members.isNotEmpty()) {
+        if (state.members.isNotEmpty() || (dragging && hasTags)) {
             if (hasTags) add(HeaderEntry(ListSection.Untagged))
             state.members.forEach { add(RowEntry(it)) }
         }
         if (state.pendings.isNotEmpty()) {
             if (hasTags) add(HeaderEntry(ListSection.Invited))
             state.pendings.forEach { add(RowEntry(it)) }
+        }
+    }.withHints()
+}
+
+private fun List<MembersEntry>.withHints(): List<MembersEntry> {
+    val rest = filterNot { it is HintEntry }
+    return buildList {
+        rest.forEachIndexed { index, entry ->
+            add(entry)
+            if (entry is HeaderEntry && entry.section != ListSection.Invited && rest.getOrNull(index + 1) !is RowEntry) {
+                add(HintEntry(entry.section))
+            }
         }
     }
 }
@@ -428,7 +453,7 @@ private data class DragLayout(
         if (from < 0 || to < 0 || from == to) return this
         val reordered = entries.toMutableList()
         reordered.add(to, reordered.removeAt(from))
-        return copy(entries = reordered)
+        return copy(entries = reordered.withHints())
     }
 
     fun destination(): ListSection = entries.sectionOf(draggedId)
@@ -474,6 +499,15 @@ private fun LazyListScope.entriesSection(
                             count = rows.size,
                             modifier = Modifier.animateItem()
                         )
+                    }
+                }
+            }
+
+            is HintEntry -> item(key = entry.key) {
+                ReorderableItem(reorderableState, key = entry.key, modifier = Modifier.fillMaxWidth()) {
+                    when (entry.section) {
+                        is ListSection.Tag -> MemberTagCardEmptyHint(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 6.dp))
+                        else -> MemberUntaggedDropHint(Modifier.padding(horizontal = 20.dp, vertical = 6.dp))
                     }
                 }
             }
@@ -534,11 +568,6 @@ private fun LazyListScope.tagHeaderItems(
                 modifier = Modifier.animateItem().padding(start = 16.dp, end = 16.dp, top = 6.dp),
                 errorMessage = errorFor(tagId)
             )
-        }
-    }
-    if (rows.isEmpty()) {
-        item(key = "tag_empty_$tagId") {
-            MemberTagCardEmptyHint(modifier = Modifier.animateItem().padding(start = 16.dp, end = 16.dp, bottom = 6.dp))
         }
     }
 }
