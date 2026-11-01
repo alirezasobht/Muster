@@ -165,7 +165,7 @@ class MembersTabViewModel(
             id = tag.id,
             name = tag.name,
             rows = buildMemberRows(
-                members = listing.members.filter { it.tagId.equals(tag.id) },
+                members = listing.members.filter { it.tagId == tag.id },
                 myProfileId = myProfileId,
                 isAdmin = isAdmin
             ),

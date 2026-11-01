@@ -128,10 +128,8 @@ A member's tag. Untagged members have no row.
 | group_id | uuid | |
 | profile_id | uuid | |
 | tag_id | uuid | |
-| position | int | > 0, order within the tag |
 
 - PK `(group_id, profile_id)`: at most one tag per member
-- UNIQUE `(tag_id, position)`, **deferrable**
 - FK `(group_id, profile_id)` → `group_members (group_id, profile_id)`
   `ON DELETE CASCADE`: a member who leaves or is removed loses their tag,
   and rejoining doesn't bring it back
@@ -367,12 +365,12 @@ calls one by name must qualify it, `private.is_group_admin(...)`.
 | `get_my_profile()` | `security definer`: the caller's profile as `my_profile` (`id, name, email, can_create_groups`), the flag from `can_create_groups()`. The app reads its profile here, not from `profiles` |
 | `create_group(name)` | `security definer`: requires a signed-in caller that `can_create_groups()` allows, locking their profile row first, sets the creator, and returns the created group. The existing trigger creates its admin membership |
 | `update_group(group_id, name)` | `security definer`: requires an admin, locks the live group, and returns the updated group. Takes every editable group field, so a new one extends it |
-| `get_group_members(group_id)` | read-only `security invoker`: one row with the caller's role, every member with name and role, and, for admins only, pending invitations and tags. Tags come in order, each with its member ids in order; a member is untagged when no tag lists them. A member gets empty `pending` and `tags`. The Members tab and Add players read here |
-| `create_group_tag(group_id, name, profile_ids)` | `security definer`: requires an admin, locks the live group, adds the tag at the end and returns it. `profile_ids` is optional: those members move into the new tag in the given order, leaving any previous tag, in the same transaction. Non-members are skipped |
+| `get_group_members(group_id)` | read-only `security invoker`: one row with the caller's role, every member with name, role and `tag_id` (null when untagged), and, for admins only, pending invitations and the tags in order. A member gets empty `pending` and `tags`, and a null `tag_id`. The Members tab and Add players read here |
+| `create_group_tag(group_id, name, profile_id)` | `security definer`: requires an admin, locks the live group, adds the tag at the end and returns it. `profile_id` is optional: that member moves into the new tag, leaving any previous tag, in the same transaction. A non-member is skipped |
 | `update_group_tag(tag_id, name)` | `security definer`: requires an admin, locks the tag's live group, returns the tag. Takes every editable tag field |
 | `delete_group_tag(tag_id)` | `security definer`: requires an admin, locks the tag's live group, deletes the tag; its members become untagged by cascade. Raises if nothing matched |
-| `set_group_tag_layout(group_id, layout)` | `security definer`: requires an admin, locks the live group, and replaces every tag's members. `layout` is an array of `{tag_id, profile_ids}`, members in order; it doesn't change the tag order. Members not listed become untagged. Non-members and tags deleted meanwhile are skipped; tags missing from `layout` keep their members. A member listed twice raises |
-| `set_group_tag_order(group_id, tag_ids)` | `security definer`: requires an admin, locks the live group, and rewrites tag positions 1..n in the given order. Members are untouched, so a card move from a stale screen can't undo another admin's member moves. Tags deleted meanwhile are skipped; tags missing from `tag_ids` follow the listed ones in their old order. A tag listed twice raises |
+| `set_member_tag(group_id, profile_id, tag_id)` | `security definer`: requires an admin, locks the live group, and puts one member in one tag, replacing any previous tag; a null `tag_id` untags them. One row per move, so two admins moving different members never overwrite each other. A tag that no longer exists raises; a member who left is skipped |
+| `set_group_tag_order(group_id, tag_ids)` | `security definer`: requires an admin, locks the live group, and rewrites tag positions 1..n in the given order. Tags deleted meanwhile are skipped; tags missing from `tag_ids` follow the listed ones in their old order. A tag listed twice raises |
 | `archive_group(group_id)` | `security definer`: locks a live group, requires its admin, and sets the archive timestamp on the server; raises for a missing or already archived group |
 | `accept_group_invitation(id)` | accepts a pending group invitation addressed to the caller's profile email. Locks the invitation then its live group; creates membership and marks accepted atomically |
 | `decline_group_invitation(id)` | declines a pending group invitation addressed to the caller's profile email. Same locks as accept; creates no membership |
@@ -621,9 +619,6 @@ The app never writes directly to these tables.
 
 ### Known limits
 
-- **Lost update on the tag layout.** `set_group_tag_layout` replaces
-  every tag's members, so two admins saving from stale screens lose the
-  earlier save. Last write wins, as with the standby queue below.
 - **Lost update on the standby queue.** `set_standby_order` replaces the
   whole queue. Two admins on stale screens — one adds C, the other
   submits the list without C — and C is silently dropped. The stale check

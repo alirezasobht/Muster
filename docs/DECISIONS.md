@@ -398,21 +398,22 @@ constraint to its own message rather than repeating the rule.
 Rejected: a `tag_id` column on `group_members`, and tags visible to
 everyone.
 
-## Tag layout is replaced whole, last write wins
+## One member, one tag, no member order
 
-`set_group_tag_layout` takes every tag's ordered members in one call,
-like `set_standby_order`. A move between two tags is one atomic write,
-and the client never computes a position. Tag order has its own call,
-`set_group_tag_order`, so moving a card never re-sends members and
-can't undo another admin's member moves.
-`create_group_tag` takes optional members so "New tag…" from Move to
+`set_member_tag` moves one member into one tag, or untags them, in a
+single row write. Two admins moving different members never overwrite
+each other, so there is no layout to replace and no stale-screen
+conflict. Members inside a tag have no stored order: they always show
+self first, then admins, then members, each A–Z, the same as Untagged.
+Only the tags are ordered, by `set_group_tag_order`, which replaces the
+tag order whole like `set_standby_order`; the client never computes a
+position.
+`create_group_tag` takes an optional member so "New tag…" from Move to
 tag creates the tag and moves the member in one transaction.
 
-Two admins saving at once: the later save wins. Accepted for groups with
-one or two admins.
-
-Rejected: one RPC per move (a cross-tag move would be two writes that
-can half-apply), and a revision token with a "list changed" error.
+Rejected: a stored order for members within a tag, and replacing every
+tag's members in one call (a stale screen would undo another admin's
+moves).
 
 ## One members read, role included
 
