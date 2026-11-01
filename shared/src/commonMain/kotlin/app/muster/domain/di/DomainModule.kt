@@ -22,6 +22,8 @@ import app.muster.domain.usecase.ListGroupMembersUseCase
 import app.muster.domain.usecase.ListMyGroupsUseCase
 import app.muster.domain.usecase.ListPendingInvitationsUseCase
 import app.muster.domain.usecase.ListUpcomingEventsUseCase
+import app.muster.domain.usecase.MoveTagDownUseCase
+import app.muster.domain.usecase.MoveTagUpUseCase
 import app.muster.domain.usecase.ObserveSessionUseCase
 import app.muster.domain.usecase.PromoteMemberUseCase
 import app.muster.domain.usecase.RemoveMemberUseCase
@@ -76,6 +78,8 @@ val domainModule = module {
     factoryOf(::RenameTagUseCase)
     factoryOf(::SetMemberTagUseCase)
     factoryOf(::SetTagOrderUseCase)
+    factoryOf(::MoveTagUpUseCase)
+    factoryOf(::MoveTagDownUseCase)
     factoryOf(::RevokeInvitationUseCase)
     factoryOf(::ResendInvitationUseCase)
     factoryOf(::LeaveGroupUseCase)

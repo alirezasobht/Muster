@@ -43,7 +43,7 @@ val uiModule = module {
     viewModel { (groupId: String, groupName: String) -> EditGroupViewModel(groupId, groupName, get()) }
     // Group id comes from the Members tab's host (GroupRoute), not the graph.
     viewModel { (groupId: String) ->
-        MembersTabViewModel(groupId, get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get())
+        MembersTabViewModel(groupId, get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get())
     }
     // Group id comes from the Members tab's host (GroupRoute), not the graph.
     viewModel { (groupId: String, mode: MemberTagNameMode) -> MemberTagNameDialogViewModel(groupId, mode, get(), get()) }

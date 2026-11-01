@@ -112,8 +112,8 @@ fun MembersTabRoute(
             ),
             onCreateTag = onCreateTag,
             onDeleteTag = viewModel::onDeleteTag,
-            onMoveUpTag = {},
-            onMoveDownTag = {},
+            onMoveUpTag = viewModel::onMoveTagUp,
+            onMoveDownTag = viewModel::onMoveTagDown,
             onRenameTag = onRenameMemberTag
         ),
         actionErrorMessage = (state as? MembersTabUiState.Success)?.actionError?.toMessage(),

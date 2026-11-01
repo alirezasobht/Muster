@@ -14,6 +14,8 @@ import app.muster.domain.usecase.DemoteMemberUseCase
 import app.muster.domain.usecase.GetMyGroupRoleUseCase
 import app.muster.domain.usecase.GetMyProfileUseCase
 import app.muster.domain.usecase.ListGroupMembersUseCase
+import app.muster.domain.usecase.MoveTagDownUseCase
+import app.muster.domain.usecase.MoveTagUpUseCase
 import app.muster.domain.usecase.PromoteMemberUseCase
 import app.muster.domain.usecase.RemoveMemberUseCase
 import app.muster.domain.usecase.ResendInvitationUseCase
@@ -38,6 +40,8 @@ class MembersTabViewModel(
     private val resendInvitation: ResendInvitationUseCase,
     private val deleteTag: DeleteTagUseCase,
     private val setMemberTag: SetMemberTagUseCase,
+    private val moveTagUp: MoveTagUpUseCase,
+    private val moveTagDown: MoveTagDownUseCase,
     dataChanges: DataChanges
 ) : ViewModel() {
 
@@ -84,10 +88,11 @@ class MembersTabViewModel(
 
     fun onDeleteTag(tagId: String) = performAction(tagId) { deleteTag(groupId, tagId) }
 
-    fun onSetMemberTag(
-        profileId: String,
-        tagId: String?
-    ) = performAction(profileId, reportsOnRow = false) { setMemberTag(groupId, profileId, tagId) }
+    fun onSetMemberTag(profileId: String, tagId: String?) = performAction(profileId, reportsOnRow = false) { setMemberTag(groupId, profileId, tagId) }
+
+    fun onMoveTagUp(tagId: String) = performAction(tagId) { moveTagUp(groupId, currentTagIds(), tagId) }
+
+    fun onMoveTagDown(tagId: String) = performAction(tagId) { moveTagDown(groupId, currentTagIds(), tagId) }
 
     private fun load() {
         _state.value = MembersTabUiState.Loading
@@ -224,4 +229,6 @@ class MembersTabViewModel(
             .sortedBy { it.displayName.lowercase() }
         return selfRows + admins + members
     }
+
+    private fun currentTagIds(): List<String> = (_state.value as? MembersTabUiState.Success)?.tags.orEmpty().map { it.id }
 }
