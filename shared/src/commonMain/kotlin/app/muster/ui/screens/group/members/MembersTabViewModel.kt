@@ -87,7 +87,7 @@ class MembersTabViewModel(
     fun onSetMemberTag(
         profileId: String,
         tagId: String?
-    ) = performAction(profileId) { setMemberTag(groupId, profileId, tagId) }
+    ) = performAction(profileId, reportsOnRow = false) { setMemberTag(groupId, profileId, tagId) }
 
     private fun load() {
         _state.value = MembersTabUiState.Loading
@@ -125,17 +125,24 @@ class MembersTabViewModel(
     // subscription above reloads. Refetching as well would fetch twice.
     private fun performAction(
         targetId: String,
+        reportsOnRow: Boolean = true,
         action: suspend () -> Unit
     ) {
         val current = _state.value as? MembersTabUiState.Success ?: return
         if (current.actionTargetId != null) return
-        _state.updateSuccess { it.copy(actionTargetId = targetId, actionError = null, failedActionId = null) }
+        _state.updateSuccess { it.copy(actionTargetId = targetId, actionError = null, failedActionId = null, moveError = null) }
         viewModelScope.launch {
             try {
                 action()
                 _state.updateSuccess { it.copy(actionTargetId = null) }
             } catch (e: DomainError) {
-                _state.updateSuccess { it.copy(actionTargetId = null, actionError = e, failedActionId = targetId) }
+                _state.updateSuccess {
+                    if (reportsOnRow) {
+                        it.copy(actionTargetId = null, actionError = e, failedActionId = targetId)
+                    } else {
+                        it.copy(actionTargetId = null, moveError = e)
+                    }
+                }
             }
         }
     }

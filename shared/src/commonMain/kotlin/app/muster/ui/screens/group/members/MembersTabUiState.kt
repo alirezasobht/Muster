@@ -58,6 +58,8 @@ sealed interface MembersTabUiState : UiState<MembersTabUiState.Success> {
         val actionTargetId: String? = null,
         val actionError: DomainError? = null,
         val failedActionId: String? = null,
+        // A failed Move to tag, shown under the header: the member may sit in a tag card.
+        val moveError: DomainError? = null,
         val canAddMembers: Boolean = false,
         val canManageTags: Boolean = false
     ) : MembersTabUiState {

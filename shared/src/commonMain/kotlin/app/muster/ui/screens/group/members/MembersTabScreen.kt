@@ -223,6 +223,14 @@ private fun MembersHeader(
         pendingCount = state.pendingCount,
         onNewTag = { actions.onCreateTag() }.takeIf { state.showNewTagButton }
     )
+    state.moveError?.let {
+        Text(
+            text = it.toMessage(),
+            style = MaterialTheme.typography.bodySmall,
+            color = MusterColors.OutText,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 6.dp)
+        )
+    }
     if (state.canAddMembers) {
         AddMemberByEmailRow(onClick = actions.onAddMemberByEmail)
         HorizontalDivider(color = MusterColors.Hairline)
@@ -269,7 +277,9 @@ private fun MembersList(
         introPanelSection(state, { actions.onCreateTag() })
         val hasTags = state.tags.isNotEmpty()
         if (hasTags) {
-            tagsSection(state.tags, actions, requestTagDelete, rowItem)
+            tagsSection(state.tags, actions, requestTagDelete, rowItem) { tagId ->
+                actionErrorMessage.takeIf { state.failedActionId == tagId }
+            }
         }
         if (state.members.isNotEmpty()) {
             membersSection(state.members, showHeader = hasTags, rowItem = rowItem)
@@ -300,7 +310,8 @@ private fun LazyListScope.tagsSection(
     tags: List<TagSection>,
     actions: MembersTabActions,
     requestTagDelete: (TagSection) -> Unit,
-    rowItem: @Composable (MemberRow, Modifier, PaddingValues) -> Unit
+    rowItem: @Composable (MemberRow, Modifier, PaddingValues) -> Unit,
+    errorFor: (String) -> String?
 ) {
     items(tags, key = { "tag_${it.id}" }) { section ->
         val tagId = section.id
@@ -312,7 +323,8 @@ private fun LazyListScope.tagsSection(
                 onMoveDown = { actions.onMoveDownTag(tagId) },
                 onRename = { actions.onRenameTag(tagId, section.name, section.rows.size) }
             ),
-            modifier = Modifier.animateItem().padding(horizontal = 16.dp, vertical = 6.dp)
+            modifier = Modifier.animateItem().padding(horizontal = 16.dp, vertical = 6.dp),
+            errorMessage = errorFor(tagId)
         ) { rowItem(it, Modifier.animateItem(), TagCardRowPadding) }
     }
 }

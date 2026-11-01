@@ -67,6 +67,7 @@ fun MemberTagCard(
     section: TagSection,
     actions: MemberTagCardActions,
     modifier: Modifier = Modifier,
+    errorMessage: String? = null,
     row: @Composable (MemberRow) -> Unit
 ) {
     Surface(
@@ -93,6 +94,14 @@ fun MemberTagCard(
                     modifier = Modifier.weight(1f)
                 )
                 CardMenu(tagId = section.id, reorder = section.reorder, actions = actions)
+            }
+            if (errorMessage != null) {
+                Text(
+                    text = errorMessage,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MusterColors.OutText,
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
+                )
             }
             if (section.rows.isEmpty()) {
                 EmptyTagHint(modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp))
