@@ -597,6 +597,28 @@ private fun MembersTabScreenAdminWithTagsPreview() {
     }
 }
 
+@Preview(heightDp = 1400)
+@Composable
+private fun MembersTabScreenTagErrorsPreview() {
+    MusterTheme {
+        Surface {
+            MembersTabScreen(
+                state = MembersTabUiState.Success(
+                    tags = PreviewTags,
+                    members = PreviewUntagged,
+                    pendings = PreviewInvited,
+                    canAddMembers = true,
+                    canManageTags = true,
+                    actionError = DomainError.Network(),
+                    failedActionId = "t1",
+                    moveError = DomainError.Network()
+                ),
+                actions = PreviewActions
+            )
+        }
+    }
+}
+
 @Preview
 @Composable
 private fun MembersTabScreenMemberPreview() {

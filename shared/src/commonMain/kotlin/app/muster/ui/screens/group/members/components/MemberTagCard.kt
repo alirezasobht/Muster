@@ -214,10 +214,10 @@ private val PreviewRows = listOf(
 )
 
 @Composable
-private fun TagCardPreview(section: TagSection) {
+private fun TagCardPreview(section: TagSection, errorMessage: String? = null) {
     MusterTheme {
         Surface {
-            MemberTagCard(section = section, actions = MemberTagCardActions(), modifier = Modifier.padding(16.dp)) {
+            MemberTagCard(section = section, actions = MemberTagCardActions(), errorMessage = errorMessage, modifier = Modifier.padding(16.dp)) {
                 MemberRowItem(row = it, memberRowActions = MemberRowActions(), inFlight = false, errorMessage = null, isPending = false, contentPadding = TagCardRowPadding)
             }
         }
@@ -230,6 +230,15 @@ private fun TagCardPreview(section: TagSection) {
 private fun TagCardWithMembersPreview() {
     TagCardPreview(
         TagSection(id = "t1", name = "Regular", rows = PreviewRows, reorder = Reorder(canMoveUp = false, canMoveDown = true))
+    )
+}
+
+@Preview
+@Composable
+private fun TagCardDeleteErrorPreview() {
+    TagCardPreview(
+        TagSection(id = "t1", name = "Regular", rows = PreviewRows, reorder = Reorder(canMoveUp = false, canMoveDown = true)),
+        errorMessage = "Can’t connect. Check your connection and try again."
     )
 }
 
