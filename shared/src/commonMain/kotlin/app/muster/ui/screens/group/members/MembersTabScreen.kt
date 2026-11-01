@@ -270,7 +270,15 @@ private fun MembersList(
         val inFlight = row.inFlight(state.actionTargetId)
         val errorMessage = actionErrorMessage.takeIf { state.failedActionId == row.id }
         val isPending = row.status == MemberStatus.Pending
-        MemberRowItem(row, requestMemberRowActions(row), inFlight, errorMessage, isPending, modifier, contentPadding)
+        MemberRowItem(
+            row = row,
+            memberRowActions = requestMemberRowActions(row),
+            inFlight = inFlight,
+            errorMessage = errorMessage,
+            isPending = isPending,
+            modifier = modifier,
+            contentPadding = contentPadding
+        )
     }
 
     LazyColumn(
