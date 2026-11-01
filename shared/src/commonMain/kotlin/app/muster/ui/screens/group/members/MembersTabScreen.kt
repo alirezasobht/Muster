@@ -45,8 +45,11 @@ import app.muster.ui.common.components.TonalPill
 import app.muster.ui.common.toMessage
 import app.muster.ui.screens.group.members.components.MemberOperations
 import app.muster.ui.screens.group.members.components.MemberRowItem
-import app.muster.ui.screens.group.members.components.MemberTagCard
 import app.muster.ui.screens.group.members.components.MemberTagCardActions
+import app.muster.ui.screens.group.members.components.MemberTagCardEmptyHint
+import app.muster.ui.screens.group.members.components.MemberTagCardHeader
+import app.muster.ui.screens.group.members.components.TagCardPosition
+import app.muster.ui.screens.group.members.components.TagCardRowFrame
 import app.muster.ui.screens.group.members.components.TagCardRowPadding
 import app.muster.ui.screens.group.members.components.TagsIntroPanel
 import app.muster.ui.screens.group.members.components.rememberMemberRowActionsWithDialogs
@@ -313,19 +316,35 @@ private fun LazyListScope.tagsSection(
     rowItem: @Composable (MemberRow, Modifier, PaddingValues) -> Unit,
     errorFor: (String) -> String?
 ) {
-    items(tags, key = { "tag_${it.id}" }) { section ->
+    tags.forEach { section ->
         val tagId = section.id
-        MemberTagCard(
-            section = section,
-            actions = MemberTagCardActions(
-                onDelete = { tags.firstOrNull { it.id == tagId }?.let(requestTagDelete) },
-                onMoveUp = { actions.onMoveUpTag(tagId) },
-                onMoveDown = { actions.onMoveDownTag(tagId) },
-                onRename = { actions.onRenameTag(tagId, section.name, section.rows.size) }
-            ),
-            modifier = Modifier.animateItem().padding(horizontal = 16.dp, vertical = 6.dp),
-            errorMessage = errorFor(tagId)
-        ) { rowItem(it, Modifier.animateItem(), TagCardRowPadding) }
+        item(key = "tag_header_$tagId") {
+            MemberTagCardHeader(
+                section = section,
+                actions = MemberTagCardActions(
+                    onDelete = { tags.firstOrNull { it.id == tagId }?.let(requestTagDelete) },
+                    onMoveUp = { actions.onMoveUpTag(tagId) },
+                    onMoveDown = { actions.onMoveDownTag(tagId) },
+                    onRename = { actions.onRenameTag(tagId, section.name, section.rows.size) }
+                ),
+                modifier = Modifier.animateItem().padding(start = 16.dp, end = 16.dp, top = 6.dp),
+                errorMessage = errorFor(tagId)
+            )
+        }
+        if (section.rows.isEmpty()) {
+            item(key = "tag_empty_$tagId") {
+                MemberTagCardEmptyHint(modifier = Modifier.animateItem().padding(start = 16.dp, end = 16.dp, bottom = 6.dp))
+            }
+        } else {
+            val lastId = section.rows.last().id
+            items(section.rows, key = { it.id }) { row ->
+                val isLast = row.id == lastId
+                TagCardRowFrame(
+                    position = if (isLast) TagCardPosition.Last else TagCardPosition.Middle,
+                    modifier = Modifier.animateItem().padding(start = 16.dp, end = 16.dp, bottom = if (isLast) 6.dp else 0.dp)
+                ) { rowItem(row, Modifier, TagCardRowPadding) }
+            }
+        }
     }
 }
 
