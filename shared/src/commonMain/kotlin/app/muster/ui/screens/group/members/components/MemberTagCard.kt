@@ -334,7 +334,8 @@ private fun TagCardPiecesPreview() {
                 PreviewRows.forEachIndexed { index, row ->
                     val position = if (index == PreviewRows.lastIndex) TagCardPosition.Last else TagCardPosition.Middle
                     TagCardRowFrame(position) {
-                        MemberRowItem(row = row, memberRowActions = MemberRowActions(), inFlight = false, errorMessage = null, isPending = false, contentPadding = TagCardRowPadding)
+                        val moving = index == 1
+                        MemberRowItem(row = row, memberRowActions = MemberRowActions(), inFlight = moving, errorMessage = null, isPending = false, isMoving = moving, contentPadding = TagCardRowPadding)
                     }
                 }
                 Spacer(Modifier.height(16.dp))

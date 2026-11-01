@@ -53,6 +53,7 @@ import muster.shared.generated.resources.members_action_promote
 import muster.shared.generated.resources.members_action_remove
 import muster.shared.generated.resources.members_action_resend
 import muster.shared.generated.resources.members_action_revoke
+import muster.shared.generated.resources.members_drag_handle
 import muster.shared.generated.resources.members_status_admin
 import muster.shared.generated.resources.members_status_invited
 import muster.shared.generated.resources.members_status_member
@@ -77,11 +78,17 @@ internal fun MemberRowItem(
     inFlight: Boolean,
     errorMessage: String?,
     isPending: Boolean = false,
+    isMoving: Boolean = false,
+    dragHandleModifier: Modifier = Modifier,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(horizontal = 20.dp)
 ) {
     Column(modifier = modifier.fillMaxWidth().padding(contentPadding).padding(vertical = 12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            if (row.canMoveToTag && !isPending) {
+                DragHandleSlot(isMoving = isMoving, modifier = dragHandleModifier)
+                Spacer(Modifier.width(8.dp))
+            }
             if (isPending) PendingAvatar() else InitialsAvatar(row.initials)
             Spacer(Modifier.width(12.dp))
             if (isPending) {
@@ -130,6 +137,30 @@ internal fun MemberRowItem(
         if (errorMessage != null) {
             Spacer(Modifier.height(6.dp))
             Text(text = errorMessage, style = MaterialTheme.typography.bodySmall, color = MusterColors.OutText)
+        }
+    }
+}
+
+// Fixed size so swapping the handle for the spinner doesn't shift the row.
+@Composable
+private fun DragHandleSlot(
+    isMoving: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Box(modifier = modifier.size(24.dp), contentAlignment = Alignment.Center) {
+        if (isMoving) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(16.dp),
+                color = MusterColors.Muted,
+                strokeWidth = 2.dp
+            )
+        } else {
+            Icon(
+                imageVector = MusterIcons.DragHandle,
+                contentDescription = stringResource(Res.string.members_drag_handle),
+                tint = MusterColors.Hint,
+                modifier = Modifier.size(24.dp)
+            )
         }
     }
 }
@@ -273,11 +304,12 @@ private fun InvitedBadge(modifier: Modifier = Modifier) {
 private fun MemberRowPreview(
     row: MemberRow,
     inFlight: Boolean = false,
+    isMoving: Boolean = false,
     errorMessage: String? = null
 ) {
     MusterTheme {
         Surface {
-            MemberRowItem(row = row, memberRowActions = MemberRowActions(), inFlight = inFlight, errorMessage = errorMessage, isPending = false)
+            MemberRowItem(row = row, memberRowActions = MemberRowActions(), inFlight = inFlight, errorMessage = errorMessage, isPending = false, isMoving = isMoving)
         }
     }
 }
@@ -337,6 +369,16 @@ private fun MemberRowInFlightPreview() {
     MemberRowPreview(
         MemberRow(id = "5", displayName = "Marcus Keane", status = MemberStatus.Member, canPromote = true),
         inFlight = true
+    )
+}
+
+@Preview
+@Composable
+private fun MemberRowMovingPreview() {
+    MemberRowPreview(
+        MemberRow(id = "6", displayName = "Sam Okafor", status = MemberStatus.Member, canMoveToTag = true, canPromote = true),
+        inFlight = true,
+        isMoving = true
     )
 }
 

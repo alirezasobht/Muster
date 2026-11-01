@@ -138,6 +138,7 @@
     <string name="tags_intro_title">Sort members with tags</string>
     <string name="tags_intro_body">Put people into tags like Regular or Casual, then add a whole tag to an event at once. Only admins see tags.</string>
     <string name="members_action_move_to_tag">Move to tag…</string>
+    <string name="members_drag_handle">Drag to move</string>
     <string name="action_move_up">Move up</string>
     <string name="action_move_down">Move down</string>
     <string name="tag_action_rename">Rename</string>
