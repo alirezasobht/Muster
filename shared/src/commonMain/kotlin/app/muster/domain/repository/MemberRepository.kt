@@ -1,7 +1,6 @@
 package app.muster.domain.repository
 
 import app.muster.domain.model.MemberListing
-import app.muster.domain.model.TagLayoutEntry
 
 // Implementations must throw DomainError only; the UI catches nothing else.
 interface MemberRepository {
@@ -41,7 +40,7 @@ interface MemberRepository {
     suspend fun createTag(
         groupId: String,
         name: String,
-        memberIds: List<String> = emptyList()
+        memberId: String? = null
     )
 
     suspend fun renameTag(
@@ -55,10 +54,11 @@ interface MemberRepository {
         tagId: String
     )
 
-    // Replaces the members of every listed tag whole; tags left out keep theirs.
-    suspend fun setTagLayout(
+    // A null tagId removes the member's tag.
+    suspend fun setMemberTag(
         groupId: String,
-        layout: List<TagLayoutEntry>
+        profileId: String,
+        tagId: String?
     )
 
     suspend fun setTagOrder(

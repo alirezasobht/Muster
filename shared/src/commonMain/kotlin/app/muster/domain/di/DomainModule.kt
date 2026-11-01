@@ -32,8 +32,8 @@ import app.muster.domain.usecase.ResendEventInvitationUseCase
 import app.muster.domain.usecase.ResendInvitationUseCase
 import app.muster.domain.usecase.RetrySessionUseCase
 import app.muster.domain.usecase.RevokeInvitationUseCase
+import app.muster.domain.usecase.SetMemberTagUseCase
 import app.muster.domain.usecase.SetRsvpUseCase
-import app.muster.domain.usecase.SetTagLayoutUseCase
 import app.muster.domain.usecase.SetTagOrderUseCase
 import app.muster.domain.usecase.SignOutUseCase
 import app.muster.domain.usecase.UpdateEventUseCase
@@ -74,7 +74,7 @@ val domainModule = module {
     factoryOf(::CreateTagUseCase)
     factoryOf(::DeleteTagUseCase)
     factoryOf(::RenameTagUseCase)
-    factoryOf(::SetTagLayoutUseCase)
+    factoryOf(::SetMemberTagUseCase)
     factoryOf(::SetTagOrderUseCase)
     factoryOf(::RevokeInvitationUseCase)
     factoryOf(::ResendInvitationUseCase)

@@ -13,7 +13,7 @@ import app.muster.ui.screens.group.GroupViewModel
 import app.muster.ui.screens.group.editgroup.EditGroupViewModel
 import app.muster.ui.screens.group.events.EventsViewModel
 import app.muster.ui.screens.group.events.newevent.NewEventViewModel
-import app.muster.ui.screens.group.members.MembersViewModel
+import app.muster.ui.screens.group.members.MembersTabViewModel
 import app.muster.ui.screens.group.members.addbyemail.AddMemberByEmailViewModel
 import app.muster.ui.screens.group.members.membertagname.MemberTagNameDialogViewModel
 import app.muster.ui.screens.group.members.membertagname.MemberTagNameMode
@@ -43,7 +43,7 @@ val uiModule = module {
     viewModel { (groupId: String, groupName: String) -> EditGroupViewModel(groupId, groupName, get()) }
     // Group id comes from the Members tab's host (GroupRoute), not the graph.
     viewModel { (groupId: String) ->
-        MembersViewModel(groupId, get(), get(), get(), get(), get(), get(), get(), get(), get())
+        MembersTabViewModel(groupId, get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get())
     }
     // Group id comes from the Members tab's host (GroupRoute), not the graph.
     viewModel { (groupId: String, mode: MemberTagNameMode) -> MemberTagNameDialogViewModel(groupId, mode, get(), get()) }

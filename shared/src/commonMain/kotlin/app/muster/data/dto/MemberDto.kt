@@ -19,7 +19,9 @@ internal data class GroupMembersDto(
 internal data class GroupMemberEntryDto(
     @SerialName("profile_id") val profileId: String,
     val name: String? = null,
-    val role: String
+    val role: String,
+    @SerialName("tag_id") val tagId: String?,
+
 )
 
 @Serializable
@@ -31,9 +33,7 @@ internal data class GroupInvitationEntryDto(
 @Serializable
 internal data class GroupMemberTagEntryDto(
     val id: String,
-    val name: String,
-    // Profile ids, already in the tag's order.
-    val members: List<String>
+    val name: String
 )
 
 @Serializable
@@ -75,7 +75,7 @@ internal data class LeaveGroupDto(@SerialName("group_id") val groupId: String)
 internal data class CreateGroupTagDto(
     @SerialName("group_id") val groupId: String,
     val name: String,
-    @SerialName("profile_ids") val profileIds: List<String>
+    @SerialName("profile_id") val profileId: String?
 )
 
 @Serializable
@@ -88,15 +88,10 @@ internal data class UpdateGroupTagDto(
 internal data class DeleteGroupTagDto(@SerialName("tag_id") val tagId: String)
 
 @Serializable
-internal data class SetGroupTagLayoutDto(
+internal data class SetMemberTagDto(
     @SerialName("group_id") val groupId: String,
-    val layout: List<TagLayoutEntryDto>
-)
-
-@Serializable
-internal data class TagLayoutEntryDto(
-    @SerialName("tag_id") val tagId: String,
-    @SerialName("profile_ids") val profileIds: List<String>
+    @SerialName("profile_id") val profileId: String,
+    @SerialName("tag_id") val tagId: String?
 )
 
 @Serializable

@@ -12,8 +12,10 @@ import app.muster.ui.screens.group.members.MemberRow
 import app.muster.ui.screens.group.members.MemberStatus
 import app.muster.ui.screens.group.members.Reorder
 import app.muster.ui.screens.group.members.TagSection
-import app.muster.ui.screens.group.members.memberrow.MemberRowActions
-import app.muster.ui.screens.group.members.memberrow.MemberRowItem
+import app.muster.ui.screens.group.members.components.MemberRowActions
+import app.muster.ui.screens.group.members.components.MemberRowItem
+import app.muster.ui.screens.group.members.components.MemberTagCard
+import app.muster.ui.screens.group.members.components.MemberTagCardActions
 import app.muster.ui.theme.MusterTheme
 import org.junit.Rule
 import org.junit.Test
@@ -45,12 +47,12 @@ class MemberTagCardTest {
 
     private fun show(
         section: TagSection,
-        actions: TagCardActions = TagCardActions(),
+        actions: MemberTagCardActions = MemberTagCardActions(),
         rowActions: MemberRowActions = MemberRowActions()
     ) {
         composeRule.setContent {
             MusterTheme {
-                TagCard(section = section, actions = actions) {
+                MemberTagCard(section = section, actions = actions) {
                     MemberRowItem(row = it, actions = rowActions)
                 }
             }
@@ -87,7 +89,7 @@ class MemberTagCardTest {
         var picked = ""
         show(
             regular,
-            actions = TagCardActions(
+            actions = MemberTagCardActions(
                 onRename = { picked += "rename," },
                 onMoveDown = { picked += "down," },
                 onDelete = { picked += "delete," }

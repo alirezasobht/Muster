@@ -1,8 +1,9 @@
-package app.muster.ui.screens.group.members.tagcard
+package app.muster.ui.screens.group.members.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -38,8 +39,6 @@ import app.muster.ui.screens.group.members.MemberRow
 import app.muster.ui.screens.group.members.MemberStatus
 import app.muster.ui.screens.group.members.Reorder
 import app.muster.ui.screens.group.members.TagSection
-import app.muster.ui.screens.group.members.memberrow.MemberRowActions
-import app.muster.ui.screens.group.members.memberrow.MemberRowItem
 import app.muster.ui.theme.MusterColors
 import app.muster.ui.theme.MusterTheme
 import muster.shared.generated.resources.Res
@@ -52,18 +51,21 @@ import muster.shared.generated.resources.tag_empty_hint
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
-data class TagCardActions(
-    val onRename: (tagId: String) -> Unit = {},
-    val onMoveUp: (tagId: String) -> Unit = {},
-    val onMoveDown: (tagId: String) -> Unit = {},
-    val onDelete: (tagId: String) -> Unit = {}
+data class MemberTagCardActions(
+    val onRename: () -> Unit = {},
+    val onMoveUp: () -> Unit = {},
+    val onMoveDown: () -> Unit = {},
+    val onDelete: () -> Unit = {}
 )
+
+// End matches the header's, so row menus line up with the card menu.
+val TagCardRowPadding = PaddingValues(start = 16.dp, end = 4.dp)
 
 // 5a/5b. Rows come from the caller, which owns their menus and confirmations.
 @Composable
-fun TagCard(
+fun MemberTagCard(
     section: TagSection,
-    actions: TagCardActions,
+    actions: MemberTagCardActions,
     modifier: Modifier = Modifier,
     row: @Composable (MemberRow) -> Unit
 ) {
@@ -109,7 +111,7 @@ fun TagCard(
 private fun CardMenu(
     tagId: String,
     reorder: Reorder,
-    actions: TagCardActions,
+    actions: MemberTagCardActions,
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -117,7 +119,7 @@ private fun CardMenu(
     @Composable
     fun Item(
         label: StringResource,
-        onClick: (tagId: String) -> Unit,
+        onClick: () -> Unit,
         enabled: Boolean = true
     ) {
         DropdownMenuItem(
@@ -125,7 +127,7 @@ private fun CardMenu(
             enabled = enabled,
             onClick = {
                 expanded = false
-                onClick(tagId)
+                onClick()
             }
         )
     }
@@ -182,15 +184,13 @@ private val PreviewRows = listOf(
         displayName = "Alex Doyle",
         status = MemberStatus.Admin,
         isSelf = true,
-        canMoveToTag = true,
-        reorder = Reorder(canMoveUp = false, canMoveDown = true)
+        canMoveToTag = true
     ),
     MemberRow(
         id = "2",
         displayName = "Dan Whelan",
         status = MemberStatus.Admin,
         canMoveToTag = true,
-        reorder = Reorder(canMoveUp = true, canMoveDown = true),
         canDemote = true,
         canRemove = true
     ),
@@ -199,7 +199,6 @@ private val PreviewRows = listOf(
         displayName = "Marcus Keane",
         status = MemberStatus.Member,
         canMoveToTag = true,
-        reorder = Reorder(canMoveUp = true, canMoveDown = false),
         canPromote = true,
         canRemove = true
     )
@@ -209,8 +208,8 @@ private val PreviewRows = listOf(
 private fun TagCardPreview(section: TagSection) {
     MusterTheme {
         Surface {
-            TagCard(section = section, actions = TagCardActions(), modifier = Modifier.padding(16.dp)) {
-                MemberRowItem(row = it, actions = MemberRowActions(), horizontalPadding = 16.dp)
+            MemberTagCard(section = section, actions = MemberTagCardActions(), modifier = Modifier.padding(16.dp)) {
+                MemberRowItem(row = it, memberRowActions = MemberRowActions(), inFlight = false, errorMessage = null, isPending = false, contentPadding = TagCardRowPadding)
             }
         }
     }

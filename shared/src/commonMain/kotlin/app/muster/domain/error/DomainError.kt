@@ -73,8 +73,8 @@ sealed class DomainError(
     // group_tags_name_length CHECK (23514): more than 30 characters.
     class TagNameTooLong : DomainError("tag name is too long")
 
-    // The tag was deleted, or a member left, between loading the screen and
-    // this write. The list has to reload before the change can be retried.
+    // The tag was deleted between loading the screen and this write.
+    // Reload the list before retrying.
     class TagListChanged : DomainError("tags changed, reload")
 
     class Unknown(cause: Throwable) : DomainError(cause.message ?: "unknown error", cause)

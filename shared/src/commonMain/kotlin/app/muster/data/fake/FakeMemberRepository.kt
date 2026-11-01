@@ -8,7 +8,6 @@ import app.muster.domain.model.Member
 import app.muster.domain.model.MemberListing
 import app.muster.domain.model.MemberTag
 import app.muster.domain.model.PendingInvitation
-import app.muster.domain.model.TagLayoutEntry
 import app.muster.domain.repository.MemberRepository
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
@@ -27,7 +26,7 @@ class FakeMemberRepository(
     var createTagError: DomainError? = null,
     var renameTagError: DomainError? = null,
     var deleteTagError: DomainError? = null,
-    var setTagLayoutError: DomainError? = null,
+    var setMemberTagError: DomainError? = null,
     var setTagOrderError: DomainError? = null,
     var leaveError: DomainError? = null,
     private val dataChanges: DataChanges? = null,
@@ -70,7 +69,7 @@ class FakeMemberRepository(
         return MemberListing(
             members = members,
             pendingInvitations = pendingInvitations,
-            memberTags = tags.map { tag -> tag.copy(memberIds = tag.memberIds.filter { id -> members.any { it.profileId == id } }) }
+            memberTags = tags
         )
     }
 
@@ -140,12 +139,15 @@ class FakeMemberRepository(
     override suspend fun createTag(
         groupId: String,
         name: String,
-        memberIds: List<String>
+        memberId: String?
     ) {
         delay(latency.milliseconds)
         createTagError?.let { throw it }
-        tags = tags.map { it.copy(memberIds = it.memberIds - memberIds.toSet()) } +
-            MemberTag(id = "tag-${tags.size + 1}", name = name, memberIds = memberIds)
+        val tagId = "tag-${tags.size + 1}"
+        tags = tags + MemberTag(id = tagId, name = name)
+        if (memberId != null) {
+            members = members.map { if (it.profileId == memberId) it.copy(tagId = tagId) else it }
+        }
         dataChanges?.notify(DataChange.Members(groupId))
     }
 
@@ -170,17 +172,14 @@ class FakeMemberRepository(
         dataChanges?.notify(DataChange.Members(groupId))
     }
 
-    override suspend fun setTagLayout(
+    override suspend fun setMemberTag(
         groupId: String,
-        layout: List<TagLayoutEntry>
+        profileId: String,
+        tagId: String?
     ) {
         delay(latency.milliseconds)
-        setTagLayoutError?.let { throw it }
-        val listed = layout.flatMap { it.memberIds }.toSet()
-        tags = tags.map { tag ->
-            val entry = layout.firstOrNull { it.tagId == tag.id }
-            tag.copy(memberIds = entry?.memberIds ?: (tag.memberIds - listed))
-        }
+        setMemberTagError?.let { throw it }
+        members = members.map { if (it.profileId == profileId) it.copy(tagId = tagId) else it }
         dataChanges?.notify(DataChange.Members(groupId))
     }
 

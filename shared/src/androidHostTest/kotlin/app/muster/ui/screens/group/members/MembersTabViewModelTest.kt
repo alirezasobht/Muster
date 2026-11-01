@@ -26,7 +26,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 
-class MembersViewModelTest {
+class MembersTabViewModelTest {
 
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
@@ -48,7 +48,7 @@ class MembersViewModelTest {
         groups: FakeGroupRepository = FakeGroupRepository(myRole = GroupRole.Admin),
         members: FakeMemberRepository = FakeMemberRepository(),
         dataChanges: DataChanges = DataChanges()
-    ) = MembersViewModel(
+    ) = MembersTabViewModel(
         groupId = groupId,
         listGroupMembers = ListGroupMembersUseCase(members),
         getMyGroupRole = GetMyGroupRoleUseCase(groups),
@@ -63,7 +63,7 @@ class MembersViewModelTest {
 
     @Test
     fun `starts loading`() {
-        assertEquals(MembersUiState.Loading, viewModel().state.value)
+        assertEquals(MembersTabUiState.Loading, viewModel().state.value)
     }
 
     @Test
@@ -76,7 +76,7 @@ class MembersViewModelTest {
         val viewModel = viewModel(groups = groups, members = members)
         advanceUntilIdle()
 
-        val state = assertIs<MembersUiState.Success>(viewModel.state.value)
+        val state = assertIs<MembersTabUiState.Success>(viewModel.state.value)
         assertEquals(true, state.canAddMembers)
         assertEquals(4, state.rows.size)
 
@@ -119,7 +119,7 @@ class MembersViewModelTest {
         val viewModel = viewModel(members = members)
         advanceUntilIdle()
 
-        val state = assertIs<MembersUiState.Success>(viewModel.state.value)
+        val state = assertIs<MembersTabUiState.Success>(viewModel.state.value)
         assertEquals(
             listOf(
                 FAKE_USER_ID,
@@ -144,7 +144,7 @@ class MembersViewModelTest {
         val viewModel = viewModel(groups = groups, members = members)
         advanceUntilIdle()
 
-        val state = assertIs<MembersUiState.Success>(viewModel.state.value)
+        val state = assertIs<MembersTabUiState.Success>(viewModel.state.value)
         assertEquals(false, state.canAddMembers)
         assertEquals(2, state.rows.size)
         assertEquals(true, state.rows.none { it.status == MemberStatus.Pending })
@@ -157,7 +157,7 @@ class MembersViewModelTest {
         val viewModel = viewModel(members = members)
         advanceUntilIdle()
 
-        assertIs<MembersUiState.Error>(viewModel.state.value)
+        assertIs<MembersTabUiState.Error>(viewModel.state.value)
     }
 
     @Test
@@ -165,13 +165,13 @@ class MembersViewModelTest {
         val members = FakeMemberRepository(listMembersError = DomainError.Network())
         val viewModel = viewModel(members = members)
         advanceUntilIdle()
-        assertIs<MembersUiState.Error>(viewModel.state.value)
+        assertIs<MembersTabUiState.Error>(viewModel.state.value)
 
         members.listMembersError = null
         viewModel.onRetry()
         advanceUntilIdle()
 
-        assertIs<MembersUiState.Success>(viewModel.state.value)
+        assertIs<MembersTabUiState.Success>(viewModel.state.value)
     }
 
     @Test
@@ -185,7 +185,7 @@ class MembersViewModelTest {
         advanceUntilIdle()
 
         assertEquals(listOf(plainMember.profileId), members.promotedIds)
-        val state = assertIs<MembersUiState.Success>(viewModel.state.value)
+        val state = assertIs<MembersTabUiState.Success>(viewModel.state.value)
         assertEquals(MemberStatus.Admin, state.rows.first { it.id == plainMember.profileId }.status)
         assertNull(state.actionTargetId)
     }
@@ -213,10 +213,10 @@ class MembersViewModelTest {
         advanceUntilIdle()
 
         viewModel.onDemote(otherAdmin.profileId)
-        assertEquals(otherAdmin.profileId, (viewModel.state.value as MembersUiState.Success).actionTargetId)
+        assertEquals(otherAdmin.profileId, (viewModel.state.value as MembersTabUiState.Success).actionTargetId)
         advanceUntilIdle()
 
-        val state = assertIs<MembersUiState.Success>(viewModel.state.value)
+        val state = assertIs<MembersTabUiState.Success>(viewModel.state.value)
         assertNull(state.actionTargetId)
         assertIs<DomainError.LastAdmin>(state.actionError)
         assertEquals(otherAdmin.profileId, state.failedActionId)
@@ -234,7 +234,7 @@ class MembersViewModelTest {
         advanceUntilIdle()
 
         assertEquals(listOf(plainMember.profileId), members.removedIds)
-        val state = assertIs<MembersUiState.Success>(viewModel.state.value)
+        val state = assertIs<MembersTabUiState.Success>(viewModel.state.value)
         assertEquals(true, state.rows.none { it.id == plainMember.profileId })
     }
 
@@ -253,7 +253,7 @@ class MembersViewModelTest {
         advanceUntilIdle()
 
         assertEquals(listOf(pending.id), members.revokedInvitationIds)
-        val state = assertIs<MembersUiState.Success>(viewModel.state.value)
+        val state = assertIs<MembersTabUiState.Success>(viewModel.state.value)
         assertEquals(true, state.rows.none { it.id == pending.id })
     }
 
@@ -267,7 +267,7 @@ class MembersViewModelTest {
         advanceUntilIdle()
 
         assertEquals(listOf(pending.id), members.resentInvitationIds)
-        val state = assertIs<MembersUiState.Success>(viewModel.state.value)
+        val state = assertIs<MembersTabUiState.Success>(viewModel.state.value)
         assertNull(state.actionError)
         assertEquals(true, state.rows.any { it.id == pending.id })
     }
@@ -285,7 +285,7 @@ class MembersViewModelTest {
         viewModel.onResendInvitation(pending.id)
         advanceUntilIdle()
 
-        val state = assertIs<MembersUiState.Success>(viewModel.state.value)
+        val state = assertIs<MembersTabUiState.Success>(viewModel.state.value)
         assertIs<DomainError.InvitationSentTooRecently>(state.actionError)
         assertEquals(pending.id, state.failedActionId)
     }
@@ -295,12 +295,12 @@ class MembersViewModelTest {
         val members = FakeMemberRepository(listMembersError = DomainError.Network())
         val viewModel = viewModel(members = members)
         advanceUntilIdle()
-        assertIs<MembersUiState.Error>(viewModel.state.value)
+        assertIs<MembersTabUiState.Error>(viewModel.state.value)
 
         viewModel.onRefresh()
         advanceUntilIdle()
 
-        assertIs<MembersUiState.Error>(viewModel.state.value)
+        assertIs<MembersTabUiState.Error>(viewModel.state.value)
     }
 
     @Test
@@ -318,7 +318,7 @@ class MembersViewModelTest {
         viewModel.onResume()
         advanceUntilIdle()
 
-        val state = assertIs<MembersUiState.Success>(viewModel.state.value)
+        val state = assertIs<MembersTabUiState.Success>(viewModel.state.value)
         assertEquals(MemberStatus.Admin, state.rows.first { it.id == plainMember.profileId }.status)
     }
 }

@@ -10,18 +10,16 @@ import app.muster.data.dto.RemoveGroupMemberDto
 import app.muster.data.dto.ResendGroupInvitationDto
 import app.muster.data.dto.RevokeGroupInvitationDto
 import app.muster.data.dto.SetGroupMemberRoleDto
-import app.muster.data.dto.SetGroupTagLayoutDto
 import app.muster.data.dto.SetGroupTagOrderDto
+import app.muster.data.dto.SetMemberTagDto
 import app.muster.data.dto.UpdateGroupTagDto
 import app.muster.data.mapper.mapErrors
-import app.muster.data.mapper.toDto
 import app.muster.data.mapper.toMemberListing
 import app.muster.domain.error.DomainError
 import app.muster.domain.event.DataChange
 import app.muster.domain.event.DataChanges
 import app.muster.domain.model.MemberListing
 import app.muster.domain.model.MusterTimeZone
-import app.muster.domain.model.TagLayoutEntry
 import app.muster.domain.repository.MemberRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.exception.PostgrestRestException
@@ -39,7 +37,7 @@ internal class MemberRepositoryImpl(
             .decodeList<GroupMembersDto>()
             .firstOrNull()
             ?.toMemberListing()
-            ?: MemberListing(members = emptyList(), pendingInvitations = emptyList())
+            ?: MemberListing(members = emptyList(), pendingInvitations = emptyList(), memberTags = emptyList())
     }
 
     override suspend fun inviteByEmail(
@@ -104,10 +102,10 @@ internal class MemberRepositoryImpl(
     override suspend fun createTag(
         groupId: String,
         name: String,
-        memberIds: List<String>
+        memberId: String?
     ): Unit = mapErrors {
         namingTag(name) {
-            client.postgrest.rpc(CREATE_GROUP_TAG_FUNCTION, CreateGroupTagDto(groupId, name, memberIds))
+            client.postgrest.rpc(CREATE_GROUP_TAG_FUNCTION, CreateGroupTagDto(groupId, name, memberId))
         }
         dataChanges.notify(DataChange.Members(groupId))
     }
@@ -131,13 +129,14 @@ internal class MemberRepositoryImpl(
         dataChanges.notify(DataChange.Members(groupId))
     }
 
-    override suspend fun setTagLayout(
+    override suspend fun setMemberTag(
         groupId: String,
-        layout: List<TagLayoutEntry>
+        profileId: String,
+        tagId: String?
     ): Unit = mapErrors {
         client.postgrest.rpc(
-            SET_GROUP_TAG_LAYOUT_FUNCTION,
-            SetGroupTagLayoutDto(groupId, layout.map { it.toDto() })
+            SET_MEMBER_TAG_FUNCTION,
+            SetMemberTagDto(groupId, profileId, tagId)
         )
         dataChanges.notify(DataChange.Members(groupId))
     }
@@ -190,7 +189,7 @@ internal class MemberRepositoryImpl(
         const val CREATE_GROUP_TAG_FUNCTION = "create_group_tag"
         const val UPDATE_GROUP_TAG_FUNCTION = "update_group_tag"
         const val DELETE_GROUP_TAG_FUNCTION = "delete_group_tag"
-        const val SET_GROUP_TAG_LAYOUT_FUNCTION = "set_group_tag_layout"
+        const val SET_MEMBER_TAG_FUNCTION = "set_member_tag"
         const val SET_GROUP_TAG_ORDER_FUNCTION = "set_group_tag_order"
         const val INVITE_GROUP_MEMBER_BY_EMAIL_FUNCTION = "invite_group_member_by_email"
         const val SET_GROUP_MEMBER_ROLE_FUNCTION = "set_group_member_role"

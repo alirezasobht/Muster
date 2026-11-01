@@ -6,6 +6,6 @@ class CreateTagUseCase(private val members: MemberRepository) {
     suspend operator fun invoke(
         groupId: String,
         name: String,
-        memberIds: List<String> = emptyList()
-    ) = members.createTag(groupId, name, memberIds)
+        memberId: String?
+    ) = members.createTag(groupId, name, memberId)
 }

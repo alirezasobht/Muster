@@ -1,8 +1,9 @@
-package app.muster.ui.screens.group.members.memberrow
+package app.muster.ui.screens.group.members.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -37,18 +38,14 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.muster.ui.common.components.MusterIcons
 import app.muster.ui.screens.group.members.MemberRow
 import app.muster.ui.screens.group.members.MemberStatus
-import app.muster.ui.screens.group.members.Reorder
 import app.muster.ui.theme.MusterColors
 import app.muster.ui.theme.MusterTheme
 import muster.shared.generated.resources.Res
-import muster.shared.generated.resources.action_move_down
-import muster.shared.generated.resources.action_move_up
 import muster.shared.generated.resources.content_description_more
 import muster.shared.generated.resources.members_action_demote
 import muster.shared.generated.resources.members_action_move_to_tag
@@ -66,8 +63,6 @@ import org.jetbrains.compose.resources.stringResource
 // Each takes the row's id: a profile id for members, an invitation id for pending rows.
 data class MemberRowActions(
     val onMoveToTag: (id: String) -> Unit = {},
-    val onMoveUp: (id: String) -> Unit = {},
-    val onMoveDown: (id: String) -> Unit = {},
     val onPromote: (id: String) -> Unit = {},
     val onDemote: (id: String) -> Unit = {},
     val onRemove: (id: String) -> Unit = {},
@@ -78,15 +73,14 @@ data class MemberRowActions(
 @Composable
 internal fun MemberRowItem(
     row: MemberRow,
-    actions: MemberRowActions,
+    memberRowActions: MemberRowActions,
+    inFlight: Boolean,
+    errorMessage: String?,
+    isPending: Boolean = false,
     modifier: Modifier = Modifier,
-    inFlight: Boolean = false,
-    errorMessage: String? = null,
-    horizontalPadding: Dp = 20.dp
+    contentPadding: PaddingValues = PaddingValues(horizontal = 20.dp)
 ) {
-    val isPending = row.status == MemberStatus.Pending
-
-    Column(modifier = modifier.fillMaxWidth().padding(horizontal = horizontalPadding, vertical = 12.dp)) {
+    Column(modifier = modifier.fillMaxWidth().padding(contentPadding).padding(vertical = 12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (isPending) PendingAvatar() else InitialsAvatar(row.initials)
             Spacer(Modifier.width(12.dp))
@@ -130,7 +124,7 @@ internal fun MemberRowItem(
             }
             if (row.hasMenu) {
                 Spacer(Modifier.width(4.dp))
-                RowMenu(row = row, actions = actions, inFlight = inFlight)
+                RowMenu(row = row, actions = memberRowActions, inFlight = inFlight)
             }
         }
         if (errorMessage != null) {
@@ -191,10 +185,6 @@ private fun RowMenu(
             }
             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 if (row.canMoveToTag) Item(Res.string.members_action_move_to_tag, actions.onMoveToTag)
-                row.reorder?.let { reorder ->
-                    Item(Res.string.action_move_up, actions.onMoveUp, enabled = reorder.canMoveUp)
-                    Item(Res.string.action_move_down, actions.onMoveDown, enabled = reorder.canMoveDown)
-                }
                 if (row.canMoveToTag && row.hasRoleActions) HorizontalDivider(color = MusterColors.Hairline)
                 if (row.canPromote) Item(Res.string.members_action_promote, actions.onPromote)
                 if (row.canDemote) Item(Res.string.members_action_demote, actions.onDemote)
@@ -287,7 +277,7 @@ private fun MemberRowPreview(
 ) {
     MusterTheme {
         Surface {
-            MemberRowItem(row = row, actions = MemberRowActions(), inFlight = inFlight, errorMessage = errorMessage)
+            MemberRowItem(row = row, memberRowActions = MemberRowActions(), inFlight = inFlight, errorMessage = errorMessage, isPending = false)
         }
     }
 }
@@ -301,8 +291,7 @@ private fun MemberRowSelfPreview() {
             displayName = "Alex Doyle",
             status = MemberStatus.Admin,
             isSelf = true,
-            canMoveToTag = true,
-            reorder = Reorder(canMoveUp = false, canMoveDown = true)
+            canMoveToTag = true
         )
     )
 }
@@ -316,7 +305,6 @@ private fun MemberRowTaggedPreview() {
             displayName = "Sam Okafor",
             status = MemberStatus.Member,
             canMoveToTag = true,
-            reorder = Reorder(canMoveUp = true, canMoveDown = true),
             canPromote = true,
             canRemove = true
         )

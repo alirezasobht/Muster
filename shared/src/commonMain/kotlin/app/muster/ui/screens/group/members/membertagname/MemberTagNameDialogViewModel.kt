@@ -66,7 +66,7 @@ class MemberTagNameDialogViewModel(
         viewModelScope.launch {
             try {
                 when (mode) {
-                    is MemberTagNameMode.New -> createTag(groupId, name, listOfNotNull(mode.memberId))
+                    is MemberTagNameMode.New -> createTag(groupId, name, mode.memberId)
                     is MemberTagNameMode.Rename -> renameTag(groupId, mode.tagId, name)
                 }
                 // Stays saving: the Members tab reloads from the repository's change

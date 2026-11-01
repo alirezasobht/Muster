@@ -56,7 +56,6 @@ data class MoveToTagActions(
     val onDismiss: () -> Unit
 )
 
-// 5k: a single choice that applies on tap. A sheet rather than a dialog because the tag list is unbounded.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MoveToTagSheet(

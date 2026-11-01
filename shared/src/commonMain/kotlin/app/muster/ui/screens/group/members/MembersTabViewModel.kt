@@ -6,7 +6,10 @@ import app.muster.domain.error.DomainError
 import app.muster.domain.event.DataChange
 import app.muster.domain.event.DataChanges
 import app.muster.domain.model.GroupRole
+import app.muster.domain.model.Member
 import app.muster.domain.model.MemberListing
+import app.muster.domain.model.PendingInvitation
+import app.muster.domain.usecase.DeleteTagUseCase
 import app.muster.domain.usecase.DemoteMemberUseCase
 import app.muster.domain.usecase.GetMyGroupRoleUseCase
 import app.muster.domain.usecase.GetMyProfileUseCase
@@ -15,6 +18,7 @@ import app.muster.domain.usecase.PromoteMemberUseCase
 import app.muster.domain.usecase.RemoveMemberUseCase
 import app.muster.domain.usecase.ResendInvitationUseCase
 import app.muster.domain.usecase.RevokeInvitationUseCase
+import app.muster.domain.usecase.SetMemberTagUseCase
 import app.muster.ui.common.util.updateSuccess
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,7 +26,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 
-class MembersViewModel(
+class MembersTabViewModel(
     private val groupId: String,
     private val listGroupMembers: ListGroupMembersUseCase,
     private val getMyGroupRole: GetMyGroupRoleUseCase,
@@ -32,11 +36,13 @@ class MembersViewModel(
     private val removeMember: RemoveMemberUseCase,
     private val revokeInvitation: RevokeInvitationUseCase,
     private val resendInvitation: ResendInvitationUseCase,
+    private val deleteTag: DeleteTagUseCase,
+    private val setMemberTag: SetMemberTagUseCase,
     dataChanges: DataChanges
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow<MembersUiState>(MembersUiState.Loading)
-    val state: StateFlow<MembersUiState> = _state.asStateFlow()
+    private val _state = MutableStateFlow<MembersTabUiState>(MembersTabUiState.Loading)
+    val state: StateFlow<MembersTabUiState> = _state.asStateFlow()
 
     // init already loads, so the first resume after launch would load twice.
     private var resumedOnce = false
@@ -57,12 +63,12 @@ class MembersViewModel(
             resumedOnce = true
             return
         }
-        if (_state.value !is MembersUiState.Success) return
+        if (_state.value !is MembersTabUiState.Success) return
         refresh(showIndicator = false)
     }
 
     fun onRefresh() {
-        if (_state.value !is MembersUiState.Success) return
+        if (_state.value !is MembersTabUiState.Success) return
         refresh(showIndicator = true)
     }
 
@@ -76,13 +82,20 @@ class MembersViewModel(
 
     fun onResendInvitation(invitationId: String) = performAction(invitationId) { resendInvitation(groupId, invitationId) }
 
+    fun onDeleteTag(tagId: String) = performAction(tagId) { deleteTag(groupId, tagId) }
+
+    fun onSetMemberTag(
+        profileId: String,
+        tagId: String?
+    ) = performAction(profileId) { setMemberTag(groupId, profileId, tagId) }
+
     private fun load() {
-        _state.value = MembersUiState.Loading
+        _state.value = MembersTabUiState.Loading
         viewModelScope.launch {
             try {
                 _state.value = fetchSuccess()
             } catch (e: DomainError) {
-                _state.value = MembersUiState.Error(e)
+                _state.value = MembersTabUiState.Error(e)
             }
         }
     }
@@ -94,8 +107,11 @@ class MembersViewModel(
                 val fetched = fetchSuccess()
                 _state.updateSuccess {
                     it.copy(
-                        rows = fetched.rows,
+                        tags = fetched.tags,
+                        members = fetched.members,
+                        pendings = fetched.pendings,
                         canAddMembers = fetched.canAddMembers,
+                        canManageTags = fetched.canManageTags,
                         isRefreshing = false
                     )
                 }
@@ -111,7 +127,7 @@ class MembersViewModel(
         targetId: String,
         action: suspend () -> Unit
     ) {
-        val current = _state.value as? MembersUiState.Success ?: return
+        val current = _state.value as? MembersTabUiState.Success ?: return
         if (current.actionTargetId != null) return
         _state.updateSuccess { it.copy(actionTargetId = targetId, actionError = null, failedActionId = null) }
         viewModelScope.launch {
@@ -124,62 +140,81 @@ class MembersViewModel(
         }
     }
 
-    private suspend fun fetchSuccess(): MembersUiState.Success {
+    private suspend fun fetchSuccess(): MembersTabUiState.Success {
         val isAdmin = getMyGroupRole(groupId) == GroupRole.Admin
         val myProfileId = getMyProfile().id
         val listing = listGroupMembers(groupId)
-        return MembersUiState.Success(
-            rows = buildRows(listing, myProfileId, isAdmin),
-            canAddMembers = isAdmin
+        val members = if (isAdmin) listing.members.filter { it.tagId.isNullOrEmpty() } else listing.members
+        // Pending rows are readable by every member (group_invitations_select),
+        // but visible to admins only
+        return MembersTabUiState.Success(
+            tags = if (isAdmin) buildTagSections(listing, myProfileId, isAdmin) else emptyList(),
+            members = buildMemberRows(members, myProfileId, isAdmin),
+            pendings = if (isAdmin) buildPendingRows(listing.pendingInvitations) else emptyList(),
+            canAddMembers = isAdmin,
+            canManageTags = isAdmin
         )
     }
 
-    private fun buildRows(
+    private fun buildTagSections(
         listing: MemberListing,
         myProfileId: String,
         isAdmin: Boolean
-    ): List<MemberRow> {
-        val memberRows = listing.members.map { member ->
+    ): List<TagSection> = listing.memberTags.mapIndexed { index, tag ->
+        TagSection(
+            id = tag.id,
+            name = tag.name,
+            rows = buildMemberRows(
+                members = listing.members.filter { it.tagId.equals(tag.id) },
+                myProfileId = myProfileId,
+                isAdmin = isAdmin
+            ),
+            reorder = Reorder(
+                canMoveUp = index != 0,
+                canMoveDown = index != listing.memberTags.size - 1
+            )
+        )
+    }
+
+    private fun buildMemberRows(
+        members: List<Member>,
+        myProfileId: String,
+        isAdmin: Boolean
+    ): List<MemberRow> = sortRows(
+        members.map { member ->
             val isSelf = member.profileId == myProfileId
             MemberRow(
                 id = member.profileId,
                 displayName = member.name,
                 status = if (member.role == GroupRole.Admin) MemberStatus.Admin else MemberStatus.Member,
                 isSelf = isSelf,
+                tagId = member.tagId,
+                canMoveToTag = isAdmin,
                 canPromote = isAdmin && !isSelf && member.role == GroupRole.Member,
                 canDemote = isAdmin && !isSelf && member.role == GroupRole.Admin,
                 canRemove = isAdmin && !isSelf
             )
         }
-        // Pending rows are readable by every member (group_invitations_select),
-        // but visible to admins only
-        val pendingRows = if (isAdmin) {
-            listing.pendingInvitations.map { invitation ->
-                MemberRow(
-                    id = invitation.id,
-                    displayName = invitation.email,
-                    status = MemberStatus.Pending,
-                    canRevokeInvitation = true,
-                    canResendInvitation = true
-                )
-            }
-        } else {
-            emptyList()
-        }
-        return sortRows(memberRows, pendingRows)
-    }
+    )
 
-    // Self first, then admins A-Z, then members A-Z, then pending A-Z.
-    private fun sortRows(
-        memberRows: List<MemberRow>,
-        pendingRows: List<MemberRow>
-    ): List<MemberRow> {
+    private fun buildPendingRows(pendingInvitations: List<PendingInvitation>): List<MemberRow> = pendingInvitations.map { invitation ->
+        MemberRow(
+            id = invitation.id,
+            displayName = invitation.email,
+            status = MemberStatus.Pending,
+            tagId = null,
+            canRevokeInvitation = true,
+            canResendInvitation = true
+        )
+    }.sortedBy { it.displayName.lowercase() }
+
+    // Self first, then admins A-Z, then members A-Z.
+    private fun sortRows(memberRows: List<MemberRow>): List<MemberRow> {
         val (selfRows, otherRows) = memberRows.partition { it.isSelf }
         val admins = otherRows.filter { it.status == MemberStatus.Admin }
             .sortedBy { it.displayName.lowercase() }
         val members = otherRows.filter { it.status == MemberStatus.Member }
             .sortedBy { it.displayName.lowercase() }
-        val pending = pendingRows.sortedBy { it.displayName.lowercase() }
-        return selfRows + admins + members + pending
+        return selfRows + admins + members
     }
 }

@@ -1,4 +1,4 @@
-package app.muster.ui.screens.group.members.tagsintro
+package app.muster.ui.screens.group.members.components
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
