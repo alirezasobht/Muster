@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -24,7 +24,12 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.SpanStyle
@@ -56,6 +61,7 @@ import app.muster.ui.screens.group.members.components.rememberMemberRowActionsWi
 import app.muster.ui.screens.group.members.components.rememberTagDeleteAction
 import app.muster.ui.theme.MusterColors
 import app.muster.ui.theme.MusterTheme
+import kotlinx.coroutines.delay
 import muster.shared.generated.resources.Res
 import muster.shared.generated.resources.members_add_by_email
 import muster.shared.generated.resources.members_count
@@ -72,6 +78,9 @@ import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.ReorderableLazyListState
+import sh.calvin.reorderable.rememberReorderableLazyListState
 
 data class MembersTabActions(
     val onAddMemberByEmail: () -> Unit,
@@ -266,7 +275,25 @@ private fun MembersList(
     )
     val requestTagDelete = rememberTagDeleteAction(actions.onDeleteTag)
 
-    val rowItem: @Composable (MemberRow, Modifier, PaddingValues) -> Unit = { row, modifier, contentPadding ->
+    val latestState by rememberUpdatedState(state)
+    val latestActions by rememberUpdatedState(actions)
+    var dragLayout by remember { mutableStateOf<DragLayout?>(null) }
+    val stateEntries = remember(state.tags, state.members, state.pendings) { buildEntries(state) }
+    val entries = dragLayout?.entries ?: stateEntries
+
+    val lazyListState = rememberLazyListState()
+    val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
+        dragLayout = dragLayout?.moved(from.key, to.key)
+    }
+
+    LaunchedEffect(dragLayout?.settling) {
+        if (dragLayout?.settling == true) {
+            delay(DragSettleMillis)
+            dragLayout = null
+        }
+    }
+
+    val rowItem: @Composable (MemberRow, Modifier, PaddingValues) -> Unit = { row, dragHandleModifier, contentPadding ->
         val inFlight = row.inFlight(state.actionTargetId)
         val errorMessage = actionErrorMessage.takeIf { state.failedActionId == row.id }
         val isPending = row.status == MemberStatus.Pending
@@ -277,28 +304,44 @@ private fun MembersList(
             errorMessage = errorMessage,
             isPending = isPending,
             isMoving = state.movingProfileId == row.id,
-            modifier = modifier,
+            dragHandleModifier = dragHandleModifier,
             contentPadding = contentPadding
         )
     }
 
+    val drag = MemberDragCallbacks(
+        enabled = state.actionTargetId == null && dragLayout?.settling != true,
+        onStart = { rowId ->
+            val current = dragLayout?.entries ?: buildEntries(latestState)
+            dragLayout = DragLayout(entries = current, draggedId = rowId, origin = current.sectionOf(rowId))
+        },
+        onStop = {
+            dragLayout?.let { layout ->
+                val destination = layout.destination()
+                if (destination != layout.origin && destination !is ListSection.Invited) {
+                    latestActions.memberOperations.onSetMemberTag(layout.draggedId, (destination as? ListSection.Tag)?.id)
+                }
+                dragLayout = layout.copy(settling = true)
+            }
+        }
+    )
+
     LazyColumn(
+        state = lazyListState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(vertical = 4.dp)
     ) {
         introPanelSection(state, { actions.onCreateTag() })
-        val hasTags = state.tags.isNotEmpty()
-        if (hasTags) {
-            tagsSection(state.tags, actions, requestTagDelete, rowItem) { tagId ->
-                actionErrorMessage.takeIf { state.failedActionId == tagId }
-            }
-        }
-        if (state.members.isNotEmpty()) {
-            membersSection(state.members, showHeader = hasTags, rowItem = rowItem)
-        }
-        if (state.pendings.isNotEmpty()) {
-            pendingsSection(state.pendings, showHeader = hasTags, rowItem = rowItem)
-        }
+        entriesSection(
+            entries = entries,
+            state = state,
+            actions = actions,
+            requestTagDelete = requestTagDelete,
+            reorderableState = reorderableState,
+            drag = drag,
+            rowItem = rowItem,
+            errorFor = { tagId -> actionErrorMessage.takeIf { state.failedActionId == tagId } }
+        )
     }
 }
 
@@ -318,76 +361,185 @@ private fun LazyListScope.introPanelSection(
 
 private val MemberRowPadding = PaddingValues(horizontal = 20.dp)
 
-private fun LazyListScope.tagsSection(
-    tags: List<TagSection>,
+private const val DragSettleMillis = 400L
+
+private sealed interface ListSection {
+    data class Tag(val id: String) : ListSection
+
+    data object Untagged : ListSection
+
+    data object Invited : ListSection
+}
+
+private sealed interface MembersEntry {
+    val key: String
+}
+
+private data class HeaderEntry(val section: ListSection) : MembersEntry {
+    override val key: String
+        get() = when (section) {
+            is ListSection.Tag -> "tag_header_${section.id}"
+            ListSection.Untagged -> "untagged_header"
+            ListSection.Invited -> "invited_header"
+        }
+}
+
+private data class RowEntry(val row: MemberRow) : MembersEntry {
+    override val key: String get() = row.id
+}
+
+private fun buildEntries(state: MembersTabUiState.Success): List<MembersEntry> {
+    val hasTags = state.tags.isNotEmpty()
+    return buildList {
+        state.tags.forEach { section ->
+            add(HeaderEntry(ListSection.Tag(section.id)))
+            section.rows.forEach { add(RowEntry(it)) }
+        }
+        if (state.members.isNotEmpty()) {
+            if (hasTags) add(HeaderEntry(ListSection.Untagged))
+            state.members.forEach { add(RowEntry(it)) }
+        }
+        if (state.pendings.isNotEmpty()) {
+            if (hasTags) add(HeaderEntry(ListSection.Invited))
+            state.pendings.forEach { add(RowEntry(it)) }
+        }
+    }
+}
+
+private fun List<MembersEntry>.sectionOf(rowId: String): ListSection {
+    val index = indexOfFirst { it.key == rowId }
+    if (index < 0) return ListSection.Untagged
+    return take(index).filterIsInstance<HeaderEntry>().lastOrNull()?.section ?: ListSection.Untagged
+}
+
+private fun List<MembersEntry>.rowsAfter(headerIndex: Int): List<MemberRow> =
+    drop(headerIndex + 1).takeWhile { it is RowEntry }.map { (it as RowEntry).row }
+
+// Local copy of the list order while a drag is active, so the library can displace rows live.
+private data class DragLayout(
+    val entries: List<MembersEntry>,
+    val draggedId: String,
+    val origin: ListSection,
+    val settling: Boolean = false
+) {
+    fun moved(fromKey: Any, toKey: Any): DragLayout {
+        val from = entries.indexOfFirst { it.key == fromKey }
+        val to = entries.indexOfFirst { it.key == toKey }
+        if (from < 0 || to < 0 || from == to) return this
+        val reordered = entries.toMutableList()
+        reordered.add(to, reordered.removeAt(from))
+        return copy(entries = reordered)
+    }
+
+    fun destination(): ListSection = entries.sectionOf(draggedId)
+}
+
+private class MemberDragCallbacks(
+    val enabled: Boolean,
+    val onStart: (String) -> Unit,
+    val onStop: () -> Unit
+)
+
+private fun LazyListScope.entriesSection(
+    entries: List<MembersEntry>,
+    state: MembersTabUiState.Success,
     actions: MembersTabActions,
     requestTagDelete: (TagSection) -> Unit,
+    reorderableState: ReorderableLazyListState,
+    drag: MemberDragCallbacks,
     rowItem: @Composable (MemberRow, Modifier, PaddingValues) -> Unit,
     errorFor: (String) -> String?
 ) {
-    tags.forEach { section ->
-        val tagId = section.id
-        item(key = "tag_header_$tagId") {
+    var currentSection: ListSection? = null
+    entries.forEachIndexed { index, entry ->
+        when (entry) {
+            is HeaderEntry -> {
+                currentSection = entry.section
+                val rows = entries.rowsAfter(index)
+                when (val section = entry.section) {
+                    is ListSection.Tag -> tagHeaderItems(section.id, rows, state, actions, requestTagDelete, errorFor)
+
+                    ListSection.Untagged -> item(key = entry.key) {
+                        SectionHeader(
+                            title = stringResource(Res.string.members_section_untagged),
+                            count = rows.size,
+                            trailing = stringResource(Res.string.members_section_untagged_sort),
+                            modifier = Modifier.animateItem()
+                        )
+                    }
+
+                    ListSection.Invited -> item(key = entry.key) {
+                        SectionHeader(
+                            title = stringResource(Res.string.members_section_invited),
+                            count = rows.size,
+                            modifier = Modifier.animateItem()
+                        )
+                    }
+                }
+            }
+
+            is RowEntry -> {
+                val row = entry.row
+                val inTag = currentSection is ListSection.Tag
+                val isLast = entries.getOrNull(index + 1) !is RowEntry
+                val reorderable = row.canMoveToTag && row.status != MemberStatus.Pending
+                item(key = entry.key) {
+                    val content: @Composable (Modifier) -> Unit = { handle ->
+                        if (inTag) {
+                            TagCardRowFrame(
+                                position = if (isLast) TagCardPosition.Last else TagCardPosition.Middle,
+                                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = if (isLast) 6.dp else 0.dp)
+                            ) { rowItem(row, handle, TagCardRowPadding) }
+                        } else {
+                            rowItem(row, handle, MemberRowPadding)
+                        }
+                    }
+                    if (reorderable) {
+                        ReorderableItem(reorderableState, key = row.id, modifier = Modifier.fillMaxWidth()) {
+                            content(
+                                Modifier.draggableHandle(
+                                    enabled = drag.enabled,
+                                    onDragStarted = { drag.onStart(row.id) },
+                                    onDragStopped = drag.onStop
+                                )
+                            )
+                        }
+                    } else {
+                        Box(modifier = Modifier.fillMaxWidth().animateItem()) { content(Modifier) }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun LazyListScope.tagHeaderItems(
+    tagId: String,
+    rows: List<MemberRow>,
+    state: MembersTabUiState.Success,
+    actions: MembersTabActions,
+    requestTagDelete: (TagSection) -> Unit,
+    errorFor: (String) -> String?
+) {
+    item(key = "tag_header_$tagId") {
+        state.tags.firstOrNull { it.id == tagId }?.let { section ->
             MemberTagCardHeader(
-                section = section,
+                section = section.copy(rows = rows),
                 actions = MemberTagCardActions(
-                    onDelete = { tags.firstOrNull { it.id == tagId }?.let(requestTagDelete) },
+                    onDelete = { requestTagDelete(section) },
                     onMoveUp = { actions.onMoveUpTag(tagId) },
                     onMoveDown = { actions.onMoveDownTag(tagId) },
-                    onRename = { actions.onRenameTag(tagId, section.name, section.rows.size) }
+                    onRename = { actions.onRenameTag(tagId, section.name, rows.size) }
                 ),
                 modifier = Modifier.animateItem().padding(start = 16.dp, end = 16.dp, top = 6.dp),
                 errorMessage = errorFor(tagId)
             )
         }
-        if (section.rows.isEmpty()) {
-            item(key = "tag_empty_$tagId") {
-                MemberTagCardEmptyHint(modifier = Modifier.animateItem().padding(start = 16.dp, end = 16.dp, bottom = 6.dp))
-            }
-        } else {
-            val lastId = section.rows.last().id
-            items(section.rows, key = { it.id }) { row ->
-                val isLast = row.id == lastId
-                TagCardRowFrame(
-                    position = if (isLast) TagCardPosition.Last else TagCardPosition.Middle,
-                    modifier = Modifier.animateItem().padding(start = 16.dp, end = 16.dp, bottom = if (isLast) 6.dp else 0.dp)
-                ) { rowItem(row, Modifier, TagCardRowPadding) }
-            }
+    }
+    if (rows.isEmpty()) {
+        item(key = "tag_empty_$tagId") {
+            MemberTagCardEmptyHint(modifier = Modifier.animateItem().padding(start = 16.dp, end = 16.dp, bottom = 6.dp))
         }
-    }
-}
-
-private fun LazyListScope.membersSection(
-    members: List<MemberRow>,
-    showHeader: Boolean,
-    rowItem: @Composable (MemberRow, Modifier, PaddingValues) -> Unit
-) {
-    if (showHeader) {
-        item(key = "untagged_header") {
-            SectionHeader(
-                title = stringResource(Res.string.members_section_untagged),
-                count = members.size,
-                trailing = stringResource(Res.string.members_section_untagged_sort)
-            )
-        }
-    }
-    items(members, key = { it.id }) {
-        rowItem(it, Modifier.animateItem(), MemberRowPadding)
-    }
-}
-
-private fun LazyListScope.pendingsSection(
-    pendings: List<MemberRow>,
-    showHeader: Boolean,
-    rowItem: @Composable (MemberRow, Modifier, PaddingValues) -> Unit
-) {
-    if (showHeader) {
-        item(key = "invited_header") {
-            SectionHeader(title = stringResource(Res.string.members_section_invited), count = pendings.size)
-        }
-    }
-    items(pendings, key = { it.id }) {
-        rowItem(it, Modifier.animateItem(), MemberRowPadding)
     }
 }
 
