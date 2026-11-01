@@ -1,12 +1,12 @@
 package app.muster.ui.screens.group.members.components
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -26,8 +26,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
@@ -61,6 +64,45 @@ data class MemberTagCardActions(
 // End matches the header's, so row menus line up with the card menu.
 val TagCardRowPadding = PaddingValues(start = 16.dp, end = 4.dp)
 
+enum class TagCardPosition(val roundsTop: Boolean, val roundsBottom: Boolean) {
+    First(roundsTop = true, roundsBottom = false),
+    Middle(roundsTop = false, roundsBottom = false),
+    Last(roundsTop = false, roundsBottom = true),
+    Only(roundsTop = true, roundsBottom = true)
+}
+
+private val TagCardCorner = 14.dp
+
+// Pieces of one card are separate items, so each draws only its own slice of the outline: the
+// full rounded rect is extended past the open edges and clipped, leaving no seam between items.
+fun Modifier.tagCardFrame(position: TagCardPosition): Modifier {
+    val shape = RoundedCornerShape(
+        topStart = if (position.roundsTop) TagCardCorner else 0.dp,
+        topEnd = if (position.roundsTop) TagCardCorner else 0.dp,
+        bottomEnd = if (position.roundsBottom) TagCardCorner else 0.dp,
+        bottomStart = if (position.roundsBottom) TagCardCorner else 0.dp
+    )
+    return clip(shape).drawBehind {
+        val corner = TagCardCorner.toPx()
+        val stroke = 1.dp.toPx()
+        val top = if (position.roundsTop) 0f else -corner * 2
+        val bottom = if (position.roundsBottom) size.height else size.height + corner * 2
+        drawRoundRect(
+            color = MusterColors.White,
+            topLeft = Offset(0f, top),
+            size = Size(size.width, bottom - top),
+            cornerRadius = CornerRadius(corner, corner)
+        )
+        drawRoundRect(
+            color = MusterColors.Hairline,
+            topLeft = Offset(stroke / 2, top + stroke / 2),
+            size = Size(size.width - stroke, bottom - top - stroke),
+            cornerRadius = CornerRadius(corner - stroke / 2, corner - stroke / 2),
+            style = Stroke(width = stroke)
+        )
+    }
+}
+
 // 5a/5b. Rows come from the caller, which owns their menus and confirmations.
 @Composable
 fun MemberTagCard(
@@ -70,48 +112,75 @@ fun MemberTagCard(
     errorMessage: String? = null,
     row: @Composable (MemberRow) -> Unit
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        border = BorderStroke(1.dp, MusterColors.Hairline),
-        color = MusterColors.White
-    ) {
-        Column {
-            Row(
-                modifier = Modifier.padding(start = 16.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = section.name,
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                    color = MusterColors.Ink
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = section.rows.size.toString(),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MusterColors.Muted,
-                    modifier = Modifier.weight(1f)
-                )
-                CardMenu(tagId = section.id, reorder = section.reorder, actions = actions)
-            }
-            if (errorMessage != null) {
-                Text(
-                    text = errorMessage,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MusterColors.OutText,
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
-                )
-            }
-            if (section.rows.isEmpty()) {
-                EmptyTagHint(modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp))
-            } else {
-                section.rows.forEach {
-                    HorizontalDivider(color = MusterColors.Hairline)
-                    row(it)
-                }
+    Column(modifier = modifier.fillMaxWidth()) {
+        MemberTagCardHeader(section = section, actions = actions, errorMessage = errorMessage)
+        if (section.rows.isEmpty()) {
+            MemberTagCardEmptyHint()
+        } else {
+            section.rows.forEachIndexed { index, memberRow ->
+                val position = if (index == section.rows.lastIndex) TagCardPosition.Last else TagCardPosition.Middle
+                TagCardRowFrame(position = position) { row(memberRow) }
             }
         }
+    }
+}
+
+// Always the top of the card.
+@Composable
+fun MemberTagCardHeader(
+    section: TagSection,
+    actions: MemberTagCardActions,
+    modifier: Modifier = Modifier,
+    errorMessage: String? = null
+) {
+    Column(modifier = modifier.fillMaxWidth().tagCardFrame(TagCardPosition.First)) {
+        Row(
+            modifier = Modifier.padding(start = 16.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = section.name,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = MusterColors.Ink
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = section.rows.size.toString(),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MusterColors.Muted,
+                modifier = Modifier.weight(1f)
+            )
+            CardMenu(tagId = section.id, reorder = section.reorder, actions = actions)
+        }
+        if (errorMessage != null) {
+            Text(
+                text = errorMessage,
+                style = MaterialTheme.typography.bodySmall,
+                color = MusterColors.OutText,
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
+            )
+        }
+    }
+}
+
+// Draws the divider above the row, so the last row also closes the card's rounded bottom.
+@Composable
+fun TagCardRowFrame(
+    position: TagCardPosition,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    Column(modifier = modifier.fillMaxWidth().tagCardFrame(position)) {
+        HorizontalDivider(color = MusterColors.Hairline)
+        content()
+    }
+}
+
+// Always the bottom of the card.
+@Composable
+fun MemberTagCardEmptyHint(modifier: Modifier = Modifier) {
+    Box(modifier = modifier.fillMaxWidth().tagCardFrame(TagCardPosition.Last)) {
+        EmptyTagHint(modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp))
     }
 }
 
@@ -249,4 +318,38 @@ private fun TagCardEmptyPreview() {
     TagCardPreview(
         TagSection(id = "t3", name = "Juniors", rows = emptyList(), reorder = Reorder(canMoveUp = true, canMoveDown = false))
     )
+}
+
+// Pieces stacked as separate items must read as one card.
+@Preview
+@Composable
+private fun TagCardPiecesPreview() {
+    val reorder = Reorder(canMoveUp = false, canMoveDown = true)
+    val withRows = TagSection(id = "t1", name = "Regular", rows = PreviewRows, reorder = reorder)
+    val empty = TagSection(id = "t3", name = "Juniors", rows = emptyList(), reorder = reorder)
+    MusterTheme {
+        Surface {
+            Column(modifier = Modifier.padding(16.dp)) {
+                MemberTagCardHeader(section = withRows, actions = MemberTagCardActions())
+                PreviewRows.forEachIndexed { index, row ->
+                    val position = if (index == PreviewRows.lastIndex) TagCardPosition.Last else TagCardPosition.Middle
+                    TagCardRowFrame(position) {
+                        MemberRowItem(row = row, memberRowActions = MemberRowActions(), inFlight = false, errorMessage = null, isPending = false, contentPadding = TagCardRowPadding)
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
+                MemberTagCardHeader(
+                    section = withRows,
+                    actions = MemberTagCardActions(),
+                    errorMessage = "Can’t connect. Check your connection and try again."
+                )
+                TagCardRowFrame(TagCardPosition.Last) {
+                    MemberRowItem(row = PreviewRows.first(), memberRowActions = MemberRowActions(), inFlight = false, errorMessage = null, isPending = false, contentPadding = TagCardRowPadding)
+                }
+                Spacer(Modifier.height(16.dp))
+                MemberTagCardHeader(section = empty, actions = MemberTagCardActions())
+                MemberTagCardEmptyHint()
+            }
+        }
+    }
 }
