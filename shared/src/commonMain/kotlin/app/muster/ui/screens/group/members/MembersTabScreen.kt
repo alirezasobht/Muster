@@ -55,11 +55,11 @@ import app.muster.ui.screens.group.members.components.MemberTagCardEmptyHint
 import app.muster.ui.screens.group.members.components.MemberTagCardHeader
 import app.muster.ui.screens.group.members.components.MemberUntaggedDropHint
 import app.muster.ui.screens.group.members.components.TagCardPosition
-import app.muster.ui.screens.group.members.components.TagCardRowFrame
 import app.muster.ui.screens.group.members.components.TagCardRowPadding
 import app.muster.ui.screens.group.members.components.TagsIntroPanel
 import app.muster.ui.screens.group.members.components.rememberMemberRowActionsWithDialogs
 import app.muster.ui.screens.group.members.components.rememberTagDeleteAction
+import app.muster.ui.screens.group.members.components.tagCardFrame
 import app.muster.ui.theme.MusterColors
 import app.muster.ui.theme.MusterTheme
 import kotlinx.coroutines.delay
@@ -519,13 +519,8 @@ private fun LazyListScope.entriesSection(
                 val reorderable = row.canMoveToTag && row.status != MemberStatus.Pending
                 item(key = entry.key) {
                     val content: @Composable (Modifier) -> Unit = { handle ->
-                        if (inTag) {
-                            TagCardRowFrame(
-                                position = if (isLast) TagCardPosition.Last else TagCardPosition.Middle,
-                                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = if (isLast) 6.dp else 0.dp)
-                            ) { rowItem(row, handle, TagCardRowPadding) }
-                        } else {
-                            rowItem(row, handle, MemberRowPadding)
+                        RowSlot(inTag = inTag, isLast = isLast) {
+                            rowItem(row, handle, if (inTag) TagCardRowPadding else MemberRowPadding)
                         }
                     }
                     if (reorderable) {
@@ -544,6 +539,27 @@ private fun LazyListScope.entriesSection(
                 }
             }
         }
+    }
+}
+
+// One call chain for tagged and untagged rows: a dragged row changes between them mid-drag, and a
+// different structure would recreate the row and cancel its drag.
+@Composable
+private fun RowSlot(
+    inTag: Boolean,
+    isLast: Boolean,
+    content: @Composable () -> Unit
+) {
+    val frame = if (inTag) {
+        Modifier
+            .padding(start = 16.dp, end = 16.dp, bottom = if (isLast) 6.dp else 0.dp)
+            .tagCardFrame(if (isLast) TagCardPosition.Last else TagCardPosition.Middle)
+    } else {
+        Modifier
+    }
+    Column(modifier = Modifier.fillMaxWidth().then(frame)) {
+        if (inTag) HorizontalDivider(color = MusterColors.Hairline)
+        content()
     }
 }
 
