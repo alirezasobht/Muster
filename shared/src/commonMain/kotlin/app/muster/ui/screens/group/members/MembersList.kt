@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -48,23 +49,53 @@ import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.ReorderableLazyListState
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
+private typealias MemberRowContent = @Composable (MemberRow, Modifier, PaddingValues) -> Unit
+
 @Composable
 internal fun MembersList(
     state: MembersTabUiState.Success,
     actions: MembersTabActions,
     actionErrorMessage: String?
 ) {
-    val requestMemberRowActions = rememberMemberRowActionsWithDialogs(
-        memberOperations = actions.memberOperations,
-        tagsOptions = state.tagOptions
-    )
+    val drag = rememberMembersDragState(state, actions)
+    val rowItem = memberRowItem(state, actions, actionErrorMessage)
     val requestTagDelete = rememberTagDeleteAction(actions.onDeleteTag)
 
+    LazyColumn(
+        state = drag.lazyListState,
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(vertical = 4.dp)
+    ) {
+        introPanelSection(state, { actions.onCreateTag() })
+        entriesSection(
+            entries = drag.entries,
+            state = state,
+            actions = actions,
+            requestTagDelete = requestTagDelete,
+            reorderableState = drag.reorderableState,
+            drag = drag.callbacks,
+            rowItem = rowItem,
+            errorFor = { tagId -> actionErrorMessage.takeIf { state.failedActionId == tagId } }
+        )
+    }
+}
+
+private class MembersDragState(
+    val entries: List<MembersEntry>,
+    val lazyListState: LazyListState,
+    val reorderableState: ReorderableLazyListState,
+    val callbacks: MemberDragCallbacks
+)
+
+@Composable
+private fun rememberMembersDragState(
+    state: MembersTabUiState.Success,
+    actions: MembersTabActions
+): MembersDragState {
     val latestState by rememberUpdatedState(state)
     val latestActions by rememberUpdatedState(actions)
     var dragLayout by remember { mutableStateOf<DragLayout?>(null) }
     val stateEntries = remember(state.tags, state.members, state.pendings) { buildEntries(state) }
-    val entries = dragLayout?.entries ?: stateEntries
 
     val lazyListState = rememberLazyListState()
     val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
@@ -78,23 +109,7 @@ internal fun MembersList(
         }
     }
 
-    val rowItem: @Composable (MemberRow, Modifier, PaddingValues) -> Unit = { row, dragHandleModifier, contentPadding ->
-        val inFlight = row.inFlight(state.actionTargetId)
-        val errorMessage = actionErrorMessage.takeIf { state.failedActionId == row.id }
-        val isPending = row.status == MemberStatus.Pending
-        MemberRowItem(
-            row = row,
-            memberRowActions = requestMemberRowActions(row),
-            inFlight = inFlight,
-            errorMessage = errorMessage,
-            isPending = isPending,
-            isMoving = state.movingProfileId == row.id,
-            dragHandleModifier = dragHandleModifier,
-            contentPadding = contentPadding
-        )
-    }
-
-    val drag = MemberDragCallbacks(
+    val callbacks = MemberDragCallbacks(
         enabled = state.actionTargetId == null && dragLayout?.settling != true,
         onStart = { rowId ->
             val current = buildEntries(latestState, dragging = true)
@@ -110,22 +125,37 @@ internal fun MembersList(
             }
         }
     )
+    return MembersDragState(
+        entries = dragLayout?.entries ?: stateEntries,
+        lazyListState = lazyListState,
+        reorderableState = reorderableState,
+        callbacks = callbacks
+    )
+}
 
-    LazyColumn(
-        state = lazyListState,
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(vertical = 4.dp)
-    ) {
-        introPanelSection(state, { actions.onCreateTag() })
-        entriesSection(
-            entries = entries,
-            state = state,
-            actions = actions,
-            requestTagDelete = requestTagDelete,
-            reorderableState = reorderableState,
-            drag = drag,
-            rowItem = rowItem,
-            errorFor = { tagId -> actionErrorMessage.takeIf { state.failedActionId == tagId } }
+@Composable
+private fun memberRowItem(
+    state: MembersTabUiState.Success,
+    actions: MembersTabActions,
+    actionErrorMessage: String?
+): MemberRowContent {
+    val requestMemberRowActions = rememberMemberRowActionsWithDialogs(
+        memberOperations = actions.memberOperations,
+        tagsOptions = state.tagOptions
+    )
+    return { row, dragHandleModifier, contentPadding ->
+        val inFlight = row.inFlight(state.actionTargetId)
+        val errorMessage = actionErrorMessage.takeIf { state.failedActionId == row.id }
+        val isPending = row.status == MemberStatus.Pending
+        MemberRowItem(
+            row = row,
+            memberRowActions = requestMemberRowActions(row),
+            inFlight = inFlight,
+            errorMessage = errorMessage,
+            isPending = isPending,
+            isMoving = state.movingProfileId == row.id,
+            dragHandleModifier = dragHandleModifier,
+            contentPadding = contentPadding
         )
     }
 }
@@ -159,7 +189,7 @@ private fun LazyListScope.entriesSection(
     requestTagDelete: (TagSection) -> Unit,
     reorderableState: ReorderableLazyListState,
     drag: MemberDragCallbacks,
-    rowItem: @Composable (MemberRow, Modifier, PaddingValues) -> Unit,
+    rowItem: MemberRowContent,
     errorFor: (String) -> String?
 ) {
     var currentSection: ListSection? = null
