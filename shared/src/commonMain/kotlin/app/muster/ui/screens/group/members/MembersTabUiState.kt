@@ -56,6 +56,8 @@ sealed interface MembersTabUiState : UiState<MembersTabUiState.Success> {
         val pendings: List<MemberRow> = emptyList(),
         val isRefreshing: Boolean = false,
         val actionTargetId: String? = null,
+        // The member being dragged to another section; shown there with a spinner.
+        val movingProfileId: String? = null,
         val actionError: DomainError? = null,
         val failedActionId: String? = null,
         // A failed Move to tag, shown under the header: the member may sit in a tag card.

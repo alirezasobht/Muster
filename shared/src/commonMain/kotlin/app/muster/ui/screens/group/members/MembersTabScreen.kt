@@ -276,6 +276,7 @@ private fun MembersList(
             inFlight = inFlight,
             errorMessage = errorMessage,
             isPending = isPending,
+            isMoving = state.movingProfileId == row.id,
             modifier = modifier,
             contentPadding = contentPadding
         )
@@ -617,6 +618,27 @@ private fun MembersTabScreenAdminWithTagsPreview() {
                     pendings = PreviewInvited,
                     canAddMembers = true,
                     canManageTags = true
+                ),
+                actions = PreviewActions
+            )
+        }
+    }
+}
+
+@Preview(heightDp = 1400)
+@Composable
+private fun MembersTabScreenMovingPreview() {
+    MusterTheme {
+        Surface {
+            MembersTabScreen(
+                state = MembersTabUiState.Success(
+                    tags = PreviewTags,
+                    members = PreviewUntagged,
+                    pendings = PreviewInvited,
+                    canAddMembers = true,
+                    canManageTags = true,
+                    movingProfileId = "4",
+                    actionTargetId = "4"
                 ),
                 actions = PreviewActions
             )
