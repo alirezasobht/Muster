@@ -236,7 +236,7 @@ state.
 
 The same split applies to permission flags. A Members-tab row's
 `canPromote`/`canDemote`/`canRemove`/`canRevokeInvitation` (`MemberRow`)
-are booleans `MembersTabViewModel` sets once, from the viewer's role and
+are booleans `MembersTabMapper` sets once, from the viewer's role and
 whether the row is their own. The composable only ever reads them — it
 never takes an `isAdmin` and re-derives who can do what, which would put
 the same role check in two places and let them disagree.
