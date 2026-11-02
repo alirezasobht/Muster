@@ -2,6 +2,8 @@ package app.muster.ui.screens.group.members.membertagname
 
 import app.muster.data.fake.FakeMemberRepository
 import app.muster.domain.error.DomainError
+import app.muster.domain.model.GroupRole
+import app.muster.domain.model.Member
 import app.muster.domain.model.MemberTag
 import app.muster.domain.usecase.CreateTagUseCase
 import app.muster.domain.usecase.RenameTagUseCase
@@ -30,7 +32,15 @@ class MemberTagNameDialogViewModelTest {
     private fun members(
         createError: DomainError? = null,
         renameError: DomainError? = null
-    ) = FakeMemberRepository(memberTags = listOf(casual), createTagError = createError, renameTagError = renameError)
+    ) = FakeMemberRepository(
+        members = listOf(
+            Member(profileId = "a", name = "Alex Doyle", role = GroupRole.Member, tagId = null),
+            Member(profileId = "b", name = "Dan Whelan", role = GroupRole.Member, tagId = "t1")
+        ),
+        memberTags = listOf(casual),
+        createTagError = createError,
+        renameTagError = renameError
+    )
 
     private fun viewModel(
         mode: MemberTagNameMode,
@@ -101,8 +111,8 @@ class MemberTagNameDialogViewModelTest {
         viewModel.onSubmit()
         advanceUntilIdle()
 
-        assertEquals(listOf("a"), members.tags.last().memberIds)
-        assertEquals(listOf("b"), members.tags.first().memberIds)
+        assertEquals(members.tags.last().id, members.members.first { it.profileId == "a" }.tagId)
+        assertEquals("t1", members.members.first { it.profileId == "b" }.tagId)
     }
 
     @Test
@@ -113,7 +123,8 @@ class MemberTagNameDialogViewModelTest {
         viewModel.onSubmit()
         advanceUntilIdle()
 
-        assertEquals(emptyList(), members.tags.last().memberIds)
+        val created = members.tags.last()
+        assertTrue(members.members.none { it.tagId == created.id })
     }
 
     @Test
