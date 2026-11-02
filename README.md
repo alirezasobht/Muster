@@ -113,7 +113,8 @@ More in [ARCHITECTURE.md](docs/ARCHITECTURE.md) and
 - An ordered standby queue that admins reorder by dragging. The first in
   line is invited as soon as a place frees up.
 - Events lock at their start time: no more replies, invitations or
-  promotions.
+  promotions. Admins can also lock one earlier, freezing everything
+  until they unlock it, and delete events.
 - Groups are archived, never deleted. Accounts can be deleted in the app
   or on the web.
 
