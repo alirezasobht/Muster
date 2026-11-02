@@ -303,7 +303,7 @@ private val PreviewActions = MembersTabActions(
     onCreateTag = {},
     onDeleteTag = {},
     onMoveUpTag = {},
-    onMoveDownTag = {},
+    onMoveDownTag = {}
 ) { _, _, _ -> }
 
 private val AdminPreviewMembers = listOf(
