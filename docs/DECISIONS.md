@@ -438,8 +438,9 @@ Dragging runs on a local `DragLayout`, a pure model in
 to displace rows live as the drag moves. The destination is the nearest
 section header above the dropped row. After the drop a short delay
 (`DRAG_SETTLE_MILLIS`) lets the row animate into place before the list
-goes back to ViewModel state. A row has to keep the same composable structure in every section, or the drag is
-cancelled when it changes section mid-drag.
+goes back to ViewModel state. A row has to keep the same composable
+structure in every section, or the drag is cancelled when it changes
+section mid-drag.
 
 Rejected: dragging across containers with custom pointer input (hit
 testing, auto-scroll and displacement to rebuild), and `ReorderableColumn`
