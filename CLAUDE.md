@@ -122,7 +122,7 @@ All writes go through definer RPCs, and every table's write grants are
 revoked — SCHEMA.md → Grants.
 
 Not built:
-- **Member tags** — tables and RPCs exist (the 2026-10-13 migrations);
+- **Member tags** — tables and RPCs exist (the 2026-11-03 migrations);
   no domain layer or UI yet.
 - **The 2a–2d error treatment** — done on 1a, 1b, 1g and Add by email.
   Still outstanding on 1c and 1f, which carry a single `error` field and
