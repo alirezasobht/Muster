@@ -22,7 +22,7 @@ class MembersTabUiStateTest {
     )
 
     @Test
-    fun counts_cover_tags_and_untagged_but_not_pendings() {
+    fun `counts cover tags and untagged but not pendings`() {
         val state = MembersTabUiState.Success(
             tags = listOf(section("t1", row("1"), row("2")), section("t2", row("3"))),
             members = listOf(row("4")),
@@ -34,7 +34,7 @@ class MembersTabUiStateTest {
     }
 
     @Test
-    fun default_state_is_empty_with_zero_counts() {
+    fun `the default state is empty with zero counts`() {
         val state = MembersTabUiState.Success()
 
         assertTrue(state.isEmpty)
@@ -43,28 +43,28 @@ class MembersTabUiStateTest {
     }
 
     @Test
-    fun only_self_is_empty() {
+    fun `a state with only self is empty`() {
         val state = MembersTabUiState.Success(members = listOf(row("1", isSelf = true)))
 
         assertTrue(state.isEmpty)
     }
 
     @Test
-    fun other_member_makes_state_non_empty() {
+    fun `another member makes the state non-empty`() {
         val state = MembersTabUiState.Success(members = listOf(row("1", isSelf = true), row("2")))
 
         assertFalse(state.isEmpty)
     }
 
     @Test
-    fun member_in_tag_makes_state_non_empty() {
+    fun `a member in a tag makes the state non-empty`() {
         val state = MembersTabUiState.Success(tags = listOf(section("t1", row("2"))))
 
         assertFalse(state.isEmpty)
     }
 
     @Test
-    fun pending_makes_state_non_empty() {
+    fun `a pending makes the state non-empty`() {
         val state = MembersTabUiState.Success(
             members = listOf(row("1", isSelf = true)),
             pendings = listOf(row("p1", status = MemberStatus.Pending))
@@ -74,7 +74,7 @@ class MembersTabUiStateTest {
     }
 
     @Test
-    fun tags_intro_shows_for_tag_managers_without_tags() {
+    fun `the tags intro shows for tag managers without tags`() {
         val state = MembersTabUiState.Success(canManageTags = true)
 
         assertTrue(state.showTagsIntro)
@@ -82,7 +82,7 @@ class MembersTabUiStateTest {
     }
 
     @Test
-    fun new_tag_button_shows_for_tag_managers_with_tags() {
+    fun `the new tag button shows for tag managers with tags`() {
         val state = MembersTabUiState.Success(tags = listOf(section("t1")), canManageTags = true)
 
         assertFalse(state.showTagsIntro)
@@ -90,13 +90,13 @@ class MembersTabUiStateTest {
     }
 
     @Test
-    fun tag_intro_and_button_hidden_when_cannot_manage_tags() {
+    fun `the tag intro and button are hidden when tags cannot be managed`() {
         assertFalse(MembersTabUiState.Success().showTagsIntro)
         assertFalse(MembersTabUiState.Success(tags = listOf(section("t1"))).showNewTagButton)
     }
 
     @Test
-    fun tagOptions_map_id_name_and_member_count() {
+    fun `tagOptions map id name and member count`() {
         val state = MembersTabUiState.Success(
             tags = listOf(section("t1", row("1"), row("2")), section("t2"))
         )
@@ -108,7 +108,7 @@ class MembersTabUiStateTest {
     }
 
     @Test
-    fun menu_flags_default_to_none() {
+    fun `menu flags default to none`() {
         val plain = row("1")
 
         assertFalse(plain.hasRoleActions)
@@ -116,7 +116,7 @@ class MembersTabUiStateTest {
     }
 
     @Test
-    fun each_role_action_flag_gives_role_actions_and_menu() {
+    fun `each role action flag gives role actions and a menu`() {
         listOf(
             row("1").copy(canPromote = true),
             row("1").copy(canDemote = true),
@@ -130,7 +130,7 @@ class MembersTabUiStateTest {
     }
 
     @Test
-    fun move_to_tag_alone_gives_menu_without_role_actions() {
+    fun `move to tag alone gives a menu without role actions`() {
         val movable = row("1").copy(canMoveToTag = true)
 
         assertFalse(movable.hasRoleActions)
@@ -138,7 +138,7 @@ class MembersTabUiStateTest {
     }
 
     @Test
-    fun inFlight_matches_only_the_target_id() {
+    fun `inFlight matches only the target id`() {
         val target = row("1")
 
         assertTrue(target.inFlight("1"))

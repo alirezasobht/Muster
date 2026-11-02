@@ -53,7 +53,7 @@ class MembersTabMapperTest {
     private fun adminState() = fullListing.toSuccessState(myProfileId = "me", isAdmin = true)
 
     @Test
-    fun admin_state_has_tags_untagged_pendings_and_flags() {
+    fun `an admin state has tags untagged members pendings and the admin flags`() {
         val state = adminState()
 
         assertEquals(listOf("t1", "t2"), state.tags.map { it.id })
@@ -69,7 +69,7 @@ class MembersTabMapperTest {
     }
 
     @Test
-    fun non_admin_state_has_all_members_and_no_tags_or_pendings() {
+    fun `a non-admin state has all members and no tags or pendings`() {
         val state = fullListing.toSuccessState(myProfileId = "m3", isAdmin = false)
 
         assertTrue(state.tags.isEmpty())
@@ -80,7 +80,7 @@ class MembersTabMapperTest {
     }
 
     @Test
-    fun non_admin_rows_have_no_action_flags() {
+    fun `non-admin rows have no action flags`() {
         val state = fullListing.toSuccessState(myProfileId = "m3", isAdmin = false)
 
         state.members.forEach {
@@ -93,28 +93,28 @@ class MembersTabMapperTest {
     }
 
     @Test
-    fun non_admin_keeps_tag_ids_on_rows() {
+    fun `a non-admin keeps tag ids on rows`() {
         val state = fullListing.toSuccessState(myProfileId = "m3", isAdmin = false)
 
         assertEquals("t1", state.members.first { it.id == "a1" }.tagId)
     }
 
     @Test
-    fun non_admin_self_row_is_marked_self() {
+    fun `a non-admin self row is marked as self`() {
         val state = fullListing.toSuccessState(myProfileId = "m3", isAdmin = false)
 
         assertEquals(listOf("m3"), state.members.filter { it.isSelf }.map { it.id })
     }
 
     @Test
-    fun untagged_includes_null_and_empty_tag_ids() {
+    fun `untagged includes members with null and empty tag ids`() {
         val state = adminState()
 
         assertEquals(setOf("me", "m3", "m4"), state.members.map { it.id }.toSet())
     }
 
     @Test
-    fun admin_with_no_tags_puts_everyone_in_members() {
+    fun `an admin with no tags puts everyone in members`() {
         val state = listing(
             members = listOf(member("me", "Me", GroupRole.Admin), member("m1", "Ann"))
         ).toSuccessState("me", isAdmin = true)
@@ -124,7 +124,7 @@ class MembersTabMapperTest {
     }
 
     @Test
-    fun member_with_unknown_tag_id_is_in_no_section_for_admin() {
+    fun `a member with an unknown tag id is in no section for an admin`() {
         val state = listing(
             members = listOf(member("m1", "Ann", tagId = "gone")),
             tags = listOf(MemberTag("t1", "A"))
@@ -135,7 +135,7 @@ class MembersTabMapperTest {
     }
 
     @Test
-    fun admin_flags_on_other_member() {
+    fun `admin flags on another member`() {
         val other = adminState().members.first { it.id == "m3" }
 
         assertEquals(MemberStatus.Member, other.status)
@@ -152,7 +152,7 @@ class MembersTabMapperTest {
     }
 
     @Test
-    fun admin_flags_on_other_admin() {
+    fun `admin flags on another admin`() {
         val other = adminState().tags.first { it.id == "t1" }.rows.first { it.id == "a1" }
 
         assertEquals(MemberStatus.Admin, other.status)
@@ -163,7 +163,7 @@ class MembersTabMapperTest {
     }
 
     @Test
-    fun admin_self_row_can_only_move_to_tag() {
+    fun `an admin self row can only move to a tag`() {
         val self = adminState().members.first { it.isSelf }
 
         assertEquals("me", self.id)
@@ -178,7 +178,7 @@ class MembersTabMapperTest {
     }
 
     @Test
-    fun pending_rows_have_revoke_and_resend_only() {
+    fun `pending rows have revoke and resend only`() {
         val pending = adminState().pendings.first { it.id == "p1" }
 
         assertEquals("zoe@example.com", pending.displayName)
@@ -196,7 +196,7 @@ class MembersTabMapperTest {
     }
 
     @Test
-    fun pendings_are_sorted_case_insensitively() {
+    fun `pendings are sorted case-insensitively`() {
         val state = listing(
             pendings = listOf(
                 PendingInvitation("1", "charlie@x.com"),
@@ -209,7 +209,7 @@ class MembersTabMapperTest {
     }
 
     @Test
-    fun sorts_self_first_then_admins_then_members_case_insensitively() {
+    fun `rows sort self first then admins then members case-insensitively`() {
         val state = listing(
             members = listOf(
                 member("m1", "bravo"),
@@ -224,14 +224,14 @@ class MembersTabMapperTest {
     }
 
     @Test
-    fun sorts_rows_inside_tag_section() {
+    fun `rows are sorted inside a tag section`() {
         val state = adminState()
 
         assertEquals(listOf("a1", "m1"), state.tags.first { it.id == "t1" }.rows.map { it.id })
     }
 
     @Test
-    fun self_in_tag_section_comes_first() {
+    fun `self comes first in a tag section`() {
         val state = listing(
             members = listOf(
                 member("a1", "Anna", GroupRole.Admin, "t1"),
@@ -244,7 +244,7 @@ class MembersTabMapperTest {
     }
 
     @Test
-    fun members_are_grouped_under_their_tag() {
+    fun `members are grouped under their tag`() {
         val state = adminState()
 
         assertEquals(listOf("a1", "m1"), state.tags[0].rows.map { it.id })
@@ -254,14 +254,14 @@ class MembersTabMapperTest {
     }
 
     @Test
-    fun tag_without_members_has_empty_section() {
+    fun `a tag without members has an empty section`() {
         val state = listing(tags = listOf(MemberTag("t1", "Empty"))).toSuccessState("me", true)
 
         assertTrue(state.tags.single().rows.isEmpty())
     }
 
     @Test
-    fun tag_sections_keep_listing_order_with_reorder_flags() {
+    fun `tag sections keep listing order with reorder flags`() {
         val state = listing(
             tags = listOf(MemberTag("c", "C"), MemberTag("a", "A"), MemberTag("b", "B"))
         ).toSuccessState("me", isAdmin = true)
@@ -273,14 +273,14 @@ class MembersTabMapperTest {
     }
 
     @Test
-    fun single_tag_cannot_move_either_way() {
+    fun `a single tag cannot move either way`() {
         val state = listing(tags = listOf(MemberTag("t1", "Only"))).toSuccessState("me", true)
 
         assertEquals(Reorder(canMoveUp = false, canMoveDown = false), state.tags.single().reorder)
     }
 
     @Test
-    fun empty_listing_gives_empty_state() {
+    fun `an empty listing gives an empty state`() {
         val state = listing().toSuccessState("me", isAdmin = true)
 
         assertTrue(state.tags.isEmpty())
@@ -290,7 +290,7 @@ class MembersTabMapperTest {
     }
 
     @Test
-    fun sortRows_orders_self_admins_members() {
+    fun `sortRows orders self first then admins then members`() {
         val sorted = sortRows(
             listOf(
                 row("1", "beta"),
@@ -305,19 +305,19 @@ class MembersTabMapperTest {
     }
 
     @Test
-    fun sortRows_drops_pending_rows() {
+    fun `sortRows drops pending rows`() {
         val sorted = sortRows(listOf(row("1", "a@x.com", MemberStatus.Pending), row("2", "Bo")))
 
         assertEquals(listOf("2"), sorted.map { it.id })
     }
 
     @Test
-    fun sortRows_of_empty_list_is_empty() {
+    fun `sortRows of an empty list is empty`() {
         assertTrue(sortRows(emptyList()).isEmpty())
     }
 
     @Test
-    fun withMemberMoved_tag_to_other_tag() {
+    fun `withMemberMoved moves a member from a tag to another tag`() {
         val state = adminState()
         val moving = state.tags[0].rows.first { it.id == "m1" }
 
@@ -330,7 +330,7 @@ class MembersTabMapperTest {
     }
 
     @Test
-    fun withMemberMoved_tag_to_untagged() {
+    fun `withMemberMoved moves a member from a tag to untagged`() {
         val state = adminState()
         val moving = state.tags[0].rows.first { it.id == "m1" }
 
@@ -343,7 +343,7 @@ class MembersTabMapperTest {
     }
 
     @Test
-    fun withMemberMoved_empty_tag_id_counts_as_untagged() {
+    fun `withMemberMoved counts an empty tag id as untagged`() {
         val state = adminState()
         val moving = state.tags[1].rows.first()
 
@@ -354,7 +354,7 @@ class MembersTabMapperTest {
     }
 
     @Test
-    fun withMemberMoved_untagged_to_tag() {
+    fun `withMemberMoved moves a member from untagged to a tag`() {
         val state = adminState()
         val moving = state.members.first { it.id == "m3" }
 
@@ -367,7 +367,7 @@ class MembersTabMapperTest {
     }
 
     @Test
-    fun withMemberMoved_resorts_destination_tag() {
+    fun `withMemberMoved resorts the destination tag`() {
         val state = listing(
             members = listOf(
                 member("m1", "Bea", tagId = "t1"),
@@ -383,7 +383,7 @@ class MembersTabMapperTest {
     }
 
     @Test
-    fun withMemberMoved_resorts_untagged_with_admin_before_member() {
+    fun `withMemberMoved resorts untagged with admins before members`() {
         val state = listing(
             members = listOf(
                 member("m1", "Ann"),
@@ -398,7 +398,7 @@ class MembersTabMapperTest {
     }
 
     @Test
-    fun withMemberMoved_to_same_tag_keeps_single_copy() {
+    fun `withMemberMoved to the same tag keeps a single copy`() {
         val state = adminState()
         val moving = state.tags[0].rows.first { it.id == "m1" }
 
@@ -409,7 +409,7 @@ class MembersTabMapperTest {
     }
 
     @Test
-    fun withMemberMoved_sets_moving_ids_and_clears_errors() {
+    fun `withMemberMoved sets moving ids and clears errors`() {
         val state = adminState().copy(
             actionTargetId = "other",
             actionError = DomainError.Network(),
@@ -428,7 +428,7 @@ class MembersTabMapperTest {
     }
 
     @Test
-    fun withMemberMoved_keeps_pendings_and_flags() {
+    fun `withMemberMoved keeps pendings and flags`() {
         val state = adminState().copy(isRefreshing = true)
 
         val result = state.withMemberMoved(state.members.first { it.id == "m3" }, "t1")
@@ -440,7 +440,7 @@ class MembersTabMapperTest {
     }
 
     @Test
-    fun withMemberMoved_preserves_member_count() {
+    fun `withMemberMoved preserves the member count`() {
         val state = adminState()
 
         val result = state.withMemberMoved(state.members.first { it.id == "m3" }, "t2")
