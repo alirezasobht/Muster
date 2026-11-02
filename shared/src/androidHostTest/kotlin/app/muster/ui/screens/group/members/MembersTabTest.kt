@@ -1,7 +1,12 @@
 package app.muster.ui.screens.group.members
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -34,7 +39,10 @@ class MembersTabTest {
         onNewTag: () -> Unit = {},
         onCreateTagForMember: (String) -> Unit = {},
         onRenameTag: (String) -> Unit = {},
-        onDeleteTag: (String) -> Unit = {}
+        onDeleteTag: (String) -> Unit = {},
+        onMoveUpTag: (String) -> Unit = {},
+        onMoveDownTag: (String) -> Unit = {},
+        onRenameTagArgs: (String, String, Int) -> Unit = { _, _, _ -> }
     ) {
         composeRule.setContent {
             MusterTheme {
@@ -53,9 +61,12 @@ class MembersTabTest {
                         ),
                         onCreateTag = onNewTag,
                         onDeleteTag = onDeleteTag,
-                        onMoveUpTag = {},
-                        onMoveDownTag = {},
-                        onRenameTag = { tagId, _, _ -> onRenameTag(tagId) }
+                        onMoveUpTag = onMoveUpTag,
+                        onMoveDownTag = onMoveDownTag,
+                        onRenameTag = { tagId, name, count ->
+                            onRenameTag(tagId)
+                            onRenameTagArgs(tagId, name, count)
+                        }
                     ),
                     actionErrorMessage = actionErrorMessage,
                     spinnerDelayMillis = 0
@@ -662,5 +673,179 @@ class MembersTabTest {
             actionErrorMessage = "Can’t connect. Check your connection and try again."
         )
         composeRule.onNodeWithText("Can’t connect. Check your connection and try again.").assertIsDisplayed()
+    }
+
+    private val casualMember = MemberRow(id = "5", displayName = "Kim Lee", status = MemberStatus.Member)
+
+    private val casual = TagSection(
+        id = "t2",
+        name = "Casual",
+        rows = listOf(casualMember),
+        reorder = Reorder(canMoveUp = true, canMoveDown = false)
+    )
+
+    private val twoTags = MembersTabUiState.Success(
+        members = listOf(self),
+        tags = listOf(regular.copy(reorder = Reorder(canMoveUp = false, canMoveDown = true)), casual),
+        canManageTags = true
+    )
+
+    private val networkMessage = "Can’t connect. Check your connection and try again."
+
+    @Test
+    fun aTagCardShowsItsNameAndMemberCount() {
+        show(
+            state = MembersTabUiState.Success(
+                members = listOf(self),
+                tags = listOf(regular.copy(rows = listOf(other, casualMember))),
+                canManageTags = true
+            )
+        )
+        composeRule.onNodeWithText("Regular").assertIsDisplayed()
+        composeRule.onNodeWithText("2").assertIsDisplayed()
+        composeRule.onNodeWithText("Kim Lee").assertIsDisplayed()
+    }
+
+    @Test
+    fun withTagsTheUntaggedAndInvitedHeadersAreShown() {
+        show(
+            state = MembersTabUiState.Success(
+                members = listOf(self),
+                pendings = listOf(invite),
+                tags = listOf(regular.copy(rows = listOf(other, casualMember))),
+                canManageTags = true
+            )
+        )
+        composeRule.onNodeWithText("Untagged").assertIsDisplayed()
+        composeRule.onNodeWithText("A–Z").assertIsDisplayed()
+        // The header and the row's badge.
+        composeRule.onAllNodesWithText("Invited").assertCountEquals(2)
+    }
+
+    @Test
+    fun withoutTagsInvitedRowsHaveOnlyTheirBadge() {
+        show(state = MembersTabUiState.Success(members = listOf(self, other), pendings = listOf(invite)))
+        composeRule.onAllNodesWithText("Invited").assertCountEquals(1)
+        composeRule.onNodeWithText("A–Z").assertDoesNotExist()
+        composeRule.onNodeWithText("priya.n@gmail.com").assertIsDisplayed()
+    }
+
+    @Test
+    fun anEmptyTagCardShowsTheDropHint() {
+        show(
+            state = MembersTabUiState.Success(
+                members = listOf(self, other),
+                tags = listOf(regular.copy(rows = emptyList())),
+                canManageTags = true
+            )
+        )
+        composeRule.onNodeWithText("No one yet", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun theTagsIntroIsHiddenFromNonAdmins() {
+        show(state = MembersTabUiState.Success(members = listOf(self, other), canManageTags = false))
+        composeRule.onNodeWithText("Sort members with tags").assertDoesNotExist()
+    }
+
+    @Test
+    fun aMoveErrorIsShownUnderTheCountLine() {
+        show(
+            state = MembersTabUiState.Success(
+                members = listOf(self, other),
+                tags = listOf(regular),
+                canManageTags = true,
+                moveError = DomainError.Network()
+            )
+        )
+        composeRule.onNodeWithText(networkMessage).assertIsDisplayed()
+    }
+
+    @Test
+    fun noMoveErrorMeansNoMessage() {
+        show(state = MembersTabUiState.Success(members = listOf(self, other), tags = listOf(regular), canManageTags = true))
+        composeRule.onNodeWithText(networkMessage).assertDoesNotExist()
+    }
+
+    @Test
+    fun aTagLevelErrorIsShownOnceUnderThatCardsHeader() {
+        show(
+            state = twoTags.copy(failedActionId = "t1"),
+            actionErrorMessage = networkMessage
+        )
+        composeRule.onAllNodesWithText(networkMessage).assertCountEquals(1)
+    }
+
+    @Test
+    fun aTagLevelErrorForAnotherIdIsNotShownOnTheCard() {
+        show(
+            state = twoTags.copy(failedActionId = "unrelated"),
+            actionErrorMessage = networkMessage
+        )
+        composeRule.onNodeWithText(networkMessage).assertDoesNotExist()
+    }
+
+    @Test
+    fun noTagErrorIsShownWithoutAFailedAction() {
+        show(state = twoTags, actionErrorMessage = networkMessage)
+        composeRule.onNodeWithText(networkMessage).assertDoesNotExist()
+    }
+
+    @Test
+    fun aFailedRowInsideATagCardShowsItsMessageOnTheRow() {
+        show(
+            state = MembersTabUiState.Success(
+                members = listOf(self),
+                tags = listOf(regular.copy(rows = listOf(other.copy(canPromote = true)))),
+                canManageTags = true,
+                failedActionId = "2"
+            ),
+            actionErrorMessage = networkMessage
+        )
+        composeRule.onAllNodesWithText(networkMessage).assertCountEquals(1)
+    }
+
+    @Test
+    fun theFirstCardGreysOutMoveUpAndMovesDown() {
+        var movedDown: String? = null
+        show(state = twoTags, onMoveDownTag = { movedDown = it })
+        composeRule.onAllNodesWithContentDescription("Tag options")[0].performClick()
+        composeRule.onNodeWithText("Move up").assertIsNotEnabled()
+        composeRule.onNodeWithText("Move down").assertIsEnabled()
+        composeRule.onNodeWithText("Move down").performClick()
+        assert(movedDown == "t1")
+    }
+
+    @Test
+    fun theLastCardGreysOutMoveDownAndMovesUp() {
+        var movedUp: String? = null
+        show(state = twoTags, onMoveUpTag = { movedUp = it })
+        composeRule.onAllNodesWithContentDescription("Tag options")[1].performClick()
+        composeRule.onNodeWithText("Move down").assertIsNotEnabled()
+        composeRule.onNodeWithText("Move up").assertIsEnabled()
+        composeRule.onNodeWithText("Move up").performClick()
+        assert(movedUp == "t2")
+    }
+
+    @Test
+    fun renamingPassesTheTagIdNameAndMemberCount() {
+        var args: Triple<String, String, Int>? = null
+        show(
+            state = MembersTabUiState.Success(
+                members = listOf(self),
+                tags = listOf(regular.copy(rows = listOf(other, casualMember))),
+                canManageTags = true
+            ),
+            onRenameTagArgs = { id, name, count -> args = Triple(id, name, count) }
+        )
+        composeRule.onNodeWithContentDescription("Tag options").performClick()
+        composeRule.onNodeWithText("Rename").performClick()
+        assert(args == Triple("t1", "Regular", 2))
+    }
+
+    @Test
+    fun theDeleteConfirmationCountsSeveralMembers() {
+        showTagWithDeleteOpen(regular.copy(rows = listOf(other, casualMember)))
+        composeRule.onNodeWithText("Its 2 members move", substring = true).assertIsDisplayed()
     }
 }

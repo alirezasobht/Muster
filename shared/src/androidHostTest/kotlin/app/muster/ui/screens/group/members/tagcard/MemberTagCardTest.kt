@@ -48,11 +48,12 @@ class MemberTagCardTest {
     private fun show(
         section: TagSection,
         actions: MemberTagCardActions = MemberTagCardActions(),
-        rowActions: MemberRowActions = MemberRowActions()
+        rowActions: MemberRowActions = MemberRowActions(),
+        errorMessage: String? = null
     ) {
         composeRule.setContent {
             MusterTheme {
-                MemberTagCard(section = section, actions = actions) {
+                MemberTagCard(section = section, actions = actions, errorMessage = errorMessage) {
                     MemberRowItem(
                         row = it,
                         memberRowActions = rowActions,
@@ -126,5 +127,45 @@ class MemberTagCardTest {
         composeRule.onNodeWithContentDescription("More options").performClick()
         composeRule.onNodeWithText("Move to tag…").assertIsDisplayed()
         composeRule.onNodeWithText("Make admin").assertDoesNotExist()
+    }
+
+    @Test
+    fun anErrorMessageShowsUnderTheHeader() {
+        show(regular, errorMessage = "Can’t connect. Check your connection and try again.")
+        composeRule.onNodeWithText("Can’t connect. Check your connection and try again.").assertIsDisplayed()
+        composeRule.onNodeWithText("Sam Okafor").assertIsDisplayed()
+    }
+
+    @Test
+    fun withoutAnErrorMessageNothingIsShown() {
+        show(regular)
+        composeRule.onNodeWithText("Can’t connect. Check your connection and try again.").assertDoesNotExist()
+    }
+
+    @Test
+    fun anErrorMessageAndTheEmptyHintShowTogether() {
+        show(regular.copy(rows = emptyList()), errorMessage = "Something went wrong")
+        composeRule.onNodeWithText("Something went wrong").assertIsDisplayed()
+        composeRule.onNode(hasText("No one yet", substring = true)).assertIsDisplayed()
+    }
+
+    @Test
+    fun anEmptyTagCountsZero() {
+        show(regular.copy(rows = emptyList()))
+        composeRule.onNodeWithText("0").assertIsDisplayed()
+    }
+
+    @Test
+    fun aTagWithMembersHasNoEmptyHint() {
+        show(regular)
+        composeRule.onNode(hasText("No one yet", substring = true)).assertDoesNotExist()
+    }
+
+    @Test
+    fun theLastCardGreysOutMoveDown() {
+        show(regular.copy(reorder = Reorder(canMoveUp = true, canMoveDown = false)))
+        composeRule.onNodeWithContentDescription("Tag options").performClick()
+        composeRule.onNodeWithText("Move up").assertIsEnabled()
+        composeRule.onNodeWithText("Move down").assertIsNotEnabled()
     }
 }
