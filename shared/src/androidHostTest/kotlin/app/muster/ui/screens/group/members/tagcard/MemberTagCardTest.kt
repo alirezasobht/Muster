@@ -16,6 +16,7 @@ import app.muster.ui.screens.group.members.components.MemberRowActions
 import app.muster.ui.screens.group.members.components.MemberRowItem
 import app.muster.ui.screens.group.members.components.MemberTagCard
 import app.muster.ui.screens.group.members.components.MemberTagCardActions
+import app.muster.ui.screens.group.members.components.TagCardRowPadding
 import app.muster.ui.theme.MusterTheme
 import org.junit.Rule
 import org.junit.Test
@@ -33,7 +34,6 @@ class MemberTagCardTest {
         displayName = "Sam Okafor",
         status = MemberStatus.Member,
         canMoveToTag = true,
-        reorder = Reorder(canMoveUp = true, canMoveDown = false),
         canPromote = true,
         canRemove = true
     )
@@ -53,7 +53,13 @@ class MemberTagCardTest {
         composeRule.setContent {
             MusterTheme {
                 MemberTagCard(section = section, actions = actions) {
-                    MemberRowItem(row = it, actions = rowActions)
+                    MemberRowItem(
+                        row = it,
+                        memberRowActions = rowActions,
+                        inFlight = false,
+                        errorMessage = null,
+                        contentPadding = TagCardRowPadding
+                    )
                 }
             }
         }
@@ -102,22 +108,20 @@ class MemberTagCardTest {
         assert(picked == "rename,down,delete,")
     }
 
-    // 5j: tag items first, then the role items, with the same greying at the ends.
+    // 5j: Move to tag first, then the role items.
     @Test
-    fun aTaggedRowMenuListsTagItemsThenRoleItems() {
+    fun aTaggedRowMenuListsMoveToTagThenRoleItems() {
         var moved = false
         show(regular, rowActions = MemberRowActions(onMoveToTag = { moved = true }))
         composeRule.onNodeWithContentDescription("More options").performClick()
-        composeRule.onNodeWithText("Move up").assertIsEnabled()
-        composeRule.onNodeWithText("Move down").assertIsNotEnabled()
         composeRule.onNodeWithText("Make admin").assertIsDisplayed()
         composeRule.onNodeWithText("Move to tag…").performClick()
         assert(moved)
     }
 
-    // Your own row has no role items, but still gets ⋮ for its tag items.
+    // Your own row has no role items, but still gets ⋮ for Move to tag.
     @Test
-    fun yourOwnRowGetsAMenuWithTagItemsOnly() {
+    fun yourOwnRowGetsAMenuWithMoveToTagOnly() {
         show(regular.copy(rows = listOf(sam.copy(isSelf = true, canPromote = false, canRemove = false))))
         composeRule.onNodeWithContentDescription("More options").performClick()
         composeRule.onNodeWithText("Move to tag…").assertIsDisplayed()
