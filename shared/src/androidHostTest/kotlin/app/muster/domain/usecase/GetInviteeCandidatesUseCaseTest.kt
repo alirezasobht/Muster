@@ -21,11 +21,11 @@ class GetInviteeCandidatesUseCaseTest {
     private val groupId = "group-1"
 
     private val groupMembers = listOf(
-        Member(profileId = "player-1", name = "Alex Doyle", role = GroupRole.Admin),
-        Member(profileId = "player-2", name = "Dan Whelan", role = GroupRole.Member),
-        Member(profileId = "player-3", name = "Sam Okafor", role = GroupRole.Member),
-        Member(profileId = "player-4", name = "Priya Nair", role = GroupRole.Member),
-        Member(profileId = "player-5", name = "Leo Fanning", role = GroupRole.Member)
+        Member(profileId = "player-1", name = "Alex Doyle", role = GroupRole.Admin, tagId = null),
+        Member(profileId = "player-2", name = "Dan Whelan", role = GroupRole.Member, tagId = null),
+        Member(profileId = "player-3", name = "Sam Okafor", role = GroupRole.Member, tagId = null),
+        Member(profileId = "player-4", name = "Priya Nair", role = GroupRole.Member, tagId = null),
+        Member(profileId = "player-5", name = "Leo Fanning", role = GroupRole.Member, tagId = null)
     )
 
     private fun detail(

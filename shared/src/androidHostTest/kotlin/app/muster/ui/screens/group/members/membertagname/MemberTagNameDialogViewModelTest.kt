@@ -24,7 +24,7 @@ class MemberTagNameDialogViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
-    private val casual = MemberTag(id = "t1", name = "Casual", memberIds = listOf("a", "b"))
+    private val casual = MemberTag(id = "t1", name = "Casual")
     private val renameCasual = MemberTagNameMode.Rename(tagId = "t1", tagName = "Casual", memberCount = 2)
 
     private fun members(

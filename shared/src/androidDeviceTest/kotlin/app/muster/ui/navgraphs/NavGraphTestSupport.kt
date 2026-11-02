@@ -67,7 +67,7 @@ fun fakeRepositoriesModule(
     single<GroupRepository> { FakeGroupRepository(groups = listOf(TestGroup), group = TestGroup, myRole = myRole, latency = 0) }
     single<MemberRepository> {
         FakeMemberRepository(
-            members = listOf(Member(profileId = FAKE_USER_ID, name = "Alex", role = GroupRole.Admin)),
+            members = listOf(Member(profileId = FAKE_USER_ID, name = "Alex", role = GroupRole.Admin, tagId = null)),
             latency = 0
         )
     }
