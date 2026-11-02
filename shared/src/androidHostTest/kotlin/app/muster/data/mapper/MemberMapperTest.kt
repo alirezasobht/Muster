@@ -48,4 +48,53 @@ class MemberMapperTest {
 
         assertEquals(emptyList(), row.toMemberListing().memberTags)
     }
+
+    @Test
+    fun `an unknown role maps to member`() {
+        val row = json.decodeFromString<List<GroupMembersDto>>(
+            """
+            [{"members": [{"profile_id": "a", "name": "Alex", "role": "owner", "tag_id": null}],
+              "pending": [], "tags": []}]
+            """.trimIndent()
+        ).single()
+
+        assertEquals(GroupRole.Member, row.toMemberListing().members.single().role)
+    }
+
+    @Test
+    fun `a member whose tag is not in the tags list keeps the tag id`() {
+        val row = json.decodeFromString<List<GroupMembersDto>>(
+            """
+            [{"members": [{"profile_id": "a", "name": "Alex", "role": "member", "tag_id": "gone"}],
+              "pending": [], "tags": [{"id": "t1", "name": "Regular"}]}]
+            """.trimIndent()
+        ).single()
+
+        val listing = row.toMemberListing()
+
+        assertEquals("gone", listing.members.single().tagId)
+        assertEquals(listOf("t1"), listing.memberTags.map { it.id })
+    }
+
+    @Test
+    fun `a member with no name key maps to an empty name`() {
+        val row = json.decodeFromString<List<GroupMembersDto>>(
+            """[{"members": [{"profile_id": "a", "role": "member", "tag_id": null}], "pending": [], "tags": []}]"""
+        ).single()
+
+        assertEquals("", row.toMemberListing().members.single().name)
+    }
+
+    @Test
+    fun `an empty payload maps to an empty listing`() {
+        val row = json.decodeFromString<List<GroupMembersDto>>(
+            """[{"members": [], "pending": [], "tags": []}]"""
+        ).single()
+
+        val listing = row.toMemberListing()
+
+        assertEquals(emptyList(), listing.members)
+        assertEquals(emptyList(), listing.pendingInvitations)
+        assertEquals(emptyList(), listing.memberTags)
+    }
 }
