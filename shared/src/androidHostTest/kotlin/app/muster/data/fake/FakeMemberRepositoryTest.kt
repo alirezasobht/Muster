@@ -43,7 +43,7 @@ class FakeMemberRepositoryTest {
 
         repository.createTag("g", "Late", memberId = null)
 
-        assertEquals(listOf("t1", "t2", "tag-3"), repository.tags.map { it.id })
+        assertEquals(listOf("t1", "t2", "tag-1"), repository.tags.map { it.id })
         assertEquals("Late", repository.tags.last().name)
         assertEquals(listOf(null, "t1"), repository.listMembers("g").members.map { it.tagId })
     }
@@ -55,7 +55,7 @@ class FakeMemberRepositoryTest {
         repository.createTag("g", "Late", memberId = "a")
 
         val members = repository.listMembers("g").members
-        assertEquals("tag-3", members.first { it.profileId == "a" }.tagId)
+        assertEquals("tag-1", members.first { it.profileId == "a" }.tagId)
         assertEquals("t1", members.first { it.profileId == "b" }.tagId)
     }
 
@@ -75,6 +75,43 @@ class FakeMemberRepositoryTest {
         repository.deleteTag("g", "t1")
 
         assertEquals(listOf("t2"), repository.tags.map { it.id })
+    }
+
+    @Test
+    fun `deleteTag clears the tag on its members and keeps them listed`() = runTest {
+        val repository = repository()
+
+        repository.deleteTag("g", "t1")
+
+        val members = repository.listMembers("g").members
+        assertEquals(listOf("a", "b"), members.map { it.profileId })
+        assertEquals(listOf(null, null), members.map { it.tagId })
+    }
+
+    @Test
+    fun `deleteTag leaves members of other tags untouched`() = runTest {
+        val repository = repository()
+        repository.setMemberTag("g", "a", "t2")
+
+        repository.deleteTag("g", "t1")
+
+        val members = repository.listMembers("g").members
+        assertEquals("t2", members.first { it.profileId == "a" }.tagId)
+        assertNull(members.first { it.profileId == "b" }.tagId)
+    }
+
+    @Test
+    fun `tag ids stay unique after a delete followed by a create`() = runTest {
+        val repository = repository()
+
+        repository.createTag("g", "Late", memberId = null)
+        repository.createTag("g", "Early", memberId = null)
+        repository.deleteTag("g", "tag-1")
+        repository.createTag("g", "Newer", memberId = null)
+
+        val ids = repository.tags.map { it.id }
+        assertEquals(ids.distinct(), ids)
+        assertEquals(listOf("t1", "t2", "tag-2", "tag-3"), ids)
     }
 
     @Test

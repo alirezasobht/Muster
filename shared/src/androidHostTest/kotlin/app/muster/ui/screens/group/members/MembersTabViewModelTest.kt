@@ -395,6 +395,25 @@ class MembersTabViewModelTest {
     }
 
     @Test
+    fun `deleting a tag with a member moves the member to the untagged list`() = runTest {
+        val changes = DataChanges()
+        val members = FakeMemberRepository(
+            members = listOf(self, taggedMember),
+            memberTags = listOf(defenders, forwards),
+            dataChanges = changes
+        )
+        val viewModel = viewModel(members = members, dataChanges = changes)
+        advanceUntilIdle()
+
+        viewModel.onDeleteTag(defenders.id)
+        advanceUntilIdle()
+
+        val state = viewModel.success()
+        assertEquals(listOf(forwards.id), state.tags.map { it.id })
+        assertEquals(setOf(FAKE_USER_ID, taggedMember.profileId), state.members.map { it.id }.toSet())
+    }
+
+    @Test
     fun `a failed tag delete reports the error on the tag and keeps the section`() = runTest {
         val members = FakeMemberRepository(
             members = listOf(self),

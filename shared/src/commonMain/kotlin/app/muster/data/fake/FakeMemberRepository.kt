@@ -63,6 +63,8 @@ class FakeMemberRepository(
     var leftGroupIds = listOf<String>()
         private set
 
+    private var nextTagNumber = 1
+
     override suspend fun listMembers(groupId: String): MemberListing {
         delay(latency.milliseconds)
         listMembersError?.let { throw it }
@@ -143,7 +145,7 @@ class FakeMemberRepository(
     ) {
         delay(latency.milliseconds)
         createTagError?.let { throw it }
-        val tagId = "tag-${tags.size + 1}"
+        val tagId = "tag-${nextTagNumber++}"
         tags = tags + MemberTag(id = tagId, name = name)
         if (memberId != null) {
             members = members.map { if (it.profileId == memberId) it.copy(tagId = tagId) else it }
@@ -169,6 +171,7 @@ class FakeMemberRepository(
         delay(latency.milliseconds)
         deleteTagError?.let { throw it }
         tags = tags.filterNot { it.id == tagId }
+        members = members.map { if (it.tagId == tagId) it.copy(tagId = null) else it }
         dataChanges?.notify(DataChange.Members(groupId))
     }
 

@@ -4,6 +4,7 @@ import app.muster.data.dto.GroupMembersDto
 import app.muster.domain.model.GroupRole
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlinx.serialization.json.Json
 
 class MemberMapperTest {
@@ -74,6 +75,18 @@ class MemberMapperTest {
 
         assertEquals("gone", listing.members.single().tagId)
         assertEquals(listOf("t1"), listing.memberTags.map { it.id })
+    }
+
+    @Test
+    fun `a member with no tag id key maps to no tag`() {
+        val row = json.decodeFromString<List<GroupMembersDto>>(
+            """
+            [{"members": [{"profile_id": "a", "name": "Alex", "role": "member"}],
+              "pending": [], "tags": []}]
+            """.trimIndent()
+        ).single()
+
+        assertNull(row.toMemberListing().members.single().tagId)
     }
 
     @Test
