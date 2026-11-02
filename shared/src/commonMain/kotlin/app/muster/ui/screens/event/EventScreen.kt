@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -48,6 +49,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -887,14 +889,15 @@ private fun OwnRsvpBlock(
                     style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
                 )
                 Spacer(Modifier.height(12.dp))
-                Row {
+                // A label that wraps on a narrow screen grows both buttons together.
+                Row(modifier = Modifier.height(IntrinsicSize.Min)) {
                     PrimaryButton(
                         text = stringResource(Res.string.action_im_in),
                         onClick = {
                             isChanging = false
                             onRsvp(RsvpStatus.In)
                         },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f).fillMaxHeight()
                     )
                     Spacer(Modifier.width(12.dp))
                     OutlinedButton(
@@ -904,12 +907,13 @@ private fun OwnRsvpBlock(
                         },
                         shape = MaterialTheme.shapes.medium,
                         border = BorderStroke(1.dp, MusterColors.Outline),
-                        modifier = Modifier.weight(1f).height(52.dp)
+                        modifier = Modifier.weight(1f).fillMaxHeight().heightIn(min = 52.dp)
                     ) {
                         Text(
                             text = stringResource(Res.string.action_cant_make_it),
                             style = MaterialTheme.typography.labelLarge,
-                            color = MusterColors.Ink
+                            color = MusterColors.Ink,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
