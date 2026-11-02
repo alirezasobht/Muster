@@ -113,7 +113,9 @@ of which confirm first, standby queue with drag-to-reorder, Add players,
 account deletion (Settings and the web app's `/delete-account` page),
 Privacy policy (embedded `privacy.html`), Edit group and Edit event
 (screens, use cases, and the `update_group` / `update_event` RPCs;
-unreleased, shipping in 1.0.5).
+unreleased, shipping in 1.0.5), member tags on the Members tab (cards,
+Untagged, New/Rename/Delete tag, Move to tag sheet, drag between
+sections, tag order via Move up/down; unreleased).
 
 **Dev** and **prod** both exist. Android is published on Play, the web
 app is live, and iOS is in App Store review.
@@ -122,11 +124,13 @@ All writes go through definer RPCs, and every table's write grants are
 revoked — SCHEMA.md → Grants.
 
 Not built:
-- **Member tags** — tables and RPCs exist (the 2026-11-03 migrations);
-  no domain layer or UI yet.
+- **Member tag polish** — the drag feedback from 5c–5f, "Saving…" text
+  in place of the spinner, and a live "already a tag called" check while
+  typing.
+- **Add players with tags** (5t/5u).
 - **The 2a–2d error treatment** — done on 1a, 1b, 1g and Add by email.
   Still outstanding on 1c and 1f, which carry a single `error` field and
   put everything in the field's slot, including errors that aren't about
   the field.
 
-Next: member tags — domain and UI.
+Next: Add players with tags (5t/5u).

@@ -108,6 +108,18 @@ the shell's — Group's Members tab is the first case. The shell's
 than resolving the tab's ViewModel itself, so the shell stays Koin-free
 and its previews keep working; `XRoute` fills the slot.
 
+The Members tab folder is `screens/group/members/`: `MembersTabScreen`,
+`MembersTabUiState`, `MembersTabViewModel`, `MembersTabMapper` and
+`MembersNavGraph` (the tag name dialog routes), with `components/`
+(`MembersList`, `MembersListModel`, `MemberRowItem`, `MemberTagCard`,
+`MemberRowActionDialog`, `MemberTagDeleteActionDialog`, `TagsIntroPanel`),
+and a folder each for `membertagname/`, `movetotag/` and `addbyemail/`.
+The tag use cases (`CreateTagUseCase`, `RenameTagUseCase`,
+`DeleteTagUseCase`, `SetMemberTagUseCase`, `SetTagOrderUseCase`,
+`MoveTagUpUseCase`, `MoveTagDownUseCase`) sit in `domain/usecase/`. The
+list's structure is in DECISIONS.md → "The Members list is one flat lazy
+list".
+
 A screen's `XRoute` composable lives in the same file as `XScreen`. The
 exception is Launch, because `LaunchViewModel` is hoisted above the
 `NavHost` and shared rather than resolved per-route.
@@ -224,7 +236,7 @@ state.
 
 The same split applies to permission flags. A Members-tab row's
 `canPromote`/`canDemote`/`canRemove`/`canRevokeInvitation` (`MemberRow`)
-are booleans `MembersViewModel` sets once, from the viewer's role and
+are booleans `MembersTabViewModel` sets once, from the viewer's role and
 whether the row is their own. The composable only ever reads them — it
 never takes an `isAdmin` and re-derives who can do what, which would put
 the same role check in two places and let them disagree.

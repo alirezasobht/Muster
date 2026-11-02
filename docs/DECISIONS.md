@@ -415,6 +415,51 @@ Rejected: a stored order for members within a tag, and replacing every
 tag's members in one call (a stale screen would undo another admin's
 moves).
 
+## Members move by drag, tags by menu
+
+A member moves by dragging the row to another section, or through the Move
+to tag sheet. A tag moves only with Move up / Move down on its card menu.
+There is no member order to drag within a tag, and no card drag: Move
+up/down is enough for the handful of tags a group has.
+
+Rejected: a row-menu Move up / Move down for members (they have no stored
+order), and drag-to-reorder cards.
+
+## The Members list is one flat lazy list
+
+`MembersList` is a single `LazyColumn` of keyed header, row and empty-hint
+items, not a card containing its rows. `animateItem` and the reorderable
+library (3.1.0) only work on direct lazy items; a row inside a card item
+could neither animate between sections nor be dragged out of one. The card
+look is drawn per item (`TagCardPosition`, `tagCardFrame`).
+
+Dragging runs on a local `DragLayout`, a pure model in
+`components/MembersListModel.kt`, not in the ViewModel: the library needs
+to displace rows live as the drag moves. The destination is the nearest section header above the dropped
+row. After the drop a short delay (`DRAG_SETTLE_MILLIS`) lets the row
+animate into place before the list goes back to ViewModel state. A row has
+to keep the same composable structure in every section, or the drag is
+cancelled when it changes section mid-drag.
+
+Rejected: dragging across containers with custom pointer input (hit
+testing, auto-scroll and displacement to rebuild), and `ReorderableColumn`
+(a non-lazy column, so no lazy item animation).
+
+## Member moves are optimistic
+
+`MembersTabViewModel.onSetMemberTag` applies the move to the list at once
+(`withMemberMoved` in `MembersTabMapper.kt`, a pure function), keeps the
+previous tags and members, and restores them if the call fails, with the
+error shown under the count line. One row saves at a time. The tag id, the
+order and the name rules stay in Postgres; the client only reflects the
+result.
+
+`MoveTagUpUseCase` and `MoveTagDownUseCase` compute the new id list,
+because `set_group_tag_order` takes the whole list.
+
+Rejected: waiting for the call before moving the row (a dropped row would
+snap back, then jump), and refetching the list after every move.
+
 ## One members read, role included
 
 `get_group_members` returns the caller's role, members, and for admins

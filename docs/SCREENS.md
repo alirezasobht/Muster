@@ -154,6 +154,52 @@ pending invitations when there are any ("12 members · 2 pending").
 - Edit group and Archive group live in the Group app bar overflow, admins
   only, in that order above Leave group.
 
+#### Member tags
+
+Admins only. Members see the list above unchanged. CONTEXT.md → "Member
+tags" has the rules; DECISIONS.md the reasoning.
+
+- **Count line** carries a tonal **+ New tag** once the group has a tag,
+  above Add by email. With no tags it shows a one-off intro panel instead
+  (5m), whose New tag button is then the only one.
+- **Tag cards**, in admin order: hairline outline, 14dp radius. The header
+  has the name, the member count and a ⋮ with Rename, Move up, Move down
+  and Delete tag (5l). Move up/down are greyed at the ends. This is the
+  only way to reorder tags; there is no card drag.
+- **Untagged** (labelled A–Z) comes after the cards, then **Invited**. Rows
+  in a tag and in Untagged sort self first, then admins, then members,
+  each A–Z. Members have no stored order.
+- **Row ⋮** has **Move to tag…** above the role items. It opens the Move to
+  tag sheet (5k): the tags, No tag, and **New tag…**, which creates the tag
+  and moves that member in one call. Your own row has a ⋮ with the tag
+  items only, and an outlined "You" badge.
+- **New tag / Rename tag** (5n–5r) is a dialog route off Group, one field.
+  Create/Save stays disabled while the name is blank (or, for Rename,
+  unchanged). No "Enter a name" error, no character counter. The server's
+  "Tag name is too long" and "There's already a tag called X" show on the
+  field.
+- **Delete tag** confirms first (5s), ink button. Its members go to
+  Untagged.
+- **Drag** a member by the left handle to another tag, to Untagged, or
+  into an empty tag or an empty Untagged: the empty-tag hint and the
+  "Untagged — drop here to remove the tag" hint are the drop targets.
+  Dropping back in the same section snaps the row back. Pending rows have
+  no handle.
+- **Moving is optimistic and in place.** The row shows in the new section
+  at once, with a spinner in place of the handle and another in place of
+  the ⋮ until the save lands. One row saves at a time. On failure the row
+  returns to where it was. Rows animate between sections.
+- **Errors.** A failed move shows its error under the count line, with no
+  Try again. A failed Delete tag, Move up or Move down shows its error
+  under that tag card's header. Other row actions keep their error under
+  the row.
+
+Not built: the drag feedback from 5c–5f (green drop-target outline with
+"Tag as <name>" / "Remove tag" note, lifted-row shadow, long-press to
+lift), "Saving…" text in place of the ⋮ (a spinner is shown), and a live
+"already a tag called" check while typing. Add players with tags (5t/5u)
+is also not built; Add players below is unchanged.
+
 ### Add by email
 Its own destination, not a mode inside Group. It renders the same group
 name app bar, with a **close X in place of the back arrow**, and the tabs
