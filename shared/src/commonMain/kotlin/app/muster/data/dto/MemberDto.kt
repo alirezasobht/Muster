@@ -20,8 +20,7 @@ internal data class GroupMemberEntryDto(
     @SerialName("profile_id") val profileId: String,
     val name: String? = null,
     val role: String,
-    @SerialName("tag_id") val tagId: String?,
-
+    @SerialName("tag_id") val tagId: String?
 )
 
 @Serializable
