@@ -113,7 +113,10 @@ of which confirm first, standby queue with drag-to-reorder, Add players,
 account deletion (Settings and the web app's `/delete-account` page),
 Privacy policy (embedded `privacy.html`), Edit group and Edit event
 (screens, use cases, and the `update_group` / `update_event` RPCs;
-unreleased, shipping in 1.0.5).
+unreleased, shipping in 1.0.5). Event lock and Delete event (switch,
+ink locked strip, ⋮ Delete, the `set_event_locked` / `delete_event`
+RPCs and the lock checks in the freeze triggers and roster RPCs;
+unreleased, on `admin-lock`, not yet deployed to dev).
 
 **Dev** and **prod** both exist. Android is published on Play, the web
 app is live, and iOS is in App Store review.

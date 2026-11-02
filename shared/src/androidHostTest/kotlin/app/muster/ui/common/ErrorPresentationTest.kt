@@ -44,4 +44,12 @@ class ErrorPresentationTest {
             DomainError.NotSignedIn().presentation
         )
     }
+
+    @Test
+    fun `a write on a locked event is a terminal form error`() {
+        assertEquals(
+            ErrorPresentation.Form(ErrorPresentation.Severity.Terminal),
+            DomainError.EventLocked().presentation
+        )
+    }
 }

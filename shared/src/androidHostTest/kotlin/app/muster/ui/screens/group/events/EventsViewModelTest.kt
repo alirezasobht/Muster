@@ -36,7 +36,8 @@ class EventsViewModelTest {
         capacity = 10,
         inCount = 7,
         pendingCount = 3,
-        myStatus = RsvpStatus.In
+        myStatus = RsvpStatus.In,
+        lockedAt = null
     )
 
     private fun viewModel(
@@ -107,6 +108,18 @@ class EventsViewModelTest {
         val row = assertIs<EventsUiState.Success>(viewModel.state.value).eventRows.single()
         assertNull(row.status)
         assertEquals("", row.location)
+    }
+
+    @Test
+    fun `a locked event's row is marked locked, an unlocked one is not`() = runTest {
+        val locked = fullEvent.copy(id = "event-locked", lockedAt = Instant.parse("2026-09-10T09:00:00Z"))
+        val events = FakeEventRepository(events = listOf(fullEvent, locked))
+        val viewModel = viewModel(events = events)
+        advanceUntilIdle()
+
+        val rows = assertIs<EventsUiState.Success>(viewModel.state.value).eventRows
+        assertEquals(false, rows.single { it.id == fullEvent.id }.isLocked)
+        assertEquals(true, rows.single { it.id == "event-locked" }.isLocked)
     }
 
     @Test

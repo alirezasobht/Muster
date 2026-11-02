@@ -104,6 +104,24 @@ object MusterIcons {
             fill = SolidColor(Color.Black),
         ).build()
     }
+
+    val Lock: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "Lock",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f
+        ).addPath(
+            pathData = addPathNodes(
+                "M18,8h-1V6c0,-2.76 -2.24,-5 -5,-5S7,3.24 7,6v2H6c-1.1,0 -2,0.9 -2,2v10c0,1.1 0.9,2 2,2h12" +
+                    "c1.1,0 2,-0.9 2,-2V10c0,-1.1 -0.9,-2 -2,-2z" +
+                    "M9,6c0,-1.66 1.34,-3 3,-3s3,1.34 3,3v2H9V6z" +
+                    "M18,20H6V10h12v10z"
+            ),
+            fill = SolidColor(Color.Black)
+        ).build()
+    }
 }
 
 @Preview
@@ -117,6 +135,7 @@ private fun IconsPreview() {
                 IconPreview(imageVector = MusterIcons.Close)
                 IconPreview(imageVector = MusterIcons.DragHandle)
                 IconPreview(imageVector = MusterIcons.Refresh)
+                IconPreview(imageVector = MusterIcons.Lock)
             }
         }
     }

@@ -72,7 +72,8 @@ fun NavGraphBuilder.eventGraph(navController: NavController) {
                             location = summary.location
                         )
                     )
-                }
+                },
+                onDeleted = { navController.popBackStack() }
             )
         }
     }

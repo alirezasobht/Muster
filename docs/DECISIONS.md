@@ -422,3 +422,23 @@ enforcement off, on project `muster-ci` only, for one key for
 Rejected: Workload Identity Federation, keyless, but a pool and provider
 to set up and maintain for one upload a release.
 
+
+## Event lock: two columns on `events`, delete still allowed
+
+A lock is `events.locked_at` and `locked_by`, not a table of its own. It
+is one state per event with no history to keep, and the freeze triggers
+already read the event row, so the lock rides on them. A separate table
+would add a join and its own grants for nothing.
+
+Deleting a locked event is allowed. The lock stops changes to an event
+that is happening; removing one that won't happen is a different act,
+and making an admin unlock first only adds a step. Cascades from member
+removal, leaving and account deletion still run on a locked event, as
+they do past kickoff, but promotion waits for unlock.
+
+The locked strip is ink, louder than the quiet started strip: a lock is
+temporary and someone chose it, so it has to be noticed. A pill beside
+the title was tried and dropped; it cost the title too much width.
+
+Rejected: an `event_locks` table with who, when and why; a plain boolean,
+which loses who locked it for the same cost.

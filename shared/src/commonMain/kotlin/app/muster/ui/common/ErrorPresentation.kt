@@ -43,9 +43,11 @@ val DomainError.presentation: ErrorPresentation
         // Rendered inline on the roster row or RSVP block via toMessage(),
         // same as Members' row actions — never actually consults this. Still
         // classified for the exhaustive when: retrying the identical change
-        // fails identically until capacity frees or the freeze already held.
+        // fails identically until capacity frees or an admin unlocks; the
+        // freeze never lifts.
         is DomainError.EventFull,
         is DomainError.EventFrozen,
+        is DomainError.EventLocked,
         // Resubmitting the same stale list fails the same way — a refresh
         // has to happen first, not a bare retry.
         is DomainError.StandbyQueueStale,

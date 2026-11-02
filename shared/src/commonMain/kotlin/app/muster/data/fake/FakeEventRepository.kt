@@ -9,6 +9,7 @@ import app.muster.domain.model.RosterEntry
 import app.muster.domain.model.RsvpStatus
 import app.muster.domain.model.StandbyEntry
 import app.muster.domain.repository.EventRepository
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Instant
 import kotlinx.coroutines.delay
@@ -27,10 +28,12 @@ class FakeEventRepository(
             capacity = 10,
             inCount = 0,
             pendingCount = 0,
-            myStatus = null
+            myStatus = null,
+            lockedAt = null
         ),
         roster = emptyList(),
-        standby = emptyList()
+        standby = emptyList(),
+        lockedByName = null
     ),
     var getEventError: DomainError? = null,
     var updateEventError: DomainError? = null,
@@ -39,6 +42,8 @@ class FakeEventRepository(
     var disinvitePlayerError: DomainError? = null,
     var addPlayersError: DomainError? = null,
     var resendInvitationError: DomainError? = null,
+    var setEventLockedError: DomainError? = null,
+    var deleteEventError: DomainError? = null,
     var profileNames: Map<String, String> = emptyMap(),
     private val dataChanges: DataChanges? = null,
     private val latency: Long = FAKE_LATENCY_MS
@@ -60,6 +65,9 @@ class FakeEventRepository(
         private set
 
     var resentInvitationProfileIds = listOf<String>()
+        private set
+
+    var deletedEventIds = listOf<String>()
         private set
 
     override suspend fun listUpcomingEvents(groupId: String): List<Event> {
@@ -86,7 +94,8 @@ class FakeEventRepository(
             capacity = capacity,
             inCount = 0,
             pendingCount = 0,
-            myStatus = null
+            myStatus = null,
+            lockedAt = null
         )
         events = events + event
         createdEventTitles = createdEventTitles + title
@@ -224,6 +233,34 @@ class FakeEventRepository(
 
         eventDetail = eventDetail.copy(roster = roster, standby = standby)
         dataChanges?.notify(DataChange.Roster(eventId))
+        dataChanges?.notify(DataChange.Events(groupId))
+    }
+
+    override suspend fun setEventLocked(
+        eventId: String,
+        locked: Boolean
+    ) {
+        delay(latency.milliseconds)
+        setEventLockedError?.let { throw it }
+        val lockedAt = if (locked) eventDetail.event.lockedAt ?: Clock.System.now() else null
+        val lockedByName = if (locked) eventDetail.lockedByName ?: profileNames[FAKE_USER_ID] else null
+        eventDetail = eventDetail.copy(
+            event = eventDetail.event.copy(lockedAt = lockedAt),
+            lockedByName = lockedByName
+        )
+        events = events.map { if (it.id == eventId) it.copy(lockedAt = lockedAt) else it }
+        dataChanges?.notify(DataChange.Roster(eventId))
+        dataChanges?.notify(DataChange.Events(eventDetail.event.groupId))
+    }
+
+    override suspend fun deleteEvent(
+        eventId: String,
+        groupId: String
+    ) {
+        delay(latency.milliseconds)
+        deleteEventError?.let { throw it }
+        events = events.filterNot { it.id == eventId }
+        deletedEventIds = deletedEventIds + eventId
         dataChanges?.notify(DataChange.Events(groupId))
     }
 }

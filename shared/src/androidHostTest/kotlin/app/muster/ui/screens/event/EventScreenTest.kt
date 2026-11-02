@@ -1,9 +1,18 @@
 package app.muster.ui.screens.event
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
@@ -11,13 +20,17 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.text.TextLayoutResult
 import app.muster.domain.error.DomainError
 import app.muster.domain.model.RsvpStatus
 import app.muster.ui.theme.MusterTheme
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.GraphicsMode
 
 @RunWith(RobolectricTestRunner::class)
 class EventScreenTest {
@@ -57,7 +70,10 @@ class EventScreenTest {
         onRosterAction: (String, RosterAction) -> Unit = { _, _ -> },
         onReorderStandby: (List<String>) -> Unit = {},
         onRetry: () -> Unit = {},
-        onOverflowAction: (EventOverflowAction) -> Unit = {}
+        onOverflowAction: (EventOverflowAction) -> Unit = {},
+        onLockToggled: (Boolean) -> Unit = {},
+        onDialogConfirmed: () -> Unit = {},
+        onDialogDismissed: () -> Unit = {}
     ) {
         composeRule.setContent {
             MusterTheme {
@@ -69,7 +85,10 @@ class EventScreenTest {
                         onRosterAction = onRosterAction,
                         onReorderStandby = onReorderStandby,
                         onRetry = onRetry,
-                        onOverflowAction = onOverflowAction
+                        onOverflowAction = onOverflowAction,
+                        onLockToggled = onLockToggled,
+                        onDialogConfirmed = onDialogConfirmed,
+                        onDialogDismissed = onDialogDismissed
                     ),
                     spinnerDelayMillis = 0
                 )
@@ -529,5 +548,320 @@ class EventScreenTest {
         val message = "Someone was promoted while you were reordering. Refresh and try again."
         composeRule.onNode(hasScrollAction()).performScrollToNode(hasText(message))
         composeRule.onNodeWithText(message).assertIsDisplayed()
+    }
+
+    private val lockedState = successState.copy(
+        isLocked = true,
+        lockedByName = "Ali",
+        canToggleLock = true,
+        overflowActions = listOf(EventOverflowAction.Delete)
+    )
+
+    @Test
+    fun theLockSwitchIsShownWhenTheViewerCanToggleIt() {
+        show(state = successState.copy(canToggleLock = true))
+        composeRule.onNodeWithText("Locked").assertIsDisplayed()
+        composeRule.onNode(isToggleable()).assertIsOff()
+    }
+
+    @Test
+    fun noLockSwitchWhenTheViewerCannotToggleIt() {
+        show(state = successState.copy(canToggleLock = false))
+        composeRule.onNode(isToggleable()).assertDoesNotExist()
+        composeRule.onNodeWithText("Locked").assertDoesNotExist()
+    }
+
+    @Test
+    fun theLockSwitchReflectsALockedEvent() {
+        show(state = lockedState)
+        composeRule.onNode(isToggleable()).assertIsOn()
+    }
+
+    @Test
+    fun tappingTheLockSwitchReportsTheRequestedValue() {
+        var toggled: Boolean? = null
+        show(state = successState.copy(canToggleLock = true), onLockToggled = { toggled = it })
+        composeRule.onNode(isToggleable()).performClick()
+        assert(toggled == true)
+    }
+
+    // LEGACY graphics doesn't measure text, so every string fits on one line.
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Test
+    fun longDetailsBesideTheLockSwitchWrapInsteadOfTruncating() {
+        val date = "Wednesday 17 September 2026 · 7:00 pm until 9:30 pm, kick-off sharp"
+        val location = "Westgate Community Sports Centre, Pitch 2 behind the car park, Long Lane, Westgate"
+        show(state = successState.copy(canToggleLock = true, summary = summary.copy(date = date, location = location)))
+        composeRule.onNode(isToggleable()).assertIsDisplayed()
+        for (text in listOf(date, location)) {
+            val node = composeRule.onNodeWithText(text).assertIsDisplayed()
+            val layout = node.textLayout()
+            assertTrue(layout.lineCount > 1, "\"$text\" took ${layout.lineCount} line(s)")
+            assertFalse(layout.hasVisualOverflow, "\"$text\" overflows")
+        }
+    }
+
+    @Test
+    fun aLockedEventShowsBothStripLines() {
+        show(state = lockedState)
+        composeRule.onNodeWithText("Locked by Ali").assertIsDisplayed()
+        composeRule.onNodeWithText("No changes until an admin unlocks it").assertIsDisplayed()
+        composeRule.onAllNodesWithText("Locked").assertCountEquals(1)
+    }
+
+    @Test
+    fun aLockedEventWithNoLockerNameFallsBackToAnAdmin() {
+        show(state = lockedState.copy(lockedByName = null))
+        composeRule.onNodeWithText("Locked by an admin").assertIsDisplayed()
+        composeRule.onNodeWithText("No changes until an admin unlocks it").assertIsDisplayed()
+    }
+
+    @Test
+    fun membersSeeTheLockedStripButNoSwitch() {
+        show(state = lockedState.copy(isAdmin = false, canToggleLock = false, overflowActions = emptyList()))
+        composeRule.onNodeWithText("Locked by Ali").assertIsDisplayed()
+        composeRule.onNodeWithText("Locked").assertDoesNotExist()
+        composeRule.onNode(isToggleable()).assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("More options").assertDoesNotExist()
+    }
+
+    @Test
+    fun anUnlockedEventShowsNoLockedStrip() {
+        show(state = successState.copy(canToggleLock = false))
+        composeRule.onNodeWithText("No changes until an admin unlocks it").assertDoesNotExist()
+    }
+
+    @Test
+    fun aStartedEventThatIsAlsoLockedShowsTheStartedStrip() {
+        show(
+            state = lockedState.copy(
+                isFrozen = true,
+                startsAtDisplay = "7:00 pm",
+                canToggleLock = false
+            )
+        )
+        composeRule.onNodeWithText("Started at 7:00 pm · no more changes").assertIsDisplayed()
+        composeRule.onNodeWithText("Locked by Ali").assertDoesNotExist()
+        composeRule.onNodeWithText("Locked").assertDoesNotExist()
+        composeRule.onNode(isToggleable()).assertDoesNotExist()
+    }
+
+    @Test
+    fun lockedHidesAddAndRowMenus() {
+        show(state = lockedState.copy(roster = listOf(pendingRow(listOf(RosterAction.SetIn, RosterAction.CancelInvite)))))
+        composeRule.onNodeWithText("›").assertDoesNotExist()
+        composeRule.onNodeWithText("+ Add").assertDoesNotExist()
+    }
+
+    @Test
+    fun aLockedRowBadgeHasNoClickAction() {
+        show(state = lockedState.copy(myStatus = null, roster = listOf(pendingRow(listOf(RosterAction.SetOut, RosterAction.CancelInvite)))))
+        composeRule.onNodeWithText("Pending").assertHasNoClickAction()
+    }
+
+    @Test
+    fun aBadgeTappedWhileLockedDoesNotOpenTheMenuOnUnlock() {
+        val locked = lockedState.copy(myStatus = null, roster = listOf(pendingRow(listOf(RosterAction.SetOut, RosterAction.CancelInvite))))
+        var state by mutableStateOf(locked)
+        composeRule.setContent {
+            MusterTheme {
+                EventScreen(
+                    state = state,
+                    actions = EventActions(onBack = {}, onRsvp = {}, onRosterAction = { _, _ -> }, onReorderStandby = {}, onRetry = {}),
+                    spinnerDelayMillis = 0
+                )
+            }
+        }
+        composeRule.onNodeWithText("Pending").performClick()
+        composeRule.onNodeWithText("Cancel invite").assertDoesNotExist()
+
+        state = locked.copy(isLocked = false, lockedByName = null)
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("›").assertIsDisplayed()
+        composeRule.onNodeWithText("Out").assertDoesNotExist()
+        composeRule.onNodeWithText("Cancel invite").assertDoesNotExist()
+    }
+
+    @Test
+    fun lockingClosesAnOpenRosterConfirmation() {
+        val unlocked = successState.copy(myStatus = null, roster = listOf(pendingRow(listOf(RosterAction.CancelInvite))))
+        var state by mutableStateOf(unlocked)
+        composeRule.setContent {
+            MusterTheme {
+                EventScreen(
+                    state = state,
+                    actions = EventActions(onBack = {}, onRsvp = {}, onRosterAction = { _, _ -> }, onReorderStandby = {}, onRetry = {}),
+                    spinnerDelayMillis = 0
+                )
+            }
+        }
+        composeRule.onNodeWithText("Pending").performClick()
+        composeRule.onNodeWithText("Cancel invite").performClick()
+        composeRule.onNodeWithText("Cancel invite to Tomás Neale?").assertIsDisplayed()
+
+        state = unlocked.copy(isLocked = true, lockedByName = "Ali")
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Cancel invite to Tomás Neale?").assertDoesNotExist()
+    }
+
+    @Test
+    fun lockedEmptyRosterOffersNoAddPlayers() {
+        show(state = lockedState.copy(roster = emptyList(), myStatus = null))
+        composeRule.onNodeWithText("No one invited yet").assertIsDisplayed()
+        composeRule.onNodeWithText("+ Add players").assertDoesNotExist()
+    }
+
+    @Test
+    fun lockedRsvpBlockIsStaticWithNoChangeButton() {
+        show(state = lockedState.copy(myStatus = RsvpStatus.In))
+        composeRule.onNodeWithText("Your reply").assertIsDisplayed()
+        composeRule.onNodeWithText("Change").assertDoesNotExist()
+        composeRule.onNodeWithText("You played").assertDoesNotExist()
+    }
+
+    @Test
+    fun lockedUnansweredRsvpOffersNoButtons() {
+        show(state = lockedState.copy(myStatus = RsvpStatus.Pending))
+        composeRule.onNodeWithText("Can you play?").assertDoesNotExist()
+        composeRule.onNodeWithText("I’m in").assertDoesNotExist()
+    }
+
+    @Test
+    fun lockedPendingStaysPending() {
+        show(
+            state = lockedState.copy(
+                myStatus = null,
+                roster = listOf(RosterRow(id = "p2", name = "Tomás Neale", status = RsvpStatus.Pending))
+            )
+        )
+        composeRule.onNodeWithText("Pending").assertIsDisplayed()
+        composeRule.onNodeWithText("No reply").assertDoesNotExist()
+        composeRule.onNodeWithText("1 no reply").assertDoesNotExist()
+    }
+
+    @Test
+    fun lockedStandbyReadsPausedWithNoHandleEvenForAdmins() {
+        show(state = lockedState.copy(standby = standby))
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Standby · paused"))
+        composeRule.onNodeWithText("Standby · paused").assertIsDisplayed()
+        composeRule.onNodeWithText("Drag to reorder").assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("Drag to reorder").assertDoesNotExist()
+    }
+
+    @Test
+    fun anUnlockedUnstartedAdminMenuHoldsEditAndDelete() {
+        show(state = successState.copy(overflowActions = listOf(EventOverflowAction.Edit, EventOverflowAction.Delete)))
+        composeRule.onNodeWithContentDescription("More options").performClick()
+        composeRule.onNodeWithText("Edit event").assertIsDisplayed()
+        composeRule.onNodeWithText("Delete event").assertIsDisplayed()
+    }
+
+    @Test
+    fun aLockedAdminMenuHoldsDeleteAlone() {
+        show(state = lockedState)
+        composeRule.onNodeWithContentDescription("More options").performClick()
+        composeRule.onNodeWithText("Delete event").assertIsDisplayed()
+        composeRule.onNodeWithText("Edit event").assertDoesNotExist()
+    }
+
+    @Test
+    fun tappingDeleteEventReachesTheCallbackWithDelete() {
+        var picked: EventOverflowAction? = null
+        show(state = lockedState, onOverflowAction = { picked = it })
+        composeRule.onNodeWithContentDescription("More options").performClick()
+        composeRule.onNodeWithText("Delete event").performClick()
+        assert(picked == EventOverflowAction.Delete)
+    }
+
+    @Test
+    fun theDeleteDialogNamesTheEventDateAndLocationAndConfirms() {
+        var confirmed = false
+        show(
+            state = successState.copy(dialog = EventDialogState(EventDialogKind.Delete)),
+            onDialogConfirmed = { confirmed = true }
+        )
+        composeRule.onNodeWithText("Delete this event?").assertIsDisplayed()
+        composeRule
+            .onNodeWithText(
+                "Weekly 7-a-side on Wed 17 Sep · 7:00 pm at Westgate Pitch 2 is deleted for everyone, " +
+                    "with its roster and standby queue. This can’t be undone."
+            )
+            .assertIsDisplayed()
+        composeRule.onNodeWithText("Delete").performClick()
+        assert(confirmed)
+    }
+
+    @Test
+    fun theDeleteDialogLeavesOutABlankLocation() {
+        show(
+            state = successState.copy(
+                summary = summary.copy(location = ""),
+                dialog = EventDialogState(EventDialogKind.Delete)
+            )
+        )
+        composeRule
+            .onNodeWithText(
+                "Weekly 7-a-side on Wed 17 Sep · 7:00 pm is deleted for everyone, " +
+                    "with its roster and standby queue. This can’t be undone."
+            )
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun cancellingTheDeleteDialogReachesDismiss() {
+        var dismissed = false
+        show(
+            state = successState.copy(dialog = EventDialogState(EventDialogKind.Delete)),
+            onDialogDismissed = { dismissed = true }
+        )
+        composeRule.onNodeWithText("Cancel").performClick()
+        assert(dismissed)
+    }
+
+    @Test
+    fun aDeleteErrorIsShownInTheDialog() {
+        show(state = successState.copy(dialog = EventDialogState(EventDialogKind.Delete, error = DomainError.Network())))
+        composeRule.onNodeWithText("Can’t connect. Check your connection and try again.").assertIsDisplayed()
+    }
+
+    @Test
+    fun theLockDialogExplainsAndConfirms() {
+        var confirmed = false
+        show(
+            state = successState.copy(canToggleLock = true, dialog = EventDialogState(EventDialogKind.Lock)),
+            onDialogConfirmed = { confirmed = true }
+        )
+        composeRule.onNodeWithText("Lock this event?").assertIsDisplayed()
+        composeRule.onNodeWithText("Lock").performClick()
+        assert(confirmed)
+    }
+
+    @Test
+    fun theUnlockDialogExplainsAndConfirms() {
+        var confirmed = false
+        show(
+            state = lockedState.copy(dialog = EventDialogState(EventDialogKind.Unlock)),
+            onDialogConfirmed = { confirmed = true }
+        )
+        composeRule.onNodeWithText("Unlock this event?").assertIsDisplayed()
+        composeRule.onNodeWithText("Unlock").performClick()
+        assert(confirmed)
+    }
+
+    @Test
+    fun aLockErrorIsShownInTheDialog() {
+        show(
+            state = successState.copy(
+                canToggleLock = true,
+                dialog = EventDialogState(EventDialogKind.Lock, error = DomainError.EventFrozen())
+            )
+        )
+        composeRule.onNodeWithText("This event has already started.").assertIsDisplayed()
+    }
+
+    private fun SemanticsNodeInteraction.textLayout(): TextLayoutResult {
+        val results = mutableListOf<TextLayoutResult>()
+        fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action?.invoke(results)
+        return results.single()
     }
 }

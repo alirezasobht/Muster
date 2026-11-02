@@ -55,6 +55,10 @@ sealed class DomainError(
     // UI hides every control once frozen, so this only fires on that race.
     class EventFrozen : DomainError("event has already started")
 
+    // Every write path on a locked event (P0001, "event is locked"), rule
+    // 14b. A started event reports EventFrozen instead.
+    class EventLocked : DomainError("event is locked")
+
     // set_standby_order's own guard (P0001, "queue is out of date, reload"):
     // one of the submitted players was promoted between loading the screen
     // and dropping the drag. The exact race the task calls out — reordering

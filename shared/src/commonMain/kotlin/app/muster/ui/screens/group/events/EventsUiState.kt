@@ -13,7 +13,8 @@ data class EventRow(
     val capacity: Int,
     val inCount: Int,
     val pendingCount: Int,
-    val status: MemberEventStatus?
+    val status: MemberEventStatus?,
+    val isLocked: Boolean = false
 )
 
 sealed interface EventsUiState : UiState<EventsUiState.Success> {

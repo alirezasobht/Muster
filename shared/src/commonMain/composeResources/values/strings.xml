@@ -193,6 +193,28 @@
     <string name="event_standby_header_frozen">Standby · Not called up</string>
     <string name="event_standby_drag_hint">Drag to reorder</string>
     <string name="event_menu_edit">Edit event</string>
+    <string name="event_menu_delete">Delete event</string>
+    <string name="event_delete_title">Delete this event?</string>
+    <string name="event_delete_body">%1$s on %2$s at %3$s is deleted for everyone, with its roster and standby queue. This can’t be undone.</string>
+    <string name="event_delete_body_no_location">%1$s on %2$s is deleted for everyone, with its roster and standby queue. This can’t be undone.</string>
+    <string name="event_delete_confirm">Delete</string>
+    <string name="event_delete_cancel">Cancel</string>
+
+    <!-- Event lock (5a, 5b, 5c) -->
+    <string name="event_lock_label">Locked</string>
+    <string name="event_lock_title">Lock this event?</string>
+    <string name="event_lock_body">Nobody can change RSVPs, invites or the standby queue until it’s unlocked.</string>
+    <string name="event_lock_confirm">Lock</string>
+    <string name="event_lock_cancel">Cancel</string>
+    <string name="event_unlock_title">Unlock this event?</string>
+    <string name="event_unlock_body">RSVPs and the standby queue open again. Free slots fill from standby.</string>
+    <string name="event_unlock_confirm">Unlock</string>
+    <string name="event_unlock_cancel">Cancel</string>
+    <string name="event_locked_strip_title">Locked by %1$s</string>
+    <string name="event_locked_strip_title_unknown">Locked by an admin</string>
+    <string name="event_locked_strip_body">No changes until an admin unlocks it</string>
+    <string name="event_rsvp_locked">Your reply</string>
+    <string name="event_standby_header_locked">Standby · paused</string>
 
     <!-- New event (1k) -->
     <string name="new_event_title">New event</string>
@@ -238,6 +260,7 @@
     <string name="content_description_back">Back</string>
     <string name="content_description_more">More options</string>
     <string name="content_description_close">Close</string>
+    <string name="content_description_locked">Locked</string>
 
     <!-- Errors: one per DomainError case -->
     <string name="error_invalid_email">That doesn’t look like an email address.</string>
@@ -252,6 +275,7 @@
     <string name="error_event_starts_in_past">Pick a time that hasn’t passed yet.</string>
     <string name="error_event_full">This event is full.</string>
     <string name="error_event_frozen">This event has already started.</string>
+    <string name="error_event_locked">This event is locked. Ask an admin to unlock it.</string>
     <string name="error_standby_queue_stale">Someone was promoted while you were reordering. Refresh and try again.</string>
     <string name="error_invitation_sent_too_recently">Already sent today — try again tomorrow.</string>
     <string name="error_network">Can’t connect. Check your connection and try again.</string>

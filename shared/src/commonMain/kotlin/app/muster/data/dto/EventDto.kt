@@ -10,7 +10,11 @@ internal data class EventDto(
     val title: String,
     @SerialName("starts_at") val startsAt: String,
     val location: String? = null,
-    val capacity: Int
+    val capacity: Int,
+    @SerialName("locked_at") val lockedAt: String? = null,
+    // get_event_detail only; the events row returned by the write RPCs has
+    // locked_by instead.
+    @SerialName("locked_by_name") val lockedByName: String? = null
 )
 
 @Serializable
@@ -24,6 +28,7 @@ internal data class UpcomingEventDto(
     @SerialName("starts_at") val startsAt: String,
     val location: String? = null,
     val capacity: Int,
+    @SerialName("locked_at") val lockedAt: String? = null,
     @SerialName("in_count") val inCount: Int,
     @SerialName("pending_count") val pendingCount: Int,
     @SerialName("my_status") val myStatus: String? = null

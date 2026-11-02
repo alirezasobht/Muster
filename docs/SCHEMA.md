@@ -111,6 +111,8 @@ who has already accepted is caught separately, by rule 16.
 | capacity | int | > 0. Ceiling on invitations, not on confirmations. **Set at creation, never editable** |
 | created_by | uuid | → profiles, nullable, set null when the account is deleted |
 | created_at | timestamptz | |
+| locked_at | timestamptz | null = unlocked. Set and cleared only by `set_event_locked` (rule 14b) |
+| locked_by | uuid | → profiles, nullable, set null when the account is deleted. The admin who locked it; null whenever `locked_at` is (CHECK), and also on a lock whose admin has since deleted their account |
 
 UNIQUE `(id, group_id)` — not for uniqueness, which `id` already gives.
 It exists so child tables can reference the pair and have Postgres
@@ -119,8 +121,8 @@ guarantee their denormalised `group_id` matches the event's.
 Creation goes through `create_event`: a signed-in admin of a live group
 supplies the event fields, and the database sets `created_by`. Editing
 goes through `update_event`, which changes title, start and location only.
-No direct client write grants remain on `events`; deleting events is not
-exposed by the app.
+Locking goes through `set_event_locked` and deleting through
+`delete_event`. No direct client write grants remain on `events`.
 
 ### event_invitations
 Event-level RSVP. A row means the player has been invited.
@@ -192,8 +194,9 @@ it never needs to renumber anything.
    Covers: last admin leaving, last admin demoting themselves, an admin
    demoting the only other admin.
 3. **Admin-only actions** — RPC guards checking `role = 'admin'` for:
-   create or edit event, edit group, invite member, promote/demote, remove
-   member, archive group, reorder standby, change another player's RSVP.
+   create, edit, lock, unlock or delete event, edit group, invite member,
+   promote/demote, remove member, archive group, reorder standby, change
+   another player's RSVP.
 4. **Group creation limit** — `create_group` allows one live group
    created by the caller, unless their email is on
    `private.group_creator_emails`. It locks the caller's profile row
@@ -211,7 +214,8 @@ it never needs to renumber anything.
    status.
    `events` has no client write grants; `create_event` and `update_event`
    expose creation and title, start and location edits, keeping
-   `capacity` and the event's group immutable. `groups` has no client
+   `capacity` and the event's group immutable. `set_event_locked` writes
+   only `locked_at` and `locked_by`; `delete_event` deletes. `groups` has no client
    write grants, including column grants; creation, editing and
    archiving go through RPCs.
    `profiles` also has no client write grants; `set_profile_name` updates
@@ -258,7 +262,8 @@ it never needs to renumber anything.
     `pending`) and remove them from the queue. Runs on: RSVP change to
     `out`, `event_invitations` row deleted by cascade, and any insert or
     reorder on `event_standby`. Must share a transaction with rule 11 so
-    two concurrent declines cannot promote the same player twice.
+    two concurrent declines cannot promote the same player twice. Pauses
+    while the event is locked (rule 14b); unlocking runs it.
 13. **Mutual exclusion** — a player cannot hold an `event_invitations`
     row and an `event_standby` row for the same event. Cross-table, so a
     trigger.
@@ -267,6 +272,22 @@ it never needs to renumber anything.
     no queue edits. Deletes are exempt, deliberately — guarding them
     would make an old group unarchivable-and-uncleanable, since any
     cascade would trip on every historic row.
+
+    14b. **Event lock** — an admin can lock an unstarted event with
+    `set_event_locked`; it stays locked until an admin unlocks it. While
+    `locked_at` is set the event takes the freeze's rules and more: no
+    inserts or updates on its invitations or queue, no promotions, and
+    its own row changes only to unlock. The RPCs check it after taking
+    the event lock and raise `event is locked` — including
+    `disinvite_player` and `set_standby_order`, whose deletes the
+    triggers exempt. Cascades are not blocked: removing a member, a
+    member leaving and account deletion still delete that person's rows
+    and null `created_by`/`locked_by`, but the freed slot stays open
+    until unlocking runs promotion. `delete_event` is allowed while
+    locked. A started event cannot be locked or unlocked; the freeze
+    wins, and a lock left on past kickoff reads as started: writes raise
+    `event has already started`. `disinvite_player`, which has no start
+    check, still refuses it as locked.
 15. **Cascades** — removing a member clears their RSVPs and queue places
     in that group via `ON DELETE CASCADE`. Groups themselves are
     archived rather than deleted, so a group's records are never
@@ -307,10 +328,12 @@ calls one by name must qualify it, `private.is_group_admin(...)`.
 
 | Function | Why it exists |
 |---|---|
-| `get_event_detail(eid)` | read-only `security invoker`: returns event fields, roster with names, ordered standby with names, and the caller's RSVP in one SQL statement. Existing SELECT grants and RLS apply to every table |
-| `list_upcoming_events(gid)` | read-only `security invoker`: returns upcoming events with complete in/pending counts and the caller's RSVP in one SQL statement. Uses existing RLS and SELECT grants, database time, and orders by start time then ID |
+| `get_event_detail(eid)` | read-only `security invoker`: returns event fields (including `locked_at` and `locked_by_name`), roster with names, ordered standby with names, and the caller's RSVP in one SQL statement. Existing SELECT grants and RLS apply to every table; `locked_by_name` is null when the locker's profile is gone or not visible |
+| `list_upcoming_events(gid)` | read-only `security invoker`: returns upcoming events with `locked_at`, complete in/pending counts and the caller's RSVP in one SQL statement. Uses existing RLS and SELECT grants, database time, and orders by start time then ID |
 | `create_event(group_id, title, starts_at, capacity, location)` | `security definer`: requires a signed-in admin, locks the live group before inserting, sets the creator, and returns the created event. Location is optional |
-| `update_event(event_id, title, starts_at, location)` | `security definer`: requires an admin of a live group, locks group then event, and returns the updated event. Raises for an event that has started or a new start that has passed. Capacity and group are not parameters |
+| `update_event(event_id, title, starts_at, location)` | `security definer`: requires an admin of a live group, locks group then event, and returns the updated event. Raises for an event that has started or is locked, or a new start that has passed. Capacity and group are not parameters |
+| `set_event_locked(event_id, locked)` | `security definer`: requires an admin of a live group, locks group then event, and returns the event. Raises for a started event. Locking sets `locked_at` and `locked_by`; unlocking clears both, then runs `promote_standby`. Idempotent: locking a locked event keeps the original locker |
+| `delete_event(event_id)` | `security definer`: requires an admin of a live group, locks group then event, and deletes it; invitations and the queue go by cascade. Allowed on started and locked events. Returns true; raises for a missing event |
 | `set_profile_name(name)` | `security definer`: requires a signed-in caller, updates only their name, and returns their profile as `my_profile`, the flag from `can_create_groups()`; raises if the profile is missing. No group membership is required |
 | `get_my_profile()` | `security definer`: the caller's profile as `my_profile` (`id, name, email, can_create_groups`), the flag from `can_create_groups()`. The app reads its profile here, not from `profiles` |
 | `create_group(name)` | `security definer`: requires a signed-in caller that `can_create_groups()` allows, locking their profile row first, sets the creator, and returns the created group. The existing trigger creates its admin membership |
@@ -318,13 +341,13 @@ calls one by name must qualify it, `private.is_group_admin(...)`.
 | `archive_group(group_id)` | `security definer`: locks a live group, requires its admin, and sets the archive timestamp on the server; raises for a missing or already archived group |
 | `accept_group_invitation(id)` | accepts a pending group invitation addressed to the caller's profile email. Locks the invitation then its live group; creates membership and marks accepted atomically |
 | `decline_group_invitation(id)` | declines a pending group invitation addressed to the caller's profile email. Same locks as accept; creates no membership |
-| `set_standby_order(eid, uuid[])` | `security definer` with an explicit session check and empty search path; requires an admin of a live group, locks group then event, and replaces the whole queue (including adding or removing players) |
+| `set_standby_order(eid, uuid[])` | `security definer` with an explicit session check and empty search path; requires an admin of a live group, locks group then event, and replaces the whole queue (including adding or removing players). Raises for a started or locked event |
 | `get_my_pending_invitations()` | Home shows who invited you (DESIGN.md 1d); `profiles_select` can't reach the inviter's row since the invitee has no membership yet. Read-only, so `security definer` instead of a new policy — see DECISIONS.md |
 | `invite_group_member_by_email(group_id, email)` | the only way to create an invitation. `security definer`: locks the live group before checking admin authority, normalises the address, sets `invited_by`, inserts, then queues the email |
-| `set_event_rsvp(event_id, profile_id, status)` | `security definer`: live-group members may change their own RSVP, admins anyone's; locks group then event and returns the invitation's group ID for app notifications. Raises if no invitation matched |
-| `disinvite_player(event_id, profile_id)` | `security definer`: requires an admin of a live group, locks group then event, and deletes the invitation. Returns true on success; raises if nothing matched. Deletes remain exempt from the event freeze |
-| `resend_event_invitation(event_id, profile_id, tz)` | admins only, on a still-pending event invitation of an event that hasn't started. Same lock order as `disinvite_player` (group, then event), then the invitation row. Throttled to once per calendar day in the caller-supplied `tz`, checked against the invitation's own `last_sent_at` — no per-admin or per-group limit; same throttle helper and app-side `MusterTimeZone` source as `resend_group_invitation`. Calls `private.send_event_invitation_email` with a single-element array |
-| `add_players_to_event(event_id, uuid[])` | invites while slots remain, queues the rest, in the given order, one transaction. `security definer` with an explicit session check and empty search path: requires an admin of a live group and an event that hasn't started. **Skips** anyone whose row went stale between the picker loading and the admin confirming — already invited or queued, or since removed from the group. Raising on one player would roll back the batch and add nobody |
+| `set_event_rsvp(event_id, profile_id, status)` | `security definer`: live-group members may change their own RSVP, admins anyone's; locks group then event and returns the invitation's group ID for app notifications. Raises for a started or locked event, or if no invitation matched |
+| `disinvite_player(event_id, profile_id)` | `security definer`: requires an admin of a live group, locks group then event, and deletes the invitation. Returns true on success; raises if nothing matched or the event is locked. Deletes remain exempt from the event freeze, so the lock is checked here |
+| `resend_event_invitation(event_id, profile_id, tz)` | admins only, on a still-pending event invitation of an event that hasn't started and isn't locked. Same lock order as `disinvite_player` (group, then event), then the invitation row. Throttled to once per calendar day in the caller-supplied `tz`, checked against the invitation's own `last_sent_at` — no per-admin or per-group limit; same throttle helper and app-side `MusterTimeZone` source as `resend_group_invitation`. Calls `private.send_event_invitation_email` with a single-element array |
+| `add_players_to_event(event_id, uuid[])` | invites while slots remain, queues the rest, in the given order, one transaction. `security definer` with an explicit session check and empty search path: requires an admin of a live group and an event that hasn't started and isn't locked. **Skips** anyone whose row went stale between the picker loading and the admin confirming — already invited or queued, or since removed from the group. Raising on one player would roll back the batch and add nobody |
 | `set_group_member_role(group_id, profile_id, role)` | promote or demote. Locks the live group before checking admin authority and updating the member |
 | `remove_group_member(group_id, profile_id)` | locks the live group before checking admin authority and deleting the member. Refuses the caller's own id — that's `leave_group` |
 | `revoke_group_invitation(group_id, invitation_id)` | admins only. Locks the invitation then its live group before checking authority and deleting; raises if nothing matched |
@@ -368,7 +391,7 @@ the freed slot and the demoted player joins behind them.
 
 `set_standby_order` runs `security definer`, so RLS checks nothing and
 its own guards are the entire security model: caller is a group admin,
-event not started, every listed player is a member, and none of them
+event not started or locked, every listed player is a member, and none of them
 already holds an invitation.
 
 Both queue-writing RPCs raise for a missing event or non-live group.
@@ -388,9 +411,9 @@ is stale. These existing whole-queue and batch semantics are preserved.
 | `on_group_created` | `handle_new_group` | insert on `groups` | creator's admin membership |
 | `group_invitations_not_member` | `reject_if_already_member` | insert on `group_invitations` | rejects inviting someone already in the group |
 | `group_keeps_an_admin` | `ensure_admin_remains` | update/delete on `group_members` | rejects leaving a live group admin-less; archived groups are skipped so account deletion can cascade. **Deferred** — lets a transaction promote and demote in either order, and lets a group's cascade through |
-| `event_invitations_frozen` | `reject_if_event_started` | insert/update on `event_invitations` | rejects writes past `starts_at` |
+| `event_invitations_frozen` | `reject_if_event_started` | insert/update on `event_invitations` | rejects writes past `starts_at` or while the event is locked; started wins the message |
 | `event_standby_frozen` | `reject_if_event_started` | insert/update on `event_standby` | as above |
-| `events_frozen` | `reject_if_event_started_self` | update on `events` | as above, checked against the old row. An update that only nulls `created_by` is allowed, so deleting an account that created a past event can cascade |
+| `events_frozen` | `reject_if_event_started_self` | update on `events` | as above, checked against the old row; a locked row takes only an update to `locked_at`/`locked_by`, which unlocking needs. An update that only changes `created_by` or nulls `locked_by` is allowed on any event, so deleting an account that created or locked a past or locked event can cascade |
 | `event_invitations_not_queued` | `reject_if_queued` | insert on `event_invitations` | mutual exclusion — invited or queued, never both |
 | `event_standby_not_invited` | `reject_if_invited` | insert on `event_standby` | the other half of the same rule |
 | `event_invitations_capacity` | `enforce_capacity` | insert/update on `event_invitations` | `pending + in <= capacity` |
@@ -401,7 +424,7 @@ is stale. These existing whole-queue and batch semantics are preserved.
 
 | Function | Role |
 |---|---|
-| `promote_standby(eid)` | the promotion body itself |
+| `promote_standby(eid)` | the promotion body itself. Returns early for a missing, started or locked event |
 | `trigger_promote_standby()` | thin wrapper, passes the event id from the changed row |
 | `send_group_invitation_email(invitation_id)` | queues the invite email through `pg_net` and stamps `last_sent_at`. Called by `invite_group_member_by_email` on creation and by `resend_group_invitation`, which owns the throttle check. Not itself granted to `authenticated` — only reachable through those two `security definer` callers, so nothing can call it in a loop and bypass the throttle |
 | `private.sent_within_today(last_sent_at, tz)` | pure date math, no table access — `last_sent_at` falls within today's calendar day in the given IANA zone `tz`. `stable`, not `security definer`: it needs no elevated privilege. Called by both `resend_group_invitation` and `resend_event_invitation`, each passing through whatever `tz` its own caller sent, so the boundary math exists once. Reachable only from within a `security definer` caller's context, like `send_group_invitation_email` above |
@@ -413,13 +436,20 @@ unreachable from the API.
 `promote_standby(eid)` is the shared body: while a slot is free and the
 queue is non-empty, delete the front of the queue and insert a `pending`
 invitation. Deletion comes first or mutual exclusion rejects the insert.
+It reads `locked_at` under the event lock and does nothing while it is
+set; `set_event_locked` calls it after clearing the lock. Deleting an
+event cascades invitation deletes whose deferred promotion finds the
+event gone and returns.
 
 The concurrency-sensitive parts rest on six details:
 
 - **`select ... for update` on the event row**, taken by `enforce_capacity`
   on every insert before any early return, and by `promote_standby`,
-  `set_standby_order`, `add_players_to_event`, `set_event_rsvp` and
-  `disinvite_player`. The latter two lock the event before changing an
+  `set_standby_order`, `add_players_to_event`, `set_event_rsvp`,
+  `disinvite_player`, `update_event`, `resend_event_invitation`,
+  `set_event_locked` and `delete_event`. The lock check reads
+  `locked_at` under it, so a lock committing first is always seen.
+  `set_event_rsvp` and `disinvite_player` lock the event before changing an
   invitation, so they cannot hold an invitation while waiting for its event.
   It carries mutual exclusion too, which has no lock of its own. Without
   it two simultaneous declines both see a free slot and promote the same
@@ -439,8 +469,8 @@ The concurrency-sensitive parts rest on six details:
   see the other's uncommitted admin row.
 - **`select ... for share` on the group row** in all four group-invitation
   write RPCs, in `set_standby_order`, in `promote_standby`, and in
-  `add_players_to_event`, `create_event`, `update_event`, `set_event_rsvp`
-  and `disinvite_player`. Creation holds the group
+  `add_players_to_event`, `create_event`, `update_event`, `set_event_rsvp`,
+  `disinvite_player`, `set_event_locked` and `delete_event`. Creation holds the group
   lock before inserting its new event. Checking `archived_at is null` reads a
   snapshot; without the lock an archive committing in between would
   still let the operation write into an archived group.
@@ -448,8 +478,8 @@ The concurrency-sensitive parts rest on six details:
   Member removal and leaving lock the group before their cascades reach
   `promote_standby`, which locks the event — so the queue paths
   (`set_standby_order`, `add_players_to_event`) and invitation writes
-  (`set_event_rsvp`, `disinvite_player`) must follow the same order or
-  deadlock. Group-invitation accept, decline and revoke take the existing
+  (`set_event_rsvp`, `disinvite_player`), `set_event_locked` and
+  `delete_event` must follow the same order or deadlock. Group-invitation accept, decline and revoke take the existing
   invitation row first, then the group. Creating an invitation locks the
   group before inserting a new row. None of these paths touches an event.
 - **`clock_timestamp()` rather than `now()`** for every `starts_at`
@@ -506,8 +536,10 @@ on `profiles` from `PUBLIC`, `anon` and `authenticated`, plus the
 separate `UPDATE (name)` grants. Read grants and SELECT policies remain;
 Auth's definer triggers still create/restore profiles and sync email.
 
-**Events converted:** `create_event` owns the app's event creation and
-`update_event` its edits.
+**Events converted:** `create_event` owns the app's event creation,
+`update_event` its edits, `set_event_locked` locking and `delete_event`
+deletion. Both new RPCs revoke `EXECUTE` from `public` and `anon` and
+grant it to `authenticated` in their own migrations.
 A separate migration revokes `INSERT`, `UPDATE`, `DELETE` and `TRUNCATE`
 on `events` from `PUBLIC`, `anon` and `authenticated`, plus the separate
 `UPDATE (title, starts_at, location)` grants. Read grants and SELECT

@@ -122,6 +122,25 @@ class EventsTabTest {
     }
 
     @Test
+    fun aLockedRowShowsALockBesideItsStatus() {
+        show(state = EventsUiState.Success(eventRows = listOf(event.copy(isLocked = true))))
+        composeRule.onNodeWithContentDescription("Locked").assertIsDisplayed()
+        composeRule.onNodeWithText("In").assertIsDisplayed()
+    }
+
+    @Test
+    fun anUnlockedRowShowsNoLock() {
+        show(state = EventsUiState.Success(eventRows = listOf(event)))
+        composeRule.onNodeWithContentDescription("Locked").assertDoesNotExist()
+    }
+
+    @Test
+    fun aLockedRowWithNoStatusStillShowsTheLock() {
+        show(state = EventsUiState.Success(eventRows = listOf(event.copy(status = null, isLocked = true))))
+        composeRule.onNodeWithContentDescription("Locked").assertIsDisplayed()
+    }
+
+    @Test
     fun tappingARowReachesTheCallbackWithItsId() {
         var selected: String? = null
         show(state = EventsUiState.Success(eventRows = listOf(event)), onSelectEvent = { selected = it.id })
