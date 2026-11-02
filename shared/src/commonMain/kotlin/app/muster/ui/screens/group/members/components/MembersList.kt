@@ -98,7 +98,7 @@ private fun rememberMembersDragState(
 
     LaunchedEffect(dragLayout?.settling) {
         if (dragLayout?.settling == true) {
-            delay(DragSettleMillis)
+            delay(DRAG_SETTLE_MILLIS)
             dragLayout = null
         }
     }

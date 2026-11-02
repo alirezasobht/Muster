@@ -65,7 +65,10 @@ data class MemberTagCardActions(
 // End matches the header's, so row menus line up with the card menu.
 val TagCardRowPadding = PaddingValues(start = 16.dp, end = 4.dp)
 
-enum class TagCardPosition(val roundsTop: Boolean, val roundsBottom: Boolean) {
+enum class TagCardPosition(
+    val roundsTop: Boolean,
+    val roundsBottom: Boolean
+) {
     First(roundsTop = true, roundsBottom = false),
     Middle(roundsTop = false, roundsBottom = false),
     Last(roundsTop = false, roundsBottom = true),
@@ -295,7 +298,10 @@ private val PreviewRows = listOf(
 )
 
 @Composable
-private fun TagCardPreview(section: TagSection, errorMessage: String? = null) {
+private fun TagCardPreview(
+    section: TagSection,
+    errorMessage: String? = null
+) {
     MusterTheme {
         Surface {
             MemberTagCard(section = section, actions = MemberTagCardActions(), errorMessage = errorMessage, modifier = Modifier.padding(16.dp)) {
@@ -347,7 +353,15 @@ private fun TagCardPiecesPreview() {
                     val position = if (index == PreviewRows.lastIndex) TagCardPosition.Last else TagCardPosition.Middle
                     TagCardRowFrame(position) {
                         val moving = index == 1
-                        MemberRowItem(row = row, memberRowActions = MemberRowActions(), inFlight = moving, errorMessage = null, isPending = false, isMoving = moving, contentPadding = TagCardRowPadding)
+                        MemberRowItem(
+                            row = row,
+                            memberRowActions = MemberRowActions(),
+                            inFlight = moving,
+                            errorMessage = null,
+                            isPending = false,
+                            isMoving = moving,
+                            contentPadding = TagCardRowPadding
+                        )
                     }
                 }
                 Spacer(Modifier.height(16.dp))

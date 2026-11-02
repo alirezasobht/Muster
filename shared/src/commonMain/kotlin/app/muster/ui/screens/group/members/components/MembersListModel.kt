@@ -3,7 +3,7 @@ package app.muster.ui.screens.group.members.components
 import app.muster.ui.screens.group.members.MemberRow
 import app.muster.ui.screens.group.members.MembersTabUiState
 
-internal const val DragSettleMillis = 400L
+internal const val DRAG_SETTLE_MILLIS = 400L
 
 internal sealed interface ListSection {
     data class Tag(val id: String) : ListSection

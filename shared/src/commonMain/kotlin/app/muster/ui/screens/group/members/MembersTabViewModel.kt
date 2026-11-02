@@ -85,7 +85,10 @@ class MembersTabViewModel(
 
     fun onDeleteTag(tagId: String) = performAction(tagId) { deleteTag(groupId, tagId) }
 
-    fun onSetMemberTag(profileId: String, tagId: String?) {
+    fun onSetMemberTag(
+        profileId: String,
+        tagId: String?
+    ) {
         val current = _state.value as? MembersTabUiState.Success ?: return
         if (current.actionTargetId != null) return
         val row = (current.tags.flatMap { it.rows } + current.members).firstOrNull { it.id == profileId } ?: return

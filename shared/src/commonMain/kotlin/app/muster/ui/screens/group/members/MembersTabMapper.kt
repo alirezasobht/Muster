@@ -83,7 +83,10 @@ internal fun sortRows(memberRows: List<MemberRow>): List<MemberRow> {
     return selfRows + admins + members
 }
 
-internal fun MembersTabUiState.Success.withMemberMoved(row: MemberRow, tagId: String?): MembersTabUiState.Success {
+internal fun MembersTabUiState.Success.withMemberMoved(
+    row: MemberRow,
+    tagId: String?
+): MembersTabUiState.Success {
     val moved = row.copy(tagId = tagId)
     return copy(
         tags = tags.map { section ->
