@@ -6,8 +6,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import app.muster.domain.error.DomainError
-import app.muster.ui.screens.group.members.components.MemberRowActions
-import app.muster.ui.screens.group.members.components.MemberTagCardActions
+import app.muster.ui.screens.group.members.components.MemberOperations
 import app.muster.ui.theme.MusterTheme
 import org.junit.Rule
 import org.junit.Test
@@ -33,7 +32,7 @@ class MembersTabTest {
         onResendInvitation: (String) -> Unit = {},
         onRetry: () -> Unit = {},
         onNewTag: () -> Unit = {},
-        onMoveToTag: (String) -> Unit = {},
+        onCreateTagForMember: (String) -> Unit = {},
         onRenameTag: (String) -> Unit = {},
         onDeleteTag: (String) -> Unit = {}
     ) {
@@ -44,16 +43,19 @@ class MembersTabTest {
                     actions = MembersTabActions(
                         onAddMemberByEmail = onAddMemberByEmail,
                         onRetry = onRetry,
-                        onNewTag = onNewTag,
-                        memberRowActions = MemberRowActions(
-                            onMoveToTag = onMoveToTag,
+                        memberOperations = MemberOperations(
                             onPromote = onPromote,
                             onDemote = onDemote,
                             onRemove = onRemove,
                             onRevokeInvitation = onRevokeInvitation,
-                            onResendInvitation = onResendInvitation
+                            onResendInvitation = onResendInvitation,
+                            onCreateTagForMember = onCreateTagForMember
                         ),
-                        tagCardActions = MemberTagCardActions(onRename = onRenameTag, onDelete = onDeleteTag),
+                        onCreateTag = onNewTag,
+                        onDeleteTag = onDeleteTag,
+                        onMoveUpTag = {},
+                        onMoveDownTag = {},
+                        onRenameTag = { tagId, _, _ -> onRenameTag(tagId) }
                     ),
                     actionErrorMessage = actionErrorMessage,
                     spinnerDelayMillis = 0
@@ -87,13 +89,13 @@ class MembersTabTest {
 
     @Test
     fun addMemberByEmailIsShownOnlyWhenAllowed() {
-        show(state = MembersTabUiState.Success(rows = listOf(self), canAddMembers = true))
+        show(state = MembersTabUiState.Success(members = listOf(self), canAddMembers = true))
         composeRule.onNodeWithText("Add by email").assertIsDisplayed()
     }
 
     @Test
     fun addMemberByEmailIsHiddenForNonAdmins() {
-        show(state = MembersTabUiState.Success(rows = listOf(self.copy(isSelf = false)), canAddMembers = false))
+        show(state = MembersTabUiState.Success(members = listOf(self.copy(isSelf = false)), canAddMembers = false))
         composeRule.onNodeWithText("Add by email").assertDoesNotExist()
     }
 
@@ -102,13 +104,13 @@ class MembersTabTest {
 
     @Test
     fun theCountLineShowsMembersAndPending() {
-        show(state = MembersTabUiState.Success(rows = listOf(self, other, invite)))
+        show(state = MembersTabUiState.Success(members = listOf(self, other), pendings = listOf(invite)))
         composeRule.onNodeWithText("2 members · 1 pending").assertIsDisplayed()
     }
 
     @Test
     fun theCountLineLeavesOutPendingWhenThereIsNone() {
-        show(state = MembersTabUiState.Success(rows = listOf(self, other)))
+        show(state = MembersTabUiState.Success(members = listOf(self, other)))
         composeRule.onNodeWithText("2 members").assertIsDisplayed()
     }
 
@@ -121,13 +123,13 @@ class MembersTabTest {
 
     @Test
     fun theCountLineIncludesTaggedMembers() {
-        show(state = MembersTabUiState.Success(rows = listOf(self, invite), tags = listOf(regular)))
+        show(state = MembersTabUiState.Success(members = listOf(self), pendings = listOf(invite), tags = listOf(regular)))
         composeRule.onNodeWithText("2 members · 1 pending").assertIsDisplayed()
     }
 
     @Test
     fun theTagsIntroIsShownToAdminsWithNoTags() {
-        show(state = MembersTabUiState.Success(rows = listOf(self, other), canAddMembers = true, canManageTags = true))
+        show(state = MembersTabUiState.Success(members = listOf(self, other), canAddMembers = true, canManageTags = true))
         composeRule.onNodeWithText("Sort members with tags").assertIsDisplayed()
     }
 
@@ -136,7 +138,7 @@ class MembersTabTest {
     fun theCountLineNewTagReplacesTheIntroOnceTagsExist() {
         show(
             state = MembersTabUiState.Success(
-                rows = listOf(self),
+                members = listOf(self),
                 tags = listOf(regular),
                 canAddMembers = true,
                 canManageTags = true
@@ -150,7 +152,7 @@ class MembersTabTest {
     fun tappingNewTagOnTheCountLineReachesTheCallback() {
         var tapped = false
         show(
-            state = MembersTabUiState.Success(rows = listOf(self), tags = listOf(regular), canManageTags = true),
+            state = MembersTabUiState.Success(members = listOf(self), tags = listOf(regular), canManageTags = true),
             onNewTag = { tapped = true }
         )
         composeRule.onNodeWithText("+ New tag").performClick()
@@ -159,7 +161,7 @@ class MembersTabTest {
 
     @Test
     fun newTagIsHiddenFromNonAdmins() {
-        show(state = MembersTabUiState.Success(rows = listOf(self), tags = listOf(regular)))
+        show(state = MembersTabUiState.Success(members = listOf(self), tags = listOf(regular)))
         composeRule.onNodeWithText("+ New tag").assertDoesNotExist()
     }
 
@@ -169,14 +171,15 @@ class MembersTabTest {
         var moved: String? = null
         show(
             state = MembersTabUiState.Success(
-                rows = listOf(self, other.copy(canMoveToTag = true)),
+                members = listOf(self, other.copy(canMoveToTag = true)),
                 canManageTags = true
             ),
-            onMoveToTag = { moved = it }
+            onCreateTagForMember = { moved = it }
         )
         composeRule.onNodeWithContentDescription("More options").performClick()
         composeRule.onNodeWithText("Move up").assertDoesNotExist()
         composeRule.onNodeWithText("Move to tag…").performClick()
+        composeRule.onNodeWithText("New tag…").performClick()
         assert(moved == "2")
     }
 
@@ -184,7 +187,8 @@ class MembersTabTest {
     fun withTagsTheListShowsCardsThenUntaggedThenInvited() {
         show(
             state = MembersTabUiState.Success(
-                rows = listOf(self, invite),
+                members = listOf(self),
+                pendings = listOf(invite),
                 tags = listOf(regular),
                 canManageTags = true
             )
@@ -198,13 +202,13 @@ class MembersTabTest {
 
     @Test
     fun withoutTagsThereAreNoSectionHeaders() {
-        show(state = MembersTabUiState.Success(rows = listOf(self, other), canManageTags = true))
+        show(state = MembersTabUiState.Success(members = listOf(self, other), canManageTags = true))
         composeRule.onNodeWithText("Untagged").assertDoesNotExist()
     }
 
     @Test
     fun anEmptyUntaggedSectionIsLeftOut() {
-        show(state = MembersTabUiState.Success(rows = listOf(invite), tags = listOf(regular.copy(rows = listOf(self, other)))))
+        show(state = MembersTabUiState.Success(pendings = listOf(invite), tags = listOf(regular.copy(rows = listOf(self, other)))))
         composeRule.onNodeWithText("Untagged").assertDoesNotExist()
     }
 
@@ -212,7 +216,7 @@ class MembersTabTest {
     fun renamingFromTheCardMenuReachesTheCallbackWithTheTag() {
         var renamed: String? = null
         show(
-            state = MembersTabUiState.Success(rows = listOf(self), tags = listOf(regular), canManageTags = true),
+            state = MembersTabUiState.Success(members = listOf(self), tags = listOf(regular), canManageTags = true),
             onRenameTag = { renamed = it }
         )
         composeRule.onNodeWithContentDescription("Tag options").performClick()
@@ -226,7 +230,7 @@ class MembersTabTest {
         onDeleteTag: (String) -> Unit = {}
     ) {
         show(
-            state = MembersTabUiState.Success(rows = listOf(self) + untagged, tags = listOf(tag), canManageTags = true),
+            state = MembersTabUiState.Success(members = listOf(self) + untagged, tags = listOf(tag), canManageTags = true),
             onDeleteTag = onDeleteTag
         )
         composeRule.onNodeWithContentDescription("Tag options").performClick()
@@ -265,7 +269,7 @@ class MembersTabTest {
 
     @Test
     fun theTagsIntroIsHiddenByDefault() {
-        show(state = MembersTabUiState.Success(rows = listOf(self, other), canAddMembers = true))
+        show(state = MembersTabUiState.Success(members = listOf(self, other), canAddMembers = true))
         composeRule.onNodeWithText("Sort members with tags").assertDoesNotExist()
         composeRule.onNodeWithText("+ New tag").assertDoesNotExist()
     }
@@ -274,7 +278,7 @@ class MembersTabTest {
     fun tappingNewTagInTheIntroReachesTheCallback() {
         var tapped = false
         show(
-            state = MembersTabUiState.Success(rows = listOf(self, other), canAddMembers = true, canManageTags = true),
+            state = MembersTabUiState.Success(members = listOf(self, other), canAddMembers = true, canManageTags = true),
             onNewTag = { tapped = true }
         )
         composeRule.onNodeWithText("+ New tag").performClick()
@@ -283,7 +287,7 @@ class MembersTabTest {
 
     @Test
     fun theCountLineIsSingularForOneMember() {
-        show(state = MembersTabUiState.Success(rows = listOf(self, invite)))
+        show(state = MembersTabUiState.Success(members = listOf(self), pendings = listOf(invite)))
         composeRule.onNodeWithText("1 member · 1 pending").assertIsDisplayed()
     }
 
@@ -291,7 +295,7 @@ class MembersTabTest {
     fun tappingAddMemberByEmailReachesTheCallback() {
         var tapped = false
         show(
-            state = MembersTabUiState.Success(rows = listOf(self), canAddMembers = true),
+            state = MembersTabUiState.Success(members = listOf(self), canAddMembers = true),
             onAddMemberByEmail = { tapped = true }
         )
         composeRule.onNodeWithText("Add by email").performClick()
@@ -300,7 +304,7 @@ class MembersTabTest {
 
     @Test
     fun theEmptyStateIsShownWhenOnlySelfRemains() {
-        show(state = MembersTabUiState.Success(rows = listOf(self), canAddMembers = true))
+        show(state = MembersTabUiState.Success(members = listOf(self), canAddMembers = true))
         composeRule.onNodeWithText("It’s just you for now").assertIsDisplayed()
     }
 
@@ -308,7 +312,7 @@ class MembersTabTest {
     fun selfRowShowsTheYouBadgeAndNoMenu() {
         show(
             state = MembersTabUiState.Success(
-                rows = listOf(
+                members = listOf(
                     self,
                     MemberRow(
                         id = "2",
@@ -330,8 +334,8 @@ class MembersTabTest {
     fun aPendingRowShowsTheEmailAndInvitedBadge() {
         show(
             state = MembersTabUiState.Success(
-                rows = listOf(
-                    self,
+                members = listOf(self),
+                pendings = listOf(
                     MemberRow(
                         id = "2",
                         displayName = "j.moriarty@outlook.com",
@@ -352,7 +356,7 @@ class MembersTabTest {
         var promoted: String? = null
         show(
             state = MembersTabUiState.Success(
-                rows = listOf(
+                members = listOf(
                     self,
                     MemberRow(
                         id = "2",
@@ -380,7 +384,7 @@ class MembersTabTest {
         var promoted: String? = null
         show(
             state = MembersTabUiState.Success(
-                rows = listOf(
+                members = listOf(
                     self,
                     MemberRow(
                         id = "2",
@@ -406,7 +410,7 @@ class MembersTabTest {
         var demoted: String? = null
         show(
             state = MembersTabUiState.Success(
-                rows = listOf(
+                members = listOf(
                     self,
                     MemberRow(
                         id = "2",
@@ -434,7 +438,7 @@ class MembersTabTest {
         var demoted: String? = null
         show(
             state = MembersTabUiState.Success(
-                rows = listOf(
+                members = listOf(
                     self,
                     MemberRow(
                         id = "2",
@@ -460,8 +464,8 @@ class MembersTabTest {
         var revoked: String? = null
         show(
             state = MembersTabUiState.Success(
-                rows = listOf(
-                    self,
+                members = listOf(self),
+                pendings = listOf(
                     MemberRow(
                         id = "2",
                         displayName = "j.moriarty@outlook.com",
@@ -488,8 +492,8 @@ class MembersTabTest {
         var revoked: String? = null
         show(
             state = MembersTabUiState.Success(
-                rows = listOf(
-                    self,
+                members = listOf(self),
+                pendings = listOf(
                     MemberRow(
                         id = "2",
                         displayName = "j.moriarty@outlook.com",
@@ -514,8 +518,8 @@ class MembersTabTest {
         var resent: String? = null
         show(
             state = MembersTabUiState.Success(
-                rows = listOf(
-                    self,
+                members = listOf(self),
+                pendings = listOf(
                     MemberRow(
                         id = "2",
                         displayName = "j.moriarty@outlook.com",
@@ -543,8 +547,8 @@ class MembersTabTest {
         var resent: String? = null
         show(
             state = MembersTabUiState.Success(
-                rows = listOf(
-                    self,
+                members = listOf(self),
+                pendings = listOf(
                     MemberRow(
                         id = "2",
                         displayName = "j.moriarty@outlook.com",
@@ -570,7 +574,7 @@ class MembersTabTest {
         var removed: String? = null
         show(
             state = MembersTabUiState.Success(
-                rows = listOf(
+                members = listOf(
                     self,
                     MemberRow(
                         id = "2",
@@ -598,7 +602,7 @@ class MembersTabTest {
         var removed: String? = null
         show(
             state = MembersTabUiState.Success(
-                rows = listOf(
+                members = listOf(
                     self,
                     MemberRow(
                         id = "2",
@@ -623,7 +627,7 @@ class MembersTabTest {
     fun anInFlightActionHidesTheRowMenu() {
         show(
             state = MembersTabUiState.Success(
-                rows = listOf(
+                members = listOf(
                     self,
                     MemberRow(
                         id = "2",
@@ -643,7 +647,7 @@ class MembersTabTest {
     fun aRowLevelErrorIsShownUnderThatRow() {
         show(
             state = MembersTabUiState.Success(
-                rows = listOf(
+                members = listOf(
                     self,
                     MemberRow(
                         id = "2",
