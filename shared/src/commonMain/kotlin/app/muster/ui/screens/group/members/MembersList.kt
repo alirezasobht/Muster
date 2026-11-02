@@ -58,7 +58,7 @@ internal fun MembersList(
     actionErrorMessage: String?
 ) {
     val drag = rememberMembersDragState(state, actions)
-    val rowItem = memberRowItem(state, actions, actionErrorMessage)
+    val rowItem = memberRowRenderer(state, actions, actionErrorMessage)
     val requestTagDelete = rememberTagDeleteAction(actions.onDeleteTag)
 
     LazyColumn(
@@ -134,7 +134,7 @@ private fun rememberMembersDragState(
 }
 
 @Composable
-private fun memberRowItem(
+private fun memberRowRenderer(
     state: MembersTabUiState.Success,
     actions: MembersTabActions,
     actionErrorMessage: String?

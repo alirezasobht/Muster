@@ -75,7 +75,7 @@ private val ResendDialog = DialogStrings(
 private sealed interface PendingMemberAction {
 
     // Holds the member action function to run on confirm.
-    data class ConfirmDialog(
+    data class ConfirmMemberActionDialog(
         val row: MemberRow,
         val dialog: DialogStrings,
         val onConfirm: () -> Unit
@@ -103,7 +103,7 @@ fun rememberMemberRowActionsWithDialogs(
 
     pendingMemberAction?.let { pending ->
         when (pending) {
-            is PendingMemberAction.ConfirmDialog -> {
+            is PendingMemberAction.ConfirmMemberActionDialog -> {
                 ConfirmDialog(
                     title = stringResource(pending.dialog.title, pending.row.displayName),
                     body = stringResource(pending.dialog.body),
@@ -140,19 +140,19 @@ fun rememberMemberRowActionsWithDialogs(
 
     return remember(memberOperations) {
         { row ->
-            fun confirmDialog(
+            fun withConfirmationDialog(
                 dialog: DialogStrings,
                 call: (String) -> Unit
             ): (String) -> Unit = { id ->
-                pendingMemberAction = PendingMemberAction.ConfirmDialog(row, dialog) { call(id) }
+                pendingMemberAction = PendingMemberAction.ConfirmMemberActionDialog(row, dialog) { call(id) }
             }
 
             MemberRowActions(
-                onPromote = confirmDialog(PromoteDialog, memberOperations.onPromote),
-                onDemote = confirmDialog(DemoteDialog, memberOperations.onDemote),
-                onRemove = confirmDialog(RemoveDialog, memberOperations.onRemove),
-                onRevokeInvitation = confirmDialog(RevokeDialog, memberOperations.onRevokeInvitation),
-                onResendInvitation = confirmDialog(ResendDialog, memberOperations.onResendInvitation),
+                onPromote = withConfirmationDialog(PromoteDialog, memberOperations.onPromote),
+                onDemote = withConfirmationDialog(DemoteDialog, memberOperations.onDemote),
+                onRemove = withConfirmationDialog(RemoveDialog, memberOperations.onRemove),
+                onRevokeInvitation = withConfirmationDialog(RevokeDialog, memberOperations.onRevokeInvitation),
+                onResendInvitation = withConfirmationDialog(ResendDialog, memberOperations.onResendInvitation),
                 onMoveToTag = { pendingMemberAction = PendingMemberAction.ConfirmMoveToTagSheet(row) }
             )
         }
