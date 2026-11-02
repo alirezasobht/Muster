@@ -7,6 +7,7 @@ import app.muster.domain.usecase.CreateEventUseCase
 import app.muster.domain.usecase.CreateGroupUseCase
 import app.muster.domain.usecase.DeclineGroupInvitationUseCase
 import app.muster.domain.usecase.DeleteAccountUseCase
+import app.muster.domain.usecase.DeleteEventUseCase
 import app.muster.domain.usecase.DemoteMemberUseCase
 import app.muster.domain.usecase.DisinvitePlayerUseCase
 import app.muster.domain.usecase.GetEventUseCase
@@ -29,6 +30,7 @@ import app.muster.domain.usecase.ResendEventInvitationUseCase
 import app.muster.domain.usecase.ResendInvitationUseCase
 import app.muster.domain.usecase.RetrySessionUseCase
 import app.muster.domain.usecase.RevokeInvitationUseCase
+import app.muster.domain.usecase.SetEventLockedUseCase
 import app.muster.domain.usecase.SetRsvpUseCase
 import app.muster.domain.usecase.SignOutUseCase
 import app.muster.domain.usecase.UpdateEventUseCase
@@ -59,6 +61,8 @@ val domainModule = module {
     factoryOf(::CreateEventUseCase)
     factoryOf(::GetEventUseCase)
     factoryOf(::UpdateEventUseCase)
+    factoryOf(::SetEventLockedUseCase)
+    factoryOf(::DeleteEventUseCase)
     factoryOf(::GetInviteeCandidatesUseCase)
     factoryOf(::SetRsvpUseCase)
     factoryOf(::ReorderStandbyUseCase)

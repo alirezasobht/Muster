@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
@@ -30,8 +31,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -42,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -82,8 +87,22 @@ import muster.shared.generated.resources.event_cancel_invite_body
 import muster.shared.generated.resources.event_cancel_invite_cancel
 import muster.shared.generated.resources.event_cancel_invite_confirm
 import muster.shared.generated.resources.event_cancel_invite_title
+import muster.shared.generated.resources.event_delete_body
+import muster.shared.generated.resources.event_delete_body_no_location
+import muster.shared.generated.resources.event_delete_cancel
+import muster.shared.generated.resources.event_delete_confirm
+import muster.shared.generated.resources.event_delete_title
 import muster.shared.generated.resources.event_failed_title
 import muster.shared.generated.resources.event_frozen_strip
+import muster.shared.generated.resources.event_lock_body
+import muster.shared.generated.resources.event_lock_cancel
+import muster.shared.generated.resources.event_lock_confirm
+import muster.shared.generated.resources.event_lock_label
+import muster.shared.generated.resources.event_lock_title
+import muster.shared.generated.resources.event_locked_strip_body
+import muster.shared.generated.resources.event_locked_strip_title
+import muster.shared.generated.resources.event_locked_strip_title_unknown
+import muster.shared.generated.resources.event_menu_delete
 import muster.shared.generated.resources.event_menu_edit
 import muster.shared.generated.resources.event_players_header
 import muster.shared.generated.resources.event_remove_from_event_body
@@ -104,6 +123,7 @@ import muster.shared.generated.resources.event_rsvp_frozen_in
 import muster.shared.generated.resources.event_rsvp_frozen_out
 import muster.shared.generated.resources.event_rsvp_frozen_pending
 import muster.shared.generated.resources.event_rsvp_in
+import muster.shared.generated.resources.event_rsvp_locked
 import muster.shared.generated.resources.event_rsvp_out
 import muster.shared.generated.resources.event_rsvp_question
 import muster.shared.generated.resources.event_slots_legend_in
@@ -115,8 +135,13 @@ import muster.shared.generated.resources.event_slots_open
 import muster.shared.generated.resources.event_standby_drag_hint
 import muster.shared.generated.resources.event_standby_header
 import muster.shared.generated.resources.event_standby_header_frozen
+import muster.shared.generated.resources.event_standby_header_locked
 import muster.shared.generated.resources.event_status_no_reply
 import muster.shared.generated.resources.event_try_again
+import muster.shared.generated.resources.event_unlock_body
+import muster.shared.generated.resources.event_unlock_cancel
+import muster.shared.generated.resources.event_unlock_confirm
+import muster.shared.generated.resources.event_unlock_title
 import muster.shared.generated.resources.events_status_in
 import muster.shared.generated.resources.events_status_out
 import muster.shared.generated.resources.events_status_pending
@@ -135,7 +160,10 @@ data class EventActions(
     val onRetry: () -> Unit,
     val onRefresh: () -> Unit = {},
     val onAddPlayers: () -> Unit = {},
-    val onOverflowAction: (EventOverflowAction) -> Unit = {}
+    val onOverflowAction: (EventOverflowAction) -> Unit = {},
+    val onLockToggled: (locked: Boolean) -> Unit = {},
+    val onDialogConfirmed: () -> Unit = {},
+    val onDialogDismissed: () -> Unit = {}
 )
 
 @Composable
@@ -144,10 +172,18 @@ fun EventRoute(
     onBack: () -> Unit,
     onAddPlayers: (eventId: String, groupId: String) -> Unit,
     onEditEvent: (summary: EventSummary, startsAt: Instant) -> Unit,
+    onDeleted: () -> Unit,
     viewModel: EventViewModel = koinViewModel { parametersOf(initialSummary) }
 ) {
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onResume() }
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val deleted = (state as? EventUiState.Success)?.deleted == true
+    LaunchedEffect(deleted) {
+        if (deleted) {
+            onDeleted()
+            viewModel.onDeletedHandled()
+        }
+    }
     EventScreen(
         state = state,
         actions = EventActions(
@@ -162,8 +198,12 @@ fun EventRoute(
                 when (action) {
                     EventOverflowAction.Edit ->
                         (state as? EventUiState.Success)?.let { onEditEvent(it.summary, it.startsAt) }
+                    EventOverflowAction.Delete -> viewModel.onDeleteRequested()
                 }
-            }
+            },
+            onLockToggled = viewModel::onLockToggled,
+            onDialogConfirmed = viewModel::onDialogConfirmed,
+            onDialogDismissed = viewModel::onDialogDismissed
         )
     )
 }
@@ -297,6 +337,7 @@ private fun EventAppBar(
 
 private fun EventOverflowAction.menuLabel() = when (this) {
     EventOverflowAction.Edit -> Res.string.event_menu_edit
+    EventOverflowAction.Delete -> Res.string.event_menu_delete
 }
 
 private data class DialogStrings(
@@ -351,27 +392,23 @@ private fun EventContent(
     actions: EventActions,
     modifier: Modifier = Modifier
 ) {
-    var pendingConfirmation by remember { mutableStateOf<PendingRosterConfirmation?>(null) }
+    var pendingConfirmation by remember(state.isReadOnly) { mutableStateOf<PendingRosterConfirmation?>(null) }
 
     Column(modifier = modifier.fillMaxSize()) {
         if (state.isFrozen) {
-            Surface(color = MusterColors.QuietSurface) {
-                Text(
-                    text = stringResource(Res.string.event_frozen_strip, state.startsAtDisplay),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MusterColors.Secondary,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 10.dp)
-                )
-            }
+            EventStrip(text = stringResource(Res.string.event_frozen_strip, state.startsAtDisplay))
+        } else if (state.showsLockedStrip) {
+            LockedStrip(lockedByName = state.lockedByName)
         }
 
         val listState = rememberLazyListState()
         val scrolled by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0 } }
         if (scrolled) HorizontalDivider(color = MusterColors.Hairline)
 
-        var standbyDragging by remember { mutableStateOf(false) }
+        // A drag cut off by a lock or freeze may never report its stop.
+        var standbyDragging by remember(state.isReadOnly) { mutableStateOf(false) }
         val refreshEnabled = !standbyDragging && !state.standbyReordering
-        val showAddAction = state.isAdmin && !state.isFrozen
+        val showAddAction = state.isAdmin && !state.isReadOnly
         val outCount = state.roster.count { it.status == RsvpStatus.Out }
 
         MusterPullToRefreshBox(
@@ -386,7 +423,18 @@ private fun EventContent(
                 userScrollEnabled = !standbyDragging
             ) {
                 item { Spacer(Modifier.height(16.dp)) }
-                item { EventDetails(summary = state.summary, isFrozen = state.isFrozen, outCount = outCount) }
+                item {
+                    EventDetails(
+                        summary = state.summary,
+                        isFrozen = state.isFrozen,
+                        outCount = outCount,
+                        lockSwitch = if (state.canToggleLock) {
+                            { LockSwitch(isLocked = state.isLocked, onToggle = actions.onLockToggled) }
+                        } else {
+                            null
+                        }
+                    )
+                }
                 item { Spacer(Modifier.height(16.dp)) }
                 if (state.myStatus != null) {
                     item { OwnRsvpBlock(state = state, onRsvp = actions.onRsvp) }
@@ -437,6 +485,7 @@ private fun EventContent(
                         RosterRowItem(
                             row = row,
                             isFrozen = state.isFrozen,
+                            readOnly = state.isReadOnly,
                             inFlight = state.rowActionTargetId == row.id,
                             errorMessage = state.rowActionError?.toMessage()
                                 ?.takeIf { state.rowActionErrorId == row.id },
@@ -461,6 +510,7 @@ private fun EventContent(
                         standby = state.standby,
                         isAdmin = state.isAdmin,
                         isFrozen = state.isFrozen,
+                        isLocked = state.isLocked,
                         reordering = state.standbyReordering,
                         error = state.standbyError,
                         onDraggingChanged = { standbyDragging = it },
@@ -483,6 +533,148 @@ private fun EventContent(
                 pending.onConfirm()
             },
             onDismiss = { pendingConfirmation = null }
+        )
+    }
+
+    state.dialog?.let { dialog ->
+        EventConfirmation(
+            dialog = dialog,
+            summary = state.summary,
+            onConfirm = actions.onDialogConfirmed,
+            onDismiss = actions.onDialogDismissed
+        )
+    }
+}
+
+@Composable
+private fun EventStrip(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(color = MusterColors.QuietSurface, modifier = modifier) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            color = MusterColors.Secondary,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 10.dp)
+        )
+    }
+}
+
+@Composable
+private fun LockedStrip(
+    lockedByName: String?,
+    modifier: Modifier = Modifier
+) {
+    Surface(color = MusterColors.Ink, contentColor = MusterColors.White, modifier = modifier) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = MusterIcons.Lock,
+                contentDescription = null,
+                tint = MusterColors.White,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(Modifier.width(12.dp))
+            Column {
+                Text(
+                    text = if (lockedByName != null) {
+                        stringResource(Res.string.event_locked_strip_title, lockedByName)
+                    } else {
+                        stringResource(Res.string.event_locked_strip_title_unknown)
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MusterColors.White
+                )
+                Text(
+                    text = stringResource(Res.string.event_locked_strip_body),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MusterColors.White.copy(alpha = 0.75f)
+                )
+            }
+        }
+    }
+}
+
+// Stays open across the call: it owns the loading state and, on failure,
+// the error — tapping the same button again is the retry.
+@Composable
+private fun EventConfirmation(
+    dialog: EventDialogState,
+    summary: EventSummary,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val errorMessage = dialog.error?.toMessage()
+    when (dialog.kind) {
+        EventDialogKind.Lock -> ConfirmDialog(
+            title = stringResource(Res.string.event_lock_title),
+            body = stringResource(Res.string.event_lock_body),
+            confirmText = stringResource(Res.string.event_lock_confirm),
+            cancelText = stringResource(Res.string.event_lock_cancel),
+            onConfirm = onConfirm,
+            onDismiss = onDismiss,
+            confirmLoading = dialog.inFlight,
+            errorMessage = errorMessage
+        )
+
+        EventDialogKind.Unlock -> ConfirmDialog(
+            title = stringResource(Res.string.event_unlock_title),
+            body = stringResource(Res.string.event_unlock_body),
+            confirmText = stringResource(Res.string.event_unlock_confirm),
+            cancelText = stringResource(Res.string.event_unlock_cancel),
+            onConfirm = onConfirm,
+            onDismiss = onDismiss,
+            confirmLoading = dialog.inFlight,
+            errorMessage = errorMessage
+        )
+
+        EventDialogKind.Delete -> ConfirmDialog(
+            title = stringResource(Res.string.event_delete_title),
+            body = if (summary.location.isBlank()) {
+                stringResource(Res.string.event_delete_body_no_location, summary.title, summary.date)
+            } else {
+                stringResource(Res.string.event_delete_body, summary.title, summary.date, summary.location)
+            },
+            confirmText = stringResource(Res.string.event_delete_confirm),
+            cancelText = stringResource(Res.string.event_delete_cancel),
+            onConfirm = onConfirm,
+            onDismiss = onDismiss,
+            destructive = true,
+            confirmLoading = dialog.inFlight,
+            errorMessage = errorMessage
+        )
+    }
+}
+
+// The whole column toggles, so the label is the switch's accessible name.
+@Composable
+private fun LockSwitch(
+    isLocked: Boolean,
+    onToggle: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.toggleable(value = isLocked, role = Role.Switch, onValueChange = onToggle),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = stringResource(Res.string.event_lock_label),
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+            color = MusterColors.Secondary
+        )
+        Spacer(Modifier.height(4.dp))
+        Switch(
+            checked = isLocked,
+            onCheckedChange = null,
+            colors = SwitchDefaults.colors(
+                uncheckedThumbColor = MusterColors.Hint,
+                uncheckedTrackColor = MusterColors.White,
+                uncheckedBorderColor = MusterColors.Hint
+            )
         )
     }
 }
@@ -512,21 +704,30 @@ private fun EventDetails(
     // Null: breakdown not loaded yet (Loading/Error) — panel shows the bar with
     // no legend, same as a genuinely empty event.
     outCount: Int? = null,
+    lockSwitch: (@Composable () -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
-        Text(
-            text = summary.date,
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.sharedBoundsOrNone(SharedTransitionKeys.eventDate(summary.eventId))
-        )
-        Spacer(Modifier.height(2.dp))
-        Text(
-            text = summary.location,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MusterColors.Secondary,
-            modifier = Modifier.sharedBoundsOrNone(SharedTransitionKeys.eventLocation(summary.eventId))
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = summary.date,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.sharedBoundsOrNone(SharedTransitionKeys.eventDate(summary.eventId))
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = summary.location,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MusterColors.Secondary,
+                    modifier = Modifier.sharedBoundsOrNone(SharedTransitionKeys.eventLocation(summary.eventId))
+                )
+            }
+            if (lockSwitch != null) {
+                Spacer(Modifier.width(16.dp))
+                lockSwitch()
+            }
+        }
         Spacer(Modifier.height(16.dp))
         SlotsPanel(
             capacity = summary.capacity,
@@ -642,7 +843,7 @@ private fun OwnRsvpBlock(
 ) {
     val status = state.myStatus ?: return
 
-    if (state.isFrozen) {
+    if (state.isReadOnly) {
         Surface(
             modifier = modifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.medium,
@@ -654,16 +855,17 @@ private fun OwnRsvpBlock(
             ) {
                 Text(
                     text = stringResource(
-                        when (status) {
-                            RsvpStatus.In -> Res.string.event_rsvp_frozen_in
-                            RsvpStatus.Out -> Res.string.event_rsvp_frozen_out
-                            RsvpStatus.Pending -> Res.string.event_rsvp_frozen_pending
+                        when {
+                            !state.isFrozen -> Res.string.event_rsvp_locked
+                            status == RsvpStatus.In -> Res.string.event_rsvp_frozen_in
+                            status == RsvpStatus.Out -> Res.string.event_rsvp_frozen_out
+                            else -> Res.string.event_rsvp_frozen_pending
                         }
                     ),
                     style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
                     modifier = Modifier.weight(1f)
                 )
-                RsvpStatusBadge(status = status, isFrozen = true)
+                RsvpStatusBadge(status = status, isFrozen = state.isFrozen)
             }
         }
         return
@@ -741,6 +943,7 @@ private fun OwnRsvpBlock(
 private fun RosterRowItem(
     row: RosterRow,
     isFrozen: Boolean,
+    readOnly: Boolean,
     inFlight: Boolean,
     errorMessage: String?,
     showDivider: Boolean,
@@ -767,6 +970,7 @@ private fun RosterRowItem(
                 inFlight = inFlight,
                 rowActions = row.actions,
                 isFrozen = isFrozen,
+                readOnly = readOnly,
                 onAction = onAction
             )
         }
@@ -789,20 +993,21 @@ private fun LazyListScope.standbySection(
     standby: List<StandbyRow>,
     isAdmin: Boolean,
     isFrozen: Boolean,
+    isLocked: Boolean,
     reordering: Boolean,
     error: DomainError?,
     onDraggingChanged: (Boolean) -> Unit,
     onReorder: (List<String>) -> Unit
 ) {
-    val reorderable = isAdmin && !isFrozen
+    val reorderable = isAdmin && !isFrozen && !isLocked
     item { Spacer(Modifier.height(20.dp)) }
     item {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = if (isFrozen) {
-                    stringResource(Res.string.event_standby_header_frozen)
-                } else {
-                    stringResource(Res.string.event_standby_header, standby.size)
+                text = when {
+                    isFrozen -> stringResource(Res.string.event_standby_header_frozen)
+                    isLocked -> stringResource(Res.string.event_standby_header_locked)
+                    else -> stringResource(Res.string.event_standby_header, standby.size)
                 },
                 style = MaterialTheme.typography.titleMedium,
                 color = MusterColors.Ink,
@@ -957,13 +1162,19 @@ private fun StatusMenu(
     inFlight: Boolean,
     rowActions: List<RosterAction>,
     isFrozen: Boolean,
+    readOnly: Boolean,
     onAction: (RosterAction) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    val hasAction = rowActions.isNotEmpty() && !isFrozen
+    val hasAction = rowActions.isNotEmpty() && !readOnly
+    var expanded by remember(hasAction) { mutableStateOf(false) }
     Box(modifier = modifier) {
-        RsvpStatusBadge(status = status, isFrozen = isFrozen, chevron = hasAction, onClick = { expanded = true })
+        RsvpStatusBadge(
+            status = status,
+            isFrozen = isFrozen,
+            chevron = hasAction,
+            onClick = if (hasAction) ({ expanded = true }) else null
+        )
         if (hasAction) {
             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 rowActions.forEach { action ->
@@ -973,7 +1184,7 @@ private fun StatusMenu(
                             expanded = false
                             onAction(action)
                         },
-                        enabled = !inFlight && !isFrozen
+                        enabled = !inFlight
                     )
                 }
             }
@@ -1106,7 +1317,8 @@ private val PreviewSuccess = EventUiState.Success(
     isAdmin = true,
     myStatus = RsvpStatus.Out,
     roster = PreviewRoster,
-    overflowActions = listOf(EventOverflowAction.Edit)
+    overflowActions = listOf(EventOverflowAction.Edit, EventOverflowAction.Delete),
+    canToggleLock = true
 )
 
 @Preview
@@ -1134,11 +1346,58 @@ private fun EventScreenFrozenPreview() {
     MusterTheme {
         EventScreen(
             state = PreviewSuccess.copy(
-                overflowActions = emptyList(),
+                overflowActions = listOf(EventOverflowAction.Delete),
+                canToggleLock = false,
                 isFrozen = true,
                 startsAtDisplay = "7:00 pm",
                 myStatus = RsvpStatus.In
             ),
+            actions = PreviewActions
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun EventScreenAdminLockedPreview() {
+    MusterTheme {
+        EventScreen(
+            state = PreviewSuccess.copy(
+                overflowActions = listOf(EventOverflowAction.Delete),
+                isLocked = true,
+                lockedByName = "Ali",
+                myStatus = RsvpStatus.In,
+                standby = PreviewStandby
+            ),
+            actions = PreviewActions
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun EventScreenMemberLockedPreview() {
+    MusterTheme {
+        EventScreen(
+            state = PreviewSuccess.copy(
+                isAdmin = false,
+                overflowActions = emptyList(),
+                canToggleLock = false,
+                isLocked = true,
+                myStatus = null,
+                standby = PreviewStandby
+            ),
+            actions = PreviewActions
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun EventScreenDeleteDialogPreview() {
+    MusterTheme {
+        EventScreen(
+            state = PreviewSuccess.copy(dialog = EventDialogState(EventDialogKind.Delete)),
             actions = PreviewActions
         )
     }
@@ -1237,7 +1496,8 @@ private fun EventScreenFrozenWithStandbyPreview() {
         EventScreen(
             state = PreviewSuccess.copy(
                 isAdmin = true,
-                overflowActions = emptyList(),
+                overflowActions = listOf(EventOverflowAction.Delete),
+                canToggleLock = false,
                 isFrozen = true,
                 startsAtDisplay = "7:00 pm",
                 myStatus = RsvpStatus.In,

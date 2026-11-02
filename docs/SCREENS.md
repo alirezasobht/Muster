@@ -132,7 +132,7 @@ stack.
 
 **Events tab** — upcoming events only. Past events are out of scope for
 now; a second tab is the obvious home for them later. New event button
-for admins.
+for admins. A locked event's row carries a small lock (DESIGN.md 5e).
 
 **Members tab** — one list, everyone in it, with a status against each
 name: admin, member, or pending. A line at the top counts members, and
@@ -193,7 +193,8 @@ Details on top, then the roster, then the standby queue.
 Everyone sees the whole roster and each player's RSVP. Players can
 change only their own. Admins can change anyone's, reorder the queue,
 add players, and cancel, remove or resend a pending player's invitation.
-Admins also get Edit event in the app bar ⋮; members get no ⋮.
+Admins also get an app bar ⋮ holding Edit event and Delete event;
+members get no ⋮.
 
 The roster is one list sorted in, then pending, then out — not grouped
 into sections.
@@ -205,7 +206,21 @@ gives its own row actions.
 
 Once `starts_at` passes the event freezes: every control disappears and
 the screen reads the same for admins and members. DESIGN.md frame 1n has
-the detail.
+the detail. An admin's ⋮ stays on a started event, holding Delete event
+alone.
+
+**Lock.** Admins get a Locked switch beside the date and location, on
+unstarted events only; turning it on or off confirms first. A locked
+event reuses the frozen rendering, with three differences: an ink strip
+reads "Locked by Ali" over "No changes until an admin unlocks it",
+Pending stays "Pending", and the standby header reads "Standby ·
+paused". The admin keeps the switch and a ⋮ holding Delete event
+alone. Members see the same screen without either. DESIGN.md frames
+5a–5c.
+
+**Delete event** confirms first, naming the event, then returns to the
+Events tab. Offered on locked and started events too. DESIGN.md frame
+5d.
 
 ### Add players
 Member picker. Group members not already on the event, multi-select,

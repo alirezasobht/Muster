@@ -9,6 +9,9 @@ names — use them in issues and commits. (`muster-screens-v1.html`
 through `-v7.html` are earlier snapshots, kept for reference. The app icon
 has its own file — see *App icon* below.)
 
+Turn 5, the event lock and Delete event (5a–5e), lives in
+`muster-screens-vlock.html` until it is merged into the main canvas.
+
 Companion to `SCREENS.md` (screen map, navigation) and `CONTEXT.md`
 (product decisions). Where this file and a screenshot disagree, this file wins.
 
@@ -17,6 +20,8 @@ Companion to `SCREENS.md` (screen map, navigation) and `CONTEXT.md`
 - Clean and light. Neutral surfaces, one accent: pitch green `#2F7D4F`.
 - Accent is used only for primary buttons, selected states and the In status.
   Nothing else gets colour.
+- Ink as a fill is rare: the destructive button and the locked-event strip
+  (5b, 5c). Ink is not accent, so neither breaks the rule above.
 - Warning tint `#FBF2DE` / `#7A5A16` only for "event is full" notices.
 - Ink `#14171A`, secondary `#4A524D`, muted `#6E7671`, hairline `#E4E7E4`,
   quiet surface `#F5F7F5`.
@@ -85,6 +90,11 @@ Members see the same badges, read-only.
 | 4a | Event — admin, answered (supersedes 1l layout) |
 | 4b | Event — admin, no one invited |
 | 4c | Event — scrolled to standby |
+| 5a | Event — admin, unlocked (lock switch) |
+| 5b | Event — admin, locked |
+| 5c | Event — member, locked |
+| 5d | Delete event (admin) |
+| 5e | Group — Events (admin), one event locked |
 
 ## Wide viewports
 
@@ -287,9 +297,31 @@ Rules:
   only full-screen waits in the app.
 - **Frozen event** (past `starts_at`): a "Started at 7:00 pm · no more
   changes" strip under the app bar. RSVP collapses to a static badge, every
-  control disappears (no handles, no add, no menus, no ⋮), Pending reads
+  control disappears (no handles, no add, no menus), Pending reads
   "No reply", the standby header reads "Standby · not called up". Identical
-  for admins and members.
+  for admins and members, except that an admin's ⋮ stays with Delete event
+  alone.
+- **Event lock switch** (5a): admins only, unstarted events only. Sits
+  beside when/where, a small "Locked" label stacked over the switch so
+  the date and place keep the width. Turning it on or off confirms first.
+- **Locked event** (5b, 5c): the frozen rendering in the 4a layout, under
+  an ink strip — white lock, then two lines: "Locked by Ali" (medium) over
+  "No changes until an admin unlocks it" (white at 75%). "Locked by an
+  admin" when `locked_by` is null. Deliberately louder than the frozen
+  strip: a lock is temporary and admin-driven, so it has to be noticed,
+  while a started event explains itself. RSVP becomes a static "Your
+  reply" block with its badge and no answered date; no handles, no Add,
+  no chevrons or row menus, and badges take no taps. Unlike frozen,
+  Pending stays "Pending" and the standby header reads "Standby · paused",
+  with no count — a slot freed while locked stays open until unlock. Identical for admins and members,
+  except the admin keeps the switch and a ⋮ holding Delete event alone.
+- **Delete event** (5d) lives in the Event app bar ⋮, admins only, below
+  Edit event. Confirm dialog like Archive group: names the event, says the
+  roster and standby queue go with it and that it can't be undone. Ink
+  button, not accent or red. Delete returns to the Events tab. Allowed
+  while locked: on a locked or started event ⋮ holds Delete event alone.
+- **Events tab** (5e): a locked event's row carries a small muted lock
+  beside its status chip. No new colour.
 - **Set name** reuses the Settings name field and has no back button.
 - **Launch** is the one screen where accent fills the surface — it reads as
   the app icon, not UI. On Android it is the splashscreen theme

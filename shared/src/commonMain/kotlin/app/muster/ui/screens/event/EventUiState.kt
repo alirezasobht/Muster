@@ -9,7 +9,15 @@ import kotlin.time.Instant
 
 enum class RosterAction { SetIn, SetOut, CancelInvite, RemoveFromEvent, RemoveFromList, ResendInvite }
 
-enum class EventOverflowAction { Edit }
+enum class EventOverflowAction { Edit, Delete }
+
+enum class EventDialogKind { Lock, Unlock, Delete }
+
+data class EventDialogState(
+    val kind: EventDialogKind,
+    val inFlight: Boolean = false,
+    val error: DomainError? = null
+)
 
 // A standby player has no event_invitations row
 data class RosterRow(
@@ -69,9 +77,12 @@ sealed interface EventUiState : UiState<EventUiState.Success> {
         val myStatus: RsvpStatus?,
         val roster: List<RosterRow> = emptyList(),
         val standby: List<StandbyRow> = emptyList(),
-        // Set by the ViewModel from role and freeze; the menu only renders it.
+        // Set by the ViewModel from role, freeze and lock; the menu only renders it.
         val overflowActions: List<EventOverflowAction> = emptyList(),
         val isFrozen: Boolean = false,
+        val isLocked: Boolean = false,
+        val lockedByName: String? = null,
+        val canToggleLock: Boolean = false,
         val startsAt: Instant = Instant.DISTANT_FUTURE,
         val startsAtDisplay: String = "",
         val isRefreshing: Boolean = false,
@@ -81,10 +92,17 @@ sealed interface EventUiState : UiState<EventUiState.Success> {
         val rowActionError: DomainError? = null,
         val rowActionErrorId: String? = null,
         val standbyReordering: Boolean = false,
-        val standbyError: DomainError? = null
+        val standbyError: DomainError? = null,
+        val dialog: EventDialogState? = null,
+        val deleted: Boolean = false
     ) : EventUiState {
         override fun asSuccessOrNull(): Success = this
         val isRosterEmpty: Boolean get() = roster.isEmpty()
+
+        val isReadOnly: Boolean get() = isFrozen || isLocked
+
+        // Started wins when both hold: its strip and wording replace the lock's.
+        val showsLockedStrip: Boolean get() = isLocked && !isFrozen
     }
 
     data class Error(

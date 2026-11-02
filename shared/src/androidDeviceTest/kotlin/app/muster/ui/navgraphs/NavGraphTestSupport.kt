@@ -52,7 +52,8 @@ val TestEvent = Event(
     capacity = 10,
     inCount = 0,
     pendingCount = 0,
-    myStatus = null
+    myStatus = null,
+    lockedAt = null
 )
 
 // Real screens behind Koin with the repository fakes. Graphs that navigate into another
@@ -74,7 +75,7 @@ fun fakeRepositoriesModule(
     single<EventRepository> {
         FakeEventRepository(
             events = listOf(TestEvent),
-            eventDetail = EventDetail(event = TestEvent, roster = emptyList(), standby = emptyList()),
+            eventDetail = EventDetail(event = TestEvent, roster = emptyList(), standby = emptyList(), lockedByName = null),
             latency = 0
         )
     }
