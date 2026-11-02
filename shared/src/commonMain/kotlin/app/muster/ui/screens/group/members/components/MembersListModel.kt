@@ -1,6 +1,7 @@
 package app.muster.ui.screens.group.members.components
 
 import app.muster.ui.screens.group.members.MemberRow
+import app.muster.ui.screens.group.members.MembersTabUiState
 
 internal const val DragSettleMillis = 400L
 
@@ -77,8 +78,7 @@ internal fun List<MembersEntry>.sectionOf(rowId: String): ListSection {
     return take(index).filterIsInstance<HeaderEntry>().lastOrNull()?.section ?: ListSection.Untagged
 }
 
-internal fun List<MembersEntry>.rowsAfter(headerIndex: Int): List<MemberRow> =
-    drop(headerIndex + 1).takeWhile { it is RowEntry }.map { (it as RowEntry).row }
+internal fun List<MembersEntry>.rowsAfter(headerIndex: Int): List<MemberRow> = drop(headerIndex + 1).takeWhile { it is RowEntry }.map { (it as RowEntry).row }
 
 // Local copy of the list order while a drag is active, so the library can displace rows live.
 internal data class DragLayout(
@@ -87,7 +87,10 @@ internal data class DragLayout(
     val origin: ListSection,
     val settling: Boolean = false
 ) {
-    fun moved(fromKey: Any, toKey: Any): DragLayout {
+    fun moved(
+        fromKey: Any,
+        toKey: Any
+    ): DragLayout {
         val from = entries.indexOfFirst { it.key == fromKey }
         val to = entries.indexOfFirst { it.key == toKey }
         if (from < 0 || to < 0 || from == to) return this
