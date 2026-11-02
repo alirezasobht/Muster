@@ -1,4 +1,6 @@
-package app.muster.ui.screens.group.members
+package app.muster.ui.screens.group.members.components
+
+import app.muster.ui.screens.group.members.MemberRow
 
 internal const val DragSettleMillis = 400L
 

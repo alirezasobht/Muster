@@ -1,4 +1,4 @@
-package app.muster.ui.screens.group.members
+package app.muster.ui.screens.group.members.components
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,17 +27,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import app.muster.ui.screens.group.members.components.MemberRowItem
-import app.muster.ui.screens.group.members.components.MemberTagCardActions
-import app.muster.ui.screens.group.members.components.MemberTagCardEmptyHint
-import app.muster.ui.screens.group.members.components.MemberTagCardHeader
-import app.muster.ui.screens.group.members.components.MemberUntaggedDropHint
-import app.muster.ui.screens.group.members.components.TagCardPosition
-import app.muster.ui.screens.group.members.components.TagCardRowPadding
-import app.muster.ui.screens.group.members.components.TagsIntroPanel
-import app.muster.ui.screens.group.members.components.rememberMemberRowActionsWithDialogs
-import app.muster.ui.screens.group.members.components.rememberTagDeleteAction
-import app.muster.ui.screens.group.members.components.tagCardFrame
+import app.muster.ui.screens.group.members.MemberRow
+import app.muster.ui.screens.group.members.MemberStatus
+import app.muster.ui.screens.group.members.MembersTabActions
+import app.muster.ui.screens.group.members.MembersTabUiState
+import app.muster.ui.screens.group.members.TagSection
 import app.muster.ui.theme.MusterColors
 import kotlinx.coroutines.delay
 import muster.shared.generated.resources.Res

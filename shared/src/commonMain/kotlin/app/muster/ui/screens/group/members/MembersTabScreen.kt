@@ -41,6 +41,7 @@ import app.muster.ui.common.components.MusterSpinner
 import app.muster.ui.common.components.TonalPill
 import app.muster.ui.common.toMessage
 import app.muster.ui.screens.group.members.components.MemberOperations
+import app.muster.ui.screens.group.members.components.MembersList
 import app.muster.ui.theme.MusterColors
 import app.muster.ui.theme.MusterTheme
 import muster.shared.generated.resources.Res
