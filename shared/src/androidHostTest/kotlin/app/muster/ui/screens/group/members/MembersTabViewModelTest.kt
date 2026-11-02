@@ -9,14 +9,18 @@ import app.muster.domain.event.DataChanges
 import app.muster.domain.model.GroupRole
 import app.muster.domain.model.Member
 import app.muster.domain.model.PendingInvitation
+import app.muster.domain.usecase.DeleteTagUseCase
 import app.muster.domain.usecase.DemoteMemberUseCase
 import app.muster.domain.usecase.GetMyGroupRoleUseCase
 import app.muster.domain.usecase.GetMyProfileUseCase
 import app.muster.domain.usecase.ListGroupMembersUseCase
+import app.muster.domain.usecase.MoveTagDownUseCase
+import app.muster.domain.usecase.MoveTagUpUseCase
 import app.muster.domain.usecase.PromoteMemberUseCase
 import app.muster.domain.usecase.RemoveMemberUseCase
 import app.muster.domain.usecase.ResendInvitationUseCase
 import app.muster.domain.usecase.RevokeInvitationUseCase
+import app.muster.domain.usecase.SetMemberTagUseCase
 import app.muster.testing.MainDispatcherRule
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -35,9 +39,9 @@ class MembersTabViewModelTest {
 
     // FAKE_USER_ID is what FakeProfileRepository/getMyProfile() reports, so
     // giving a member that same profileId is how "self" gets represented.
-    private val self = Member(profileId = FAKE_USER_ID, name = "Alex Doyle", role = GroupRole.Admin)
-    private val otherAdmin = Member(profileId = "admin-2", name = "Dan Whelan", role = GroupRole.Admin)
-    private val plainMember = Member(profileId = "member-1", name = "Sam Okafor", role = GroupRole.Member)
+    private val self = Member(profileId = FAKE_USER_ID, name = "Alex Doyle", role = GroupRole.Admin, tagId = null)
+    private val otherAdmin = Member(profileId = "admin-2", name = "Dan Whelan", role = GroupRole.Admin, tagId = null)
+    private val plainMember = Member(profileId = "member-1", name = "Sam Okafor", role = GroupRole.Member, tagId = null)
     private val pending = PendingInvitation(id = "invite-1", email = "j.moriarty@outlook.com")
 
     // The fake and the ViewModel must share one instance: actions no longer
@@ -58,8 +62,14 @@ class MembersTabViewModelTest {
         removeMember = RemoveMemberUseCase(members),
         revokeInvitation = RevokeInvitationUseCase(members),
         resendInvitation = ResendInvitationUseCase(members),
+        deleteTag = DeleteTagUseCase(members),
+        setMemberTag = SetMemberTagUseCase(members),
+        moveTagUp = MoveTagUpUseCase(members),
+        moveTagDown = MoveTagDownUseCase(members),
         dataChanges = dataChanges
     )
+
+    private fun MembersTabUiState.Success.allRows() = tags.flatMap { it.rows } + members + pendings
 
     @Test
     fun `starts loading`() {
@@ -78,23 +88,23 @@ class MembersTabViewModelTest {
 
         val state = assertIs<MembersTabUiState.Success>(viewModel.state.value)
         assertEquals(true, state.canAddMembers)
-        assertEquals(4, state.rows.size)
+        assertEquals(4, state.allRows().size)
 
-        val selfRow = state.rows.first { it.id == FAKE_USER_ID }
+        val selfRow = state.allRows().first { it.id == FAKE_USER_ID }
         assertEquals(true, selfRow.isSelf)
-        assertEquals(false, selfRow.hasMenu)
+        assertEquals(false, selfRow.hasRoleActions)
 
-        val otherAdminRow = state.rows.first { it.id == otherAdmin.profileId }
+        val otherAdminRow = state.allRows().first { it.id == otherAdmin.profileId }
         assertEquals(true, otherAdminRow.canDemote)
         assertEquals(true, otherAdminRow.canRemove)
         assertEquals(false, otherAdminRow.canPromote)
 
-        val memberRow = state.rows.first { it.id == plainMember.profileId }
+        val memberRow = state.allRows().first { it.id == plainMember.profileId }
         assertEquals(true, memberRow.canPromote)
         assertEquals(true, memberRow.canRemove)
         assertEquals(false, memberRow.canDemote)
 
-        val pendingRow = state.rows.first { it.id == pending.id }
+        val pendingRow = state.allRows().first { it.id == pending.id }
         assertEquals(MemberStatus.Pending, pendingRow.status)
         assertEquals(pending.email, pendingRow.displayName)
         assertEquals(true, pendingRow.canRevokeInvitation)
@@ -103,10 +113,10 @@ class MembersTabViewModelTest {
 
     @Test
     fun `rows are ordered self first, then admins, then members, then pending, each A-Z`() = runTest {
-        val zedAdmin = Member(profileId = "admin-zed", name = "Zed Admin", role = GroupRole.Admin)
-        val annAdmin = Member(profileId = "admin-ann", name = "Ann Admin", role = GroupRole.Admin)
-        val zedMember = Member(profileId = "member-zed", name = "Zed Member", role = GroupRole.Member)
-        val annMember = Member(profileId = "member-ann", name = "Ann Member", role = GroupRole.Member)
+        val zedAdmin = Member(profileId = "admin-zed", name = "Zed Admin", role = GroupRole.Admin, tagId = null)
+        val annAdmin = Member(profileId = "admin-ann", name = "Ann Admin", role = GroupRole.Admin, tagId = null)
+        val zedMember = Member(profileId = "member-zed", name = "Zed Member", role = GroupRole.Member, tagId = null)
+        val annMember = Member(profileId = "member-ann", name = "Ann Member", role = GroupRole.Member, tagId = null)
         val zetaInvite = PendingInvitation(id = "invite-zeta", email = "zeta@example.com")
         val alphaInvite = PendingInvitation(id = "invite-alpha", email = "alpha@example.com")
 
@@ -130,7 +140,7 @@ class MembersTabViewModelTest {
                 "invite-alpha",
                 "invite-zeta"
             ),
-            state.rows.map { it.id }
+            state.allRows().map { it.id }
         )
     }
 
@@ -146,9 +156,9 @@ class MembersTabViewModelTest {
 
         val state = assertIs<MembersTabUiState.Success>(viewModel.state.value)
         assertEquals(false, state.canAddMembers)
-        assertEquals(2, state.rows.size)
-        assertEquals(true, state.rows.none { it.status == MemberStatus.Pending })
-        assertEquals(true, state.rows.none { it.hasMenu })
+        assertEquals(2, state.allRows().size)
+        assertEquals(true, state.allRows().none { it.status == MemberStatus.Pending })
+        assertEquals(true, state.allRows().none { it.hasMenu })
     }
 
     @Test
@@ -186,7 +196,7 @@ class MembersTabViewModelTest {
 
         assertEquals(listOf(plainMember.profileId), members.promotedIds)
         val state = assertIs<MembersTabUiState.Success>(viewModel.state.value)
-        assertEquals(MemberStatus.Admin, state.rows.first { it.id == plainMember.profileId }.status)
+        assertEquals(MemberStatus.Admin, state.allRows().first { it.id == plainMember.profileId }.status)
         assertNull(state.actionTargetId)
     }
 
@@ -220,7 +230,7 @@ class MembersTabViewModelTest {
         assertNull(state.actionTargetId)
         assertIs<DomainError.LastAdmin>(state.actionError)
         assertEquals(otherAdmin.profileId, state.failedActionId)
-        assertEquals(MemberStatus.Admin, state.rows.first { it.id == otherAdmin.profileId }.status)
+        assertEquals(MemberStatus.Admin, state.allRows().first { it.id == otherAdmin.profileId }.status)
     }
 
     @Test
@@ -235,7 +245,7 @@ class MembersTabViewModelTest {
 
         assertEquals(listOf(plainMember.profileId), members.removedIds)
         val state = assertIs<MembersTabUiState.Success>(viewModel.state.value)
-        assertEquals(true, state.rows.none { it.id == plainMember.profileId })
+        assertEquals(true, state.allRows().none { it.id == plainMember.profileId })
     }
 
     @Test
@@ -254,7 +264,7 @@ class MembersTabViewModelTest {
 
         assertEquals(listOf(pending.id), members.revokedInvitationIds)
         val state = assertIs<MembersTabUiState.Success>(viewModel.state.value)
-        assertEquals(true, state.rows.none { it.id == pending.id })
+        assertEquals(true, state.allRows().none { it.id == pending.id })
     }
 
     @Test
@@ -269,7 +279,7 @@ class MembersTabViewModelTest {
         assertEquals(listOf(pending.id), members.resentInvitationIds)
         val state = assertIs<MembersTabUiState.Success>(viewModel.state.value)
         assertNull(state.actionError)
-        assertEquals(true, state.rows.any { it.id == pending.id })
+        assertEquals(true, state.allRows().any { it.id == pending.id })
     }
 
     @Test
@@ -319,6 +329,6 @@ class MembersTabViewModelTest {
         advanceUntilIdle()
 
         val state = assertIs<MembersTabUiState.Success>(viewModel.state.value)
-        assertEquals(MemberStatus.Admin, state.rows.first { it.id == plainMember.profileId }.status)
+        assertEquals(MemberStatus.Admin, state.allRows().first { it.id == plainMember.profileId }.status)
     }
 }
