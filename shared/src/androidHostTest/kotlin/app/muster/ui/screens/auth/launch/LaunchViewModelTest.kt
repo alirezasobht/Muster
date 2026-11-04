@@ -3,6 +3,7 @@ package app.muster.ui.screens.auth.launch
 import app.muster.data.fake.FAKE_EMAIL
 import app.muster.data.fake.FAKE_USER_ID
 import app.muster.data.fake.FakeAuthRepository
+import app.muster.data.fake.FakeFeatureFlagRepository
 import app.muster.data.fake.FakeProfileRepository
 import app.muster.domain.error.DomainError
 import app.muster.domain.model.SessionState
@@ -10,11 +11,13 @@ import app.muster.domain.usecase.GetMyProfileUseCase
 import app.muster.domain.usecase.ObserveSessionUseCase
 import app.muster.domain.usecase.RetrySessionUseCase
 import app.muster.domain.usecase.SignOutUseCase
+import app.muster.domain.usecase.SyncFeatureFlagsUseCase
 import app.muster.testing.MainDispatcherRule
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -29,12 +32,14 @@ class LaunchViewModelTest {
 
     private fun viewModel(
         auth: FakeAuthRepository = FakeAuthRepository(),
-        profiles: FakeProfileRepository = FakeProfileRepository()
+        profiles: FakeProfileRepository = FakeProfileRepository(),
+        featureFlags: FakeFeatureFlagRepository = FakeFeatureFlagRepository()
     ) = LaunchViewModel(
         observeSession = ObserveSessionUseCase(auth),
         getMyProfile = GetMyProfileUseCase(profiles),
         retrySession = RetrySessionUseCase(auth),
-        signOut = SignOutUseCase(auth)
+        signOut = SignOutUseCase(auth),
+        syncFeatureFlags = SyncFeatureFlagsUseCase(featureFlags)
     )
 
     @Test
@@ -181,6 +186,41 @@ class LaunchViewModelTest {
         advanceUntilIdle()
 
         assertEquals(LaunchUiState.SignedOut, viewModel.state.value)
+    }
+
+    @Test
+    fun `feature flags are synced once on launch`() = runTest {
+        val featureFlags = FakeFeatureFlagRepository()
+        viewModel(auth = FakeAuthRepository(initial = signedIn), featureFlags = featureFlags)
+        advanceUntilIdle()
+
+        assertEquals(1, featureFlags.syncCalls)
+    }
+
+    @Test
+    fun `a failed flag sync does not affect the launch`() = runTest {
+        val viewModel = viewModel(
+            auth = FakeAuthRepository(initial = signedIn),
+            profiles = FakeProfileRepository(name = "Alex Doyle"),
+            featureFlags = FakeFeatureFlagRepository(syncError = DomainError.Network())
+        )
+        advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertIs<LaunchUiState.Ready>(state)
+        assertEquals("Alex Doyle", state.profile.name)
+    }
+
+    @Test
+    fun `a slow flag sync does not hold the launch`() = runTest {
+        val viewModel = viewModel(
+            auth = FakeAuthRepository(initial = signedIn),
+            profiles = FakeProfileRepository(name = "Alex Doyle"),
+            featureFlags = FakeFeatureFlagRepository(latency = 60_000)
+        )
+        advanceTimeBy(2.seconds)
+
+        assertIs<LaunchUiState.Ready>(viewModel.state.value)
     }
 
     @Test

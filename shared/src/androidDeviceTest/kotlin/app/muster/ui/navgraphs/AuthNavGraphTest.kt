@@ -9,12 +9,14 @@ import androidx.compose.ui.test.performTextInput
 import app.muster.data.fake.FAKE_EMAIL
 import app.muster.data.fake.FAKE_USER_ID
 import app.muster.data.fake.FakeAuthRepository
+import app.muster.data.fake.FakeFeatureFlagRepository
 import app.muster.data.fake.FakeProfileRepository
 import app.muster.domain.model.SessionState
 import app.muster.domain.usecase.GetMyProfileUseCase
 import app.muster.domain.usecase.ObserveSessionUseCase
 import app.muster.domain.usecase.RetrySessionUseCase
 import app.muster.domain.usecase.SignOutUseCase
+import app.muster.domain.usecase.SyncFeatureFlagsUseCase
 import app.muster.ui.screens.auth.EnterCode
 import app.muster.ui.screens.auth.Launch
 import app.muster.ui.screens.auth.RequestCode
@@ -42,7 +44,8 @@ class AuthNavGraphTest {
             ObserveSessionUseCase(auth),
             GetMyProfileUseCase(FakeProfileRepository(latency = 0)),
             RetrySessionUseCase(auth),
-            SignOutUseCase(auth)
+            SignOutUseCase(auth),
+            SyncFeatureFlagsUseCase(FakeFeatureFlagRepository(latency = 0))
         )
         harness.show(start) { nav -> authGraph(nav, launchViewModel) }
         return launchViewModel

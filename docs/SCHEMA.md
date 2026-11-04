@@ -169,6 +169,21 @@ depends on positions being contiguous. `add_players_to_event()` is the
 other writer — it only appends, past whatever `position` is highest, so
 it never needs to renumber anything.
 
+### feature_flags
+Remote switches for app features, in `private`, no grants, edited in
+the dashboard. Gates the app only: no RPC or trigger reads it.
+
+| Column | Type | Notes |
+|---|---|---|
+| flag | text PK | snake_case (CHECK); the app's key for the flag |
+| android | text | first app version it is on for, `major.minor.patch` (CHECK); null = off |
+| ios | text | as above |
+| web | text | as above |
+
+A flag is on for a platform once the app version reaches that column,
+compared numerically per part, so `1.0.10` is after `1.0.7`. The app
+reads it only through `get_feature_flags`.
+
 ### Deferred
 
 `device_tokens` — for FCM. Not in the MVP.
@@ -324,7 +339,8 @@ calls one by name must qualify it, `private.is_group_admin(...)`.
 | `group_is_live(gid)` | not archived — for paths with no membership to check |
 | `has_pending_invitation(gid)` | caller has a pending invitation to it |
 
-**RPCs** — called from the app, granted to `authenticated` only.
+**RPCs** — called from the app, granted to `authenticated` only,
+except `get_feature_flags` (see Grants).
 
 | Function | Why it exists |
 |---|---|
@@ -335,6 +351,7 @@ calls one by name must qualify it, `private.is_group_admin(...)`.
 | `set_event_locked(event_id, locked)` | `security definer`: requires an admin of a live group, locks group then event, and returns the event. Raises for a started event. Locking sets `locked_at` and `locked_by`; unlocking clears both, then runs `promote_standby`. Idempotent: locking a locked event keeps the original locker |
 | `delete_event(event_id)` | `security definer`: requires an admin of a live group, locks group then event, and deletes it; invitations and the queue go by cascade. Allowed on started and locked events. Returns true; raises for a missing event |
 | `set_profile_name(name)` | `security definer`: requires a signed-in caller, updates only their name, and returns their profile as `my_profile`, the flag from `can_create_groups()`; raises if the profile is missing. No group membership is required |
+| `get_feature_flags(platform, version)` | `security definer`, granted to `anon` too: every flag in `feature_flags` with whether it is on for that platform at that app version. An unknown platform reads the `web` column; a version that isn't `major.minor.patch` raises |
 | `get_my_profile()` | `security definer`: the caller's profile as `my_profile` (`id, name, email, can_create_groups`), the flag from `can_create_groups()`. The app reads its profile here, not from `profiles` |
 | `create_group(name)` | `security definer`: requires a signed-in caller that `can_create_groups()` allows, locking their profile row first, sets the creator, and returns the created group. The existing trigger creates its admin membership |
 | `update_group(group_id, name)` | `security definer`: requires an admin, locks the live group, and returns the updated group. Takes every editable group field, so a new one extends it |
@@ -509,6 +526,10 @@ too. A new function that forgets this is callable by anyone with the
 publishable key.
 
 `create or replace` keeps existing grants; a fresh `create` does not.
+
+**`get_feature_flags` is the one function granted to `anon`.** The app
+syncs flags at launch, before sign-in. It reads only
+`feature_flags`, which holds nothing private.
 
 **New tables need their own grants.** From 2026-10-30 Supabase stops
 granting its API roles on new objects in `public` (environment_setup.md

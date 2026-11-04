@@ -21,6 +21,7 @@ import app.muster.domain.usecase.ListGroupMembersUseCase
 import app.muster.domain.usecase.ListMyGroupsUseCase
 import app.muster.domain.usecase.ListPendingInvitationsUseCase
 import app.muster.domain.usecase.ListUpcomingEventsUseCase
+import app.muster.domain.usecase.ObserveFeatureFlagUseCase
 import app.muster.domain.usecase.ObserveSessionUseCase
 import app.muster.domain.usecase.PromoteMemberUseCase
 import app.muster.domain.usecase.RemoveMemberUseCase
@@ -33,6 +34,7 @@ import app.muster.domain.usecase.RevokeInvitationUseCase
 import app.muster.domain.usecase.SetEventLockedUseCase
 import app.muster.domain.usecase.SetRsvpUseCase
 import app.muster.domain.usecase.SignOutUseCase
+import app.muster.domain.usecase.SyncFeatureFlagsUseCase
 import app.muster.domain.usecase.UpdateEventUseCase
 import app.muster.domain.usecase.UpdateGroupUseCase
 import app.muster.domain.usecase.UpdateNameUseCase
@@ -78,4 +80,6 @@ val domainModule = module {
     factoryOf(::ResendEventInvitationUseCase)
     factoryOf(::AddPlayersUseCase)
     factoryOf(::DeleteAccountUseCase)
+    factoryOf(::SyncFeatureFlagsUseCase)
+    factoryOf(::ObserveFeatureFlagUseCase)
 }

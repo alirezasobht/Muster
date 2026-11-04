@@ -2,11 +2,14 @@ package app.muster.domain.usecase
 
 import app.muster.data.fake.FAKE_EMAIL
 import app.muster.data.fake.FakeAuthRepository
+import app.muster.data.fake.FakeFeatureFlagRepository
 import app.muster.data.fake.FakeProfileRepository
+import app.muster.domain.model.FeatureFlag
 import app.muster.domain.model.SessionState
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 
 // The use cases only delegate; the one thing they add is trimming, and a
@@ -44,5 +47,16 @@ class UseCaseTest {
         )
         SignOutUseCase(auth)()
         assertEquals(SessionState.SignedOut, auth.session.value)
+    }
+
+    @Test
+    fun `syncing feature flags updates what is observed`() = runTest {
+        val flags = FakeFeatureFlagRepository(remote = mapOf(FeatureFlag.MemberTags to true))
+        val observe = ObserveFeatureFlagUseCase(flags)
+        assertEquals(false, observe(FeatureFlag.MemberTags).first())
+
+        SyncFeatureFlagsUseCase(flags)()
+        assertEquals(1, flags.syncCalls)
+        assertEquals(true, observe(FeatureFlag.MemberTags).first())
     }
 }
