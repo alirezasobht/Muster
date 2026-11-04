@@ -2,6 +2,7 @@ package app.muster.ui.screens.event
 
 import app.muster.data.fake.FAKE_USER_ID
 import app.muster.data.fake.FakeEventRepository
+import app.muster.data.fake.FakeFeatureFlagRepository
 import app.muster.data.fake.FakeGroupRepository
 import app.muster.data.fake.FakeProfileRepository
 import app.muster.domain.error.DomainError
@@ -9,6 +10,7 @@ import app.muster.domain.event.DataChange
 import app.muster.domain.event.DataChanges
 import app.muster.domain.model.Event
 import app.muster.domain.model.EventDetail
+import app.muster.domain.model.FeatureFlag
 import app.muster.domain.model.GroupRole
 import app.muster.domain.model.RosterEntry
 import app.muster.domain.model.RsvpStatus
@@ -18,6 +20,7 @@ import app.muster.domain.usecase.DisinvitePlayerUseCase
 import app.muster.domain.usecase.GetEventUseCase
 import app.muster.domain.usecase.GetMyGroupRoleUseCase
 import app.muster.domain.usecase.GetMyProfileUseCase
+import app.muster.domain.usecase.ObserveFeatureFlagUseCase
 import app.muster.domain.usecase.ReorderStandbyUseCase
 import app.muster.domain.usecase.ResendEventInvitationUseCase
 import app.muster.domain.usecase.SetEventLockedUseCase
@@ -97,7 +100,8 @@ class EventViewModelTest {
         dataChanges: DataChanges = DataChanges(),
         events: FakeEventRepository = FakeEventRepository(eventDetail = detail(), dataChanges = dataChanges),
         groups: FakeGroupRepository = FakeGroupRepository(myRole = GroupRole.Admin),
-        profiles: FakeProfileRepository = FakeProfileRepository()
+        profiles: FakeProfileRepository = FakeProfileRepository(),
+        featureFlags: FakeFeatureFlagRepository = FakeFeatureFlagRepository(initial = mapOf(FeatureFlag.EventLock to true), latency = 0)
     ) = EventViewModel(
         initialSummary = summary,
         getEvent = GetEventUseCase(events),
@@ -109,6 +113,7 @@ class EventViewModelTest {
         resendEventInvitation = ResendEventInvitationUseCase(events),
         setEventLocked = SetEventLockedUseCase(events),
         deleteEvent = DeleteEventUseCase(events),
+        observeFeatureFlag = ObserveFeatureFlagUseCase(featureFlags),
         dataChanges = dataChanges
     )
 
@@ -638,6 +643,27 @@ class EventViewModelTest {
         val state = assertIs<EventUiState.Success>(viewModel.state.value)
         assertTrue(state.canToggleLock)
         assertFalse(state.isLocked)
+    }
+
+    @Test
+    fun `an admin cannot toggle the lock while the event_lock flag is off`() = runTest {
+        val viewModel = viewModel(featureFlags = FakeFeatureFlagRepository(latency = 0))
+        advanceUntilIdle()
+
+        assertFalse(assertIs<EventUiState.Success>(viewModel.state.value).canToggleLock)
+    }
+
+    @Test
+    fun `the lock switch appears when the event_lock flag turns on`() = runTest {
+        val featureFlags = FakeFeatureFlagRepository(remote = mapOf(FeatureFlag.EventLock to true), latency = 0)
+        val viewModel = viewModel(featureFlags = featureFlags)
+        advanceUntilIdle()
+        assertFalse(assertIs<EventUiState.Success>(viewModel.state.value).canToggleLock)
+
+        featureFlags.sync()
+        advanceUntilIdle()
+
+        assertTrue(assertIs<EventUiState.Success>(viewModel.state.value).canToggleLock)
     }
 
     @Test

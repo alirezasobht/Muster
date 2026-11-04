@@ -212,6 +212,10 @@ store is the only thing the UI reads.
 - `observe(flag)` reads only the local source. A flag missing from it is
   off. A ViewModel collects `ObserveFeatureFlagUseCase`, so a screen
   follows when the sync lands.
+- The ViewModel keeps the flag as a private `StateFlow` (`stateIn`,
+  `Eagerly`) and writes it into its one UI state, seeding the load with
+  `.value`. Never `combine` it into a second flow of the same state type:
+  guards must read `_state`, and a derived copy lags it.
 - `FeatureFlag` (`domain/model`) is the enum of flags; each key matches a
   row's `flag` in `private.feature_flags`. RUNBOOK.md → "Feature flags".
 
