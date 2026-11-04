@@ -352,6 +352,10 @@ need `Dispatchers.setMain`, which is flaky on JS and Wasm, and
 testing them once on the JVM covers all four. Every test needs
 `MainDispatcherRule` (`androidHostTest`, `app/muster/testing/`).
 
+Files using the experimental coroutines test APIs (`advanceUntilIdle`
+and similar) start with `@file:OptIn(ExperimentalCoroutinesApi::class)`.
+A Gradle-level opt-in isn't picked up by the IDE for `androidHostTest`.
+
 ViewModels are tested against the **fakes** in `data/fake`, never against
 mocks. Each fake takes an error per method so failure paths can be
 driven. Where a fake has no call counter, prove a call did not happen by
