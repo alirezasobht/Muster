@@ -210,7 +210,9 @@ the detail. An admin's ⋮ stays on a started event, holding Delete event
 alone.
 
 **Lock.** Admins get a Locked switch beside the date and location, on
-unstarted events only; turning it on or off confirms first. A locked
+unstarted events only, while the `event_lock` feature flag is on;
+turning it on or off confirms first. A locked event renders locked
+whatever the flag says. A locked
 event reuses the frozen rendering, with three differences: an ink strip
 reads "Locked by Ali" over "No changes until an admin unlocks it",
 Pending stays "Pending", and the standby header reads "Standby ·

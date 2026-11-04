@@ -1322,7 +1322,7 @@ private val PreviewSuccess = EventUiState.Success(
     myStatus = RsvpStatus.Out,
     roster = PreviewRoster,
     overflowActions = listOf(EventOverflowAction.Edit, EventOverflowAction.Delete),
-    canToggleLock = true
+    lockFlag = true
 )
 
 @Preview
@@ -1351,7 +1351,7 @@ private fun EventScreenFrozenPreview() {
         EventScreen(
             state = PreviewSuccess.copy(
                 overflowActions = listOf(EventOverflowAction.Delete),
-                canToggleLock = false,
+                lockFlag = false,
                 isFrozen = true,
                 startsAtDisplay = "7:00 pm",
                 myStatus = RsvpStatus.In
@@ -1386,7 +1386,7 @@ private fun EventScreenMemberLockedPreview() {
             state = PreviewSuccess.copy(
                 isAdmin = false,
                 overflowActions = emptyList(),
-                canToggleLock = false,
+                lockFlag = false,
                 isLocked = true,
                 myStatus = null,
                 standby = PreviewStandby
@@ -1501,7 +1501,7 @@ private fun EventScreenFrozenWithStandbyPreview() {
             state = PreviewSuccess.copy(
                 isAdmin = true,
                 overflowActions = listOf(EventOverflowAction.Delete),
-                canToggleLock = false,
+                lockFlag = false,
                 isFrozen = true,
                 startsAtDisplay = "7:00 pm",
                 myStatus = RsvpStatus.In,

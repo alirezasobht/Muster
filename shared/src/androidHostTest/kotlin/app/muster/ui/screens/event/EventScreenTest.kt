@@ -553,20 +553,20 @@ class EventScreenTest {
     private val lockedState = successState.copy(
         isLocked = true,
         lockedByName = "Ali",
-        canToggleLock = true,
+        lockFlag = true,
         overflowActions = listOf(EventOverflowAction.Delete)
     )
 
     @Test
     fun theLockSwitchIsShownWhenTheViewerCanToggleIt() {
-        show(state = successState.copy(canToggleLock = true))
+        show(state = successState.copy(lockFlag = true))
         composeRule.onNodeWithText("Locked").assertIsDisplayed()
         composeRule.onNode(isToggleable()).assertIsOff()
     }
 
     @Test
     fun noLockSwitchWhenTheViewerCannotToggleIt() {
-        show(state = successState.copy(canToggleLock = false))
+        show(state = successState.copy(lockFlag = false))
         composeRule.onNode(isToggleable()).assertDoesNotExist()
         composeRule.onNodeWithText("Locked").assertDoesNotExist()
     }
@@ -580,7 +580,7 @@ class EventScreenTest {
     @Test
     fun tappingTheLockSwitchReportsTheRequestedValue() {
         var toggled: Boolean? = null
-        show(state = successState.copy(canToggleLock = true), onLockToggled = { toggled = it })
+        show(state = successState.copy(lockFlag = true), onLockToggled = { toggled = it })
         composeRule.onNode(isToggleable()).performClick()
         assert(toggled == true)
     }
@@ -591,7 +591,7 @@ class EventScreenTest {
     fun longDetailsBesideTheLockSwitchWrapInsteadOfTruncating() {
         val date = "Wednesday 17 September 2026 · 7:00 pm until 9:30 pm, kick-off sharp"
         val location = "Westgate Community Sports Centre, Pitch 2 behind the car park, Long Lane, Westgate"
-        show(state = successState.copy(canToggleLock = true, summary = summary.copy(date = date, location = location)))
+        show(state = successState.copy(lockFlag = true, summary = summary.copy(date = date, location = location)))
         composeRule.onNode(isToggleable()).assertIsDisplayed()
         for (text in listOf(date, location)) {
             val node = composeRule.onNodeWithText(text).assertIsDisplayed()
@@ -618,7 +618,7 @@ class EventScreenTest {
 
     @Test
     fun membersSeeTheLockedStripButNoSwitch() {
-        show(state = lockedState.copy(isAdmin = false, canToggleLock = false, overflowActions = emptyList()))
+        show(state = lockedState.copy(isAdmin = false, lockFlag = false, overflowActions = emptyList()))
         composeRule.onNodeWithText("Locked by Ali").assertIsDisplayed()
         composeRule.onNodeWithText("Locked").assertDoesNotExist()
         composeRule.onNode(isToggleable()).assertDoesNotExist()
@@ -627,7 +627,7 @@ class EventScreenTest {
 
     @Test
     fun anUnlockedEventShowsNoLockedStrip() {
-        show(state = successState.copy(canToggleLock = false))
+        show(state = successState.copy(lockFlag = false))
         composeRule.onNodeWithText("No changes until an admin unlocks it").assertDoesNotExist()
     }
 
@@ -637,7 +637,7 @@ class EventScreenTest {
             state = lockedState.copy(
                 isFrozen = true,
                 startsAtDisplay = "7:00 pm",
-                canToggleLock = false
+                lockFlag = false
             )
         )
         composeRule.onNodeWithText("Started at 7:00 pm · no more changes").assertIsDisplayed()
@@ -828,7 +828,7 @@ class EventScreenTest {
     fun theLockDialogExplainsAndConfirms() {
         var confirmed = false
         show(
-            state = successState.copy(canToggleLock = true, dialog = EventDialogState(EventDialogKind.Lock)),
+            state = successState.copy(lockFlag = true, dialog = EventDialogState(EventDialogKind.Lock)),
             onDialogConfirmed = { confirmed = true }
         )
         composeRule.onNodeWithText("Lock this event?").assertIsDisplayed()
@@ -852,7 +852,7 @@ class EventScreenTest {
     fun aLockErrorIsShownInTheDialog() {
         show(
             state = successState.copy(
-                canToggleLock = true,
+                lockFlag = true,
                 dialog = EventDialogState(EventDialogKind.Lock, error = DomainError.EventFrozen())
             )
         )

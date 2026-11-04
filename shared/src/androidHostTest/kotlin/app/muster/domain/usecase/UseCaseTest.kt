@@ -51,12 +51,12 @@ class UseCaseTest {
 
     @Test
     fun `syncing feature flags updates what is observed`() = runTest {
-        val flags = FakeFeatureFlagRepository(remote = mapOf(FeatureFlag.MemberTags to true))
+        val flags = FakeFeatureFlagRepository(remote = mapOf(FeatureFlag.EventLock to true))
         val observe = ObserveFeatureFlagUseCase(flags)
-        assertEquals(false, observe(FeatureFlag.MemberTags).first())
+        assertEquals(false, observe(FeatureFlag.EventLock).first())
 
         SyncFeatureFlagsUseCase(flags)()
         assertEquals(1, flags.syncCalls)
-        assertEquals(true, observe(FeatureFlag.MemberTags).first())
+        assertEquals(true, observe(FeatureFlag.EventLock).first())
     }
 }

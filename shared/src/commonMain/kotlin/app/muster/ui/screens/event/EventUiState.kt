@@ -81,8 +81,8 @@ sealed interface EventUiState : UiState<EventUiState.Success> {
         val overflowActions: List<EventOverflowAction> = emptyList(),
         val isFrozen: Boolean = false,
         val isLocked: Boolean = false,
+        private val lockFlag: Boolean = false,
         val lockedByName: String? = null,
-        val canToggleLock: Boolean = false,
         val startsAt: Instant = Instant.DISTANT_FUTURE,
         val startsAtDisplay: String = "",
         val isRefreshing: Boolean = false,
@@ -100,6 +100,8 @@ sealed interface EventUiState : UiState<EventUiState.Success> {
         val isRosterEmpty: Boolean get() = roster.isEmpty()
 
         val isReadOnly: Boolean get() = isFrozen || isLocked
+
+        val canToggleLock: Boolean get() = isAdmin && !isFrozen && lockFlag
 
         // Started wins when both hold: its strip and wording replace the lock's.
         val showsLockedStrip: Boolean get() = isLocked && !isFrozen

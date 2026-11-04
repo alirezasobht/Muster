@@ -6,6 +6,7 @@ import app.muster.domain.error.DomainError
 import app.muster.domain.event.DataChange
 import app.muster.domain.event.DataChanges
 import app.muster.domain.model.EventDetail
+import app.muster.domain.model.FeatureFlag
 import app.muster.domain.model.GroupRole
 import app.muster.domain.model.RosterEntry
 import app.muster.domain.model.RsvpStatus
@@ -14,6 +15,7 @@ import app.muster.domain.usecase.DisinvitePlayerUseCase
 import app.muster.domain.usecase.GetEventUseCase
 import app.muster.domain.usecase.GetMyGroupRoleUseCase
 import app.muster.domain.usecase.GetMyProfileUseCase
+import app.muster.domain.usecase.ObserveFeatureFlagUseCase
 import app.muster.domain.usecase.ReorderStandbyUseCase
 import app.muster.domain.usecase.ResendEventInvitationUseCase
 import app.muster.domain.usecase.SetEventLockedUseCase
@@ -23,9 +25,11 @@ import app.muster.ui.common.util.toDisplayTime
 import app.muster.ui.common.util.updateSuccess
 import kotlin.time.Clock
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class EventViewModel(
@@ -39,6 +43,7 @@ class EventViewModel(
     private val resendEventInvitation: ResendEventInvitationUseCase,
     private val setEventLocked: SetEventLockedUseCase,
     private val deleteEvent: DeleteEventUseCase,
+    observeFeatureFlag: ObserveFeatureFlagUseCase,
     dataChanges: DataChanges
 ) : ViewModel() {
 
@@ -46,7 +51,11 @@ class EventViewModel(
     private val groupId = initialSummary.groupId
 
     private val _state = MutableStateFlow<EventUiState>(EventUiState.Loading(initialSummary))
+
     val state: StateFlow<EventUiState> = _state.asStateFlow()
+
+    private val lockFlag = observeFeatureFlag(FeatureFlag.EventLock)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     // init already loads, so the first resume after launch would load twice.
     private var resumedOnce = false
@@ -56,6 +65,9 @@ class EventViewModel(
     private var myProfileId: String? = null
 
     init {
+        viewModelScope.launch {
+            lockFlag.collect { on -> _state.updateSuccess { it.copy(lockFlag = on) } }
+        }
         load()
         viewModelScope.launch {
             dataChanges.changes
@@ -274,7 +286,7 @@ class EventViewModel(
             isFrozen = isFrozen,
             isLocked = isLocked,
             lockedByName = detail.lockedByName,
-            canToggleLock = isAdmin && !isFrozen,
+            lockFlag = lockFlag.value,
             startsAt = detail.event.startsAt,
             startsAtDisplay = detail.event.startsAt.toDisplayTime()
         )
