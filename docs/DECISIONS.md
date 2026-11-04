@@ -442,3 +442,34 @@ the title was tried and dropped; it cost the title too much width.
 
 Rejected: an `event_locks` table with who, when and why; a plain boolean,
 which loses who locked it for the same cost.
+
+## Feature flags: a Supabase table, read into a local store
+
+Flags are rows in `private.feature_flags`, one column per platform
+holding the first app version a flag is on for; null keeps it off.
+Versions compare numerically per part. No new backend, and the same on
+all three platforms. Flags gate the app only: no RPC or trigger reads
+them, so a client on an old version can still call what a flag hides.
+Gating on the server would be its own decision. The version is
+client-reported, which is why this suits UI and not access (see Group
+creation).
+
+`get_feature_flags` is the first function granted to `anon`: the app
+syncs at launch, before sign-in, and the table holds nothing private.
+
+On the device the local store is the single source of truth. The UI
+reads only from it, and Supabase only writes into it at launch, so a
+change in the dashboard applies from the next launch. A missing flag
+reads as off; there are no hardcoded defaults.
+
+The store is multiplatform-settings (SharedPreferences, NSUserDefaults,
+localStorage), which is also the app's general key-value store. It is
+already in the build through auth-kt at 1.3.0, so the two versions move
+together. It uses its own `muster` store, or `muster.`-prefixed keys on
+the web, so it can't collide with supabase-kt's session keys.
+
+Rejected: Firebase Remote Config or another vendor (a second backend),
+and Room. Room on web needs a SQLite worker in OPFS, which needs
+COOP/COEP headers site-wide (they'd break Google Fonts on the static
+pages) or a single-tab mode; not worth it for a few booleans. Room can
+come later for real relational data. Also rejected: realtime updates.

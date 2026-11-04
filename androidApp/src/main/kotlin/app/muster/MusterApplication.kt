@@ -6,6 +6,6 @@ import android.app.Application
 class MusterApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        initKoin()
+        initKoin(this)
     }
 }

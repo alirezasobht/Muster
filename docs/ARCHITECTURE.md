@@ -63,8 +63,10 @@ In `shared/src/commonMain/kotlin/app/muster/`:
 
 ```
 data/
-  di/           dataModule — client, repositories
+  di/           dataModule — client, repositories; platformDataModule
   supabase/     createClient(), session storage
+  local/        on-device stores over Settings (FeatureFlagLocalSource)
+  platform/     expect/actual values the data layer needs (platformName)
   dto/          @Serializable table shapes
   mapper/       dto -> model, and error mapping
   repository/   *RepositoryImpl
@@ -161,18 +163,22 @@ calls rather than a build error. Move the two versions together.
 One module per layer, each in that layer's `di/` package: `dataModule`
 (client, repositories), `domainModule` (use cases), `uiModule`
 (ViewModels). A layer's module appears once it has something to declare.
-Plus a platform module per target for anything platform-specific.
+Plus `platformDataModule`, an `expect` with an `actual` per target, for
+anything platform-specific — today the app's `Settings`.
 
-`initKoin()` loads them all. It lives at the root (`app/muster/Koin.kt`),
-as an entry point rather than a DI package — the one place that sees every
-layer. Each host calls it before any UI: `MusterApplication` on Android,
-`MainViewController` on iOS, `Main.kt` on web.
+`startMusterKoin()` loads them all. It lives at the root
+(`app/muster/Koin.kt`), as an entry point rather than a DI package — the
+one place that sees every layer. Each target wraps it in its own
+`initKoin` (`Koin.android.kt`, `Koin.ios.kt`, `Koin.web.kt`); Android's
+takes a `Context`, so Koin can't start there without one. Each host calls
+it before any UI: `MusterApplication` on Android, `MainViewController` on
+iOS, `Main.kt` on web.
 
 Android calls it from an `Application` subclass, not `MainActivity`:
 `onCreate` of an activity re-runs on every rotation and configuration
-change, and Koin throws if started twice. `initKoin()` also guards against
-an already-started Koin, because iOS may call `MainViewController()` more
-than once.
+change, and Koin throws if started twice. `startMusterKoin()` also guards
+against an already-started Koin, because iOS may call
+`MainViewController()` more than once.
 
 The `SupabaseClient` is a Koin `single` built by a `createClient()`
 factory, not a top-level `val`, so the fakes can replace it. Repositories
@@ -180,6 +186,36 @@ are `single`; use cases are `factory`, being stateless and cheap.
 ViewModels use `viewModelOf`. One exception: `EnterCodeViewModel` takes
 the address as a route argument, so it is declared as
 `viewModel { (email: String) -> ... }` and resolved with `parametersOf`.
+
+## Local storage
+
+Besides supabase-kt's session, the app keeps its own small key-value
+store: multiplatform-settings' `Settings`, a `single` from
+`platformDataModule`. SharedPreferences named `muster` on Android, the
+NSUserDefaults suite `muster` on iOS, and localStorage on web, where the
+origin has only one store, so every key the app writes starts with
+`muster.`. supabase-kt keeps its session in each platform's default
+store; ours must not be it. Stores in `data/local` wrap it. Room was
+dropped — DECISIONS.md → "Feature flags".
+
+## Feature flags
+
+Supabase → local store → repository → use case → ViewModel. The local
+store is the only thing the UI reads.
+
+- `LaunchViewModel` calls `SyncFeatureFlagsUseCase` in `init`, without a
+  session and without holding the launch. A failure keeps the stored
+  values.
+- `FeatureFlagRepositoryImpl.sync()` calls `get_feature_flags` with
+  `platformName` and `APP_VERSION`, and replaces the whole stored map in
+  `FeatureFlagLocalSource`.
+- `observe(flag)` reads only the local source. A flag missing from it is
+  off. A ViewModel collects `ObserveFeatureFlagUseCase`, so a screen
+  follows when the sync lands.
+- `FeatureFlag` (`domain/model`) is the enum of flags; each key matches a
+  row's `flag` in `private.feature_flags`. RUNBOOK.md → "Feature flags".
+
+Flags gate UI only; never use one as access control.
 
 ## Navigation
 

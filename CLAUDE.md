@@ -116,7 +116,9 @@ Privacy policy (embedded `privacy.html`), Edit group and Edit event
 released in 1.0.6). Event lock and Delete event (switch, ink locked
 strip, ⋮ Delete, the `set_event_locked` / `delete_event` RPCs and the
 lock checks in the freeze triggers and roster RPCs; on dev, shipping in
-1.0.7).
+1.0.7). Remote feature flags (`private.feature_flags`, the anon
+`get_feature_flags` RPC, a local Settings store synced at launch). No
+flag gates any UI yet; `member_tags` is defined for member tags.
 
 **Dev** and **prod** both exist. Android is published on Play, the web
 app is live, and iOS is in App Store review.

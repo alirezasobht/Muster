@@ -9,6 +9,7 @@ import app.muster.domain.usecase.GetMyProfileUseCase
 import app.muster.domain.usecase.ObserveSessionUseCase
 import app.muster.domain.usecase.RetrySessionUseCase
 import app.muster.domain.usecase.SignOutUseCase
+import app.muster.domain.usecase.SyncFeatureFlagsUseCase
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
 import kotlinx.coroutines.Job
@@ -22,7 +23,8 @@ class LaunchViewModel(
     private val observeSession: ObserveSessionUseCase,
     private val getMyProfile: GetMyProfileUseCase,
     private val retrySession: RetrySessionUseCase,
-    private val signOut: SignOutUseCase
+    private val signOut: SignOutUseCase,
+    private val syncFeatureFlags: SyncFeatureFlagsUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<LaunchUiState>(LaunchUiState.Loading)
@@ -38,6 +40,13 @@ class LaunchViewModel(
     private var firstResolution = true
 
     init {
+        // Flags are public, so this doesn't wait for auth or delay the launch. If the sync fails, the saved flags stay.
+        viewModelScope.launch {
+            try {
+                syncFeatureFlags()
+            } catch (_: DomainError) {
+            }
+        }
         viewModelScope.launch {
             observeSession().collect { session ->
                 when (session) {
