@@ -51,6 +51,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.muster.domain.error.DomainError
 import app.muster.ui.common.components.ConfirmDialog
+import app.muster.ui.common.components.InitialsAvatar
 import app.muster.ui.common.components.MessageState
 import app.muster.ui.common.components.MusterIcons
 import app.muster.ui.common.components.MusterPullToRefreshBox
@@ -516,26 +517,6 @@ private fun RowMenu(
                     )
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun InitialsAvatar(
-    initials: String,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier.size(40.dp),
-        shape = RoundedCornerShape(percent = 50),
-        color = MusterColors.AvatarFill
-    ) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(
-                text = initials,
-                style = MaterialTheme.typography.labelMedium.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
-                color = MusterColors.Secondary
-            )
         }
     }
 }
