@@ -104,6 +104,11 @@ UI state and its ViewModel share one name (`SetNameScreen`,
 `screens/<name>/`. One ViewModel per screen, not per flow. Anything two
 screens share moves to `common/`, never into one screen's folder.
 
+A screen too large for one file splits its sections into
+`screens/<name>/components/`, one file per section, `internal` to the
+module. They stay specific to that screen; anything shared still goes to
+`common/`. Event is the first case.
+
 A tab inside a screen gets its own ViewModel once its own state outgrows
 the shell's — Group's Members tab is the first case. The shell's
 `XScreen` takes the tab body as a `@Composable () -> Unit` slot rather
@@ -369,11 +374,16 @@ works on device only because `viewModelScope` uses `Main.immediate`;
 under a standard test dispatcher two taps in one frame both got through,
 and sent two codes.
 
-`androidDeviceTest` holds a handful of Compose UI tests over the
-stateless screens — enabled and disabled states, callbacks, error
-rendering. Not full flows. Screens are driven with literal state, so no
-Koin and no `NavHost` is involved. One test file per screen, covering all
-its state composables.
+Compose UI tests over the stateless screens also live in
+`androidHostTest`, run under Robolectric — enabled and disabled states,
+callbacks, error rendering. Not full flows. Screens are driven with
+literal state, so no Koin and no `NavHost` is involved. One `XScreenTest`
+per screen. When a screen splits into `components/`, each component gets
+its own test that renders it directly, and `XScreenTest` keeps the tests
+that span sections or check the screen's wiring.
+
+`androidDeviceTest` holds the nav graph tests and the animation-scale
+listener they run under.
 
 ## Versioning and releases
 

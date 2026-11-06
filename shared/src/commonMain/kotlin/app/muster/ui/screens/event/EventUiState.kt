@@ -112,6 +112,14 @@ sealed interface EventUiState : UiState<EventUiState.Success> {
 
         val isReadOnly: Boolean get() = phase != EventPhase.Active
 
+        val isStarted: Boolean get() = phase is EventPhase.Started
+
+        val isLocked: Boolean get() = phase is EventPhase.Locked
+
+        val canAddPlayers: Boolean get() = isAdmin && !isReadOnly
+
+        val outCount: Int get() = roster.count { it.status == RsvpStatus.Out }
+
         val canToggleLock: Boolean
             get() = isAdmin && lockFeatureFlag && (phase == EventPhase.Active || phase is EventPhase.Locked)
 

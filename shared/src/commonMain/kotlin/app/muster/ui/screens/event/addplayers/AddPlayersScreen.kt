@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.muster.domain.error.DomainError
 import app.muster.ui.common.components.FormError
+import app.muster.ui.common.components.InitialsAvatar
 import app.muster.ui.common.components.MessageState
 import app.muster.ui.common.components.MusterIcons
 import app.muster.ui.common.components.MusterSpinner
@@ -240,7 +241,7 @@ private fun CandidateRowItem(
     ) {
         SelectionBox(selected = selected)
         Spacer(Modifier.width(14.dp))
-        InitialsAvatar(candidate.initials)
+        InitialsAvatar(candidate.initials, size = 34.dp, fontSize = 12.5.sp)
         Spacer(Modifier.width(12.dp))
         Text(
             text = candidate.name,
@@ -289,26 +290,6 @@ private fun SelectionBox(
                 .size(22.dp)
                 .border(1.5.dp, MusterColors.Outline, RoundedCornerShape(6.dp))
         )
-    }
-}
-
-@Composable
-private fun InitialsAvatar(
-    initials: String,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier.size(34.dp),
-        shape = RoundedCornerShape(percent = 50),
-        color = MusterColors.AvatarFill
-    ) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(
-                text = initials,
-                style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold),
-                color = MusterColors.Secondary
-            )
-        }
     }
 }
 
