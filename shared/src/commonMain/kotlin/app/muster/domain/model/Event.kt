@@ -12,7 +12,8 @@ data class Event(
     val inCount: Int,
     val pendingCount: Int,
     val myStatus: RsvpStatus?,
-    val lockedAt: Instant?
+    val lockedAt: Instant?,
+    val cancelledAt: Instant? = null
 ) {
     companion object
 }

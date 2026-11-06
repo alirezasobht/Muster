@@ -129,6 +129,14 @@ class EventsTabTest {
     }
 
     @Test
+    fun aCancelledRowShowsCancelledInPlaceOfTheLock() {
+        show(state = EventsUiState.Success(eventRows = listOf(event.copy(isLocked = true, isCancelled = true))))
+        composeRule.onNodeWithText("Cancelled").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Locked").assertDoesNotExist()
+        composeRule.onNodeWithText("In").assertIsDisplayed()
+    }
+
+    @Test
     fun anUnlockedRowShowsNoLock() {
         show(state = EventsUiState.Success(eventRows = listOf(event)))
         composeRule.onNodeWithContentDescription("Locked").assertDoesNotExist()

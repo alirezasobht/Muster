@@ -44,10 +44,11 @@ val DomainError.presentation: ErrorPresentation
         // same as Members' row actions — never actually consults this. Still
         // classified for the exhaustive when: retrying the identical change
         // fails identically until capacity frees or an admin unlocks; the
-        // freeze never lifts.
+        // freeze and a cancel never lift.
         is DomainError.EventFull,
         is DomainError.EventFrozen,
         is DomainError.EventLocked,
+        is DomainError.EventCancelled,
         // Resubmitting the same stale list fails the same way — a refresh
         // has to happen first, not a bare retry.
         is DomainError.StandbyQueueStale,

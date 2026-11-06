@@ -118,7 +118,11 @@ strip, ⋮ Delete, the `set_event_locked` / `delete_event` RPCs and the
 lock checks in the freeze triggers and roster RPCs; on dev, shipping in
 1.0.7). Remote feature flags (`private.feature_flags`, the anon
 `get_feature_flags` RPC, a local Settings store synced at launch).
-`event_lock` gates the admin's Locked switch.
+`event_lock` gates the admin's Locked switch. Cancel event (⋮ Cancel,
+ink cancelled strip, Events-tab marker, the one-way `cancel_event` RPC
+and cancel checks in the freeze triggers and roster RPCs; `cancel_event`
+flag gates the ⋮ action) and delete stopping at kickoff: on the
+`feature-flag` branch, not yet run against a database.
 
 **Dev** and **prod** both exist. Android is published on Play, the web
 app is live, and iOS is in App Store review.

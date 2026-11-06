@@ -10,6 +10,7 @@ import app.muster.domain.model.FeatureFlag
 import app.muster.domain.model.GroupRole
 import app.muster.domain.model.RosterEntry
 import app.muster.domain.model.RsvpStatus
+import app.muster.domain.usecase.CancelEventUseCase
 import app.muster.domain.usecase.DeleteEventUseCase
 import app.muster.domain.usecase.DisinvitePlayerUseCase
 import app.muster.domain.usecase.GetEventUseCase
@@ -42,6 +43,7 @@ class EventViewModel(
     private val disinvitePlayer: DisinvitePlayerUseCase,
     private val resendEventInvitation: ResendEventInvitationUseCase,
     private val setEventLocked: SetEventLockedUseCase,
+    private val cancelEvent: CancelEventUseCase,
     private val deleteEvent: DeleteEventUseCase,
     observeFeatureFlag: ObserveFeatureFlagUseCase,
     dataChanges: DataChanges
@@ -54,7 +56,10 @@ class EventViewModel(
 
     val state: StateFlow<EventUiState> = _state.asStateFlow()
 
-    private val lockFlag = observeFeatureFlag(FeatureFlag.EventLock)
+    private val lockFeatureFlagFlow = observeFeatureFlag(FeatureFlag.EventLock)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    private val cancelFeatureFlagFlow = observeFeatureFlag(FeatureFlag.CancelEvent)
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     // init already loads, so the first resume after launch would load twice.
@@ -66,7 +71,10 @@ class EventViewModel(
 
     init {
         viewModelScope.launch {
-            lockFlag.collect { on -> _state.updateSuccess { it.copy(lockFlag = on) } }
+            lockFeatureFlagFlow.collect { on -> _state.updateSuccess { it.copy(lockFeatureFlag = on) } }
+        }
+        viewModelScope.launch {
+            cancelFeatureFlagFlow.collect { on -> _state.updateSuccess { it.copy(cancelFeatureFlag = on) } }
         }
         load()
         viewModelScope.launch {
@@ -191,9 +199,15 @@ class EventViewModel(
     // state until the write succeeds and the refresh brings it back.
     fun onLockToggled(locked: Boolean) {
         val current = _state.value as? EventUiState.Success ?: return
-        if (!current.canToggleLock || locked == current.isLocked) return
+        if (!current.canToggleLock || locked == (current.phase is EventPhase.Locked)) return
         val kind = if (locked) EventDialogKind.Lock else EventDialogKind.Unlock
         _state.updateSuccess { it.copy(dialog = EventDialogState(kind)) }
+    }
+
+    fun onCancelRequested() {
+        val current = _state.value as? EventUiState.Success ?: return
+        if (EventOverflowAction.Cancel !in current.overflowActions) return
+        _state.updateSuccess { it.copy(dialog = EventDialogState(EventDialogKind.Cancel)) }
     }
 
     fun onDeleteRequested() {
@@ -214,6 +228,7 @@ class EventViewModel(
                 when (dialog.kind) {
                     EventDialogKind.Lock -> setEventLocked(eventId, locked = true)
                     EventDialogKind.Unlock -> setEventLocked(eventId, locked = false)
+                    EventDialogKind.Cancel -> cancelEvent(eventId)
                     EventDialogKind.Delete -> deleteEvent(eventId = eventId, groupId = groupId)
                 }
                 _state.updateSuccess { it.copy(dialog = null, deleted = dialog.kind == EventDialogKind.Delete) }
@@ -267,8 +282,13 @@ class EventViewModel(
         val myId = getMyProfile().id
         myProfileId = myId
         val detail = getEvent(eventId)
-        val isFrozen = detail.event.startsAt <= Clock.System.now()
-        val isLocked = detail.event.lockedAt != null
+        val started = detail.event.startsAt <= Clock.System.now()
+        val phase = when {
+            detail.event.cancelledAt != null -> EventPhase.Cancelled(byName = detail.cancelledByName, started = started)
+            started -> EventPhase.Started(atDisplay = detail.event.startsAt.toDisplayTime())
+            detail.event.lockedAt != null -> EventPhase.Locked(byName = detail.lockedByName)
+            else -> EventPhase.Active
+        }
         return EventUiState.Success(
             summary = summary.copy(
                 title = detail.event.title,
@@ -282,25 +302,12 @@ class EventViewModel(
             myStatus = detail.event.myStatus,
             roster = detail.toRosterRows(myId, isAdmin),
             standby = detail.toStandbyRows(myId),
-            overflowActions = overflowActionsFor(isAdmin, isFrozen, isLocked),
-            isFrozen = isFrozen,
-            isLocked = isLocked,
-            lockedByName = detail.lockedByName,
-            lockFlag = lockFlag.value,
-            startsAt = detail.event.startsAt,
-            startsAtDisplay = detail.event.startsAt.toDisplayTime()
+            phase = phase,
+            lockFeatureFlag = lockFeatureFlagFlow.value,
+            cancelFeatureFlag = cancelFeatureFlagFlow.value,
+            startsAt = detail.event.startsAt
         )
     }
-}
-
-private fun overflowActionsFor(
-    isAdmin: Boolean,
-    isFrozen: Boolean,
-    isLocked: Boolean
-): List<EventOverflowAction> = buildList {
-    if (!isAdmin) return@buildList
-    if (!isFrozen && !isLocked) add(EventOverflowAction.Edit)
-    add(EventOverflowAction.Delete)
 }
 
 private val statusOrder = mapOf(RsvpStatus.In to 0, RsvpStatus.Pending to 1, RsvpStatus.Out to 2)

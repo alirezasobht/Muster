@@ -52,6 +52,7 @@ import app.muster.ui.theme.MusterColors
 import app.muster.ui.theme.MusterTheme
 import muster.shared.generated.resources.Res
 import muster.shared.generated.resources.content_description_locked
+import muster.shared.generated.resources.events_cancelled_label
 import muster.shared.generated.resources.events_empty_body
 import muster.shared.generated.resources.events_empty_title
 import muster.shared.generated.resources.events_failed_title
@@ -248,10 +249,17 @@ private fun EventRowItem(
                     modifier = Modifier.sharedBoundsOrNone(SharedTransitionKeys.eventStats(eventRow.id))
                 )
             }
-            if (eventRow.isLocked || eventRow.status != null) {
+            val hasMarker = eventRow.isCancelled || eventRow.isLocked
+            if (hasMarker || eventRow.status != null) {
                 Spacer(Modifier.width(12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (eventRow.isLocked) {
+                    if (eventRow.isCancelled) {
+                        Text(
+                            text = stringResource(Res.string.events_cancelled_label),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MusterColors.Muted
+                        )
+                    } else if (eventRow.isLocked) {
                         Icon(
                             imageVector = MusterIcons.Lock,
                             contentDescription = stringResource(Res.string.content_description_locked),
@@ -259,7 +267,7 @@ private fun EventRowItem(
                             modifier = Modifier.size(16.dp)
                         )
                     }
-                    if (eventRow.isLocked && eventRow.status != null) Spacer(Modifier.width(8.dp))
+                    if (hasMarker && eventRow.status != null) Spacer(Modifier.width(8.dp))
                     if (eventRow.status != null) EventStatusBadge(status = eventRow.status)
                 }
             }
@@ -337,6 +345,17 @@ private val AdminPreviewEvents = listOf(
         inCount = 6,
         pendingCount = 3,
         status = MemberEventStatus.Out
+    ),
+    EventRow(
+        id = "4",
+        title = "Weekly 7-a-side",
+        date = "Wed 1 Oct · 7:00 pm",
+        location = "Westgate Pitch 2",
+        capacity = 10,
+        inCount = 5,
+        pendingCount = 1,
+        status = MemberEventStatus.In,
+        isCancelled = true
     )
 )
 

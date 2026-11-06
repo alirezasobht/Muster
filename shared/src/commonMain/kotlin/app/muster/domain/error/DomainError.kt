@@ -59,6 +59,10 @@ sealed class DomainError(
     // 14b. A started event reports EventFrozen instead.
     class EventLocked : DomainError("event is locked")
 
+    // Every write path on a cancelled event (P0001, "event is cancelled"),
+    // rule 14c. Wins over EventLocked; a started event reports EventFrozen.
+    class EventCancelled : DomainError("event is cancelled")
+
     // set_standby_order's own guard (P0001, "queue is out of date, reload"):
     // one of the submitted players was promoted between loading the screen
     // and dropping the drag. The exact race the task calls out — reordering

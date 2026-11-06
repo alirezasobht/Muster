@@ -11,6 +11,8 @@ has its own file — see *App icon* below.)
 
 Turn 5, the event lock and Delete event (5a–5e), lives in
 `muster-screens-vlock.html` until it is merged into the main canvas.
+Cancel event (5f–5h) is specified in text below only; it has no frames
+yet.
 
 Companion to `SCREENS.md` (screen map, navigation) and `CONTEXT.md`
 (product decisions). Where this file and a screenshot disagree, this file wins.
@@ -20,8 +22,8 @@ Companion to `SCREENS.md` (screen map, navigation) and `CONTEXT.md`
 - Clean and light. Neutral surfaces, one accent: pitch green `#2F7D4F`.
 - Accent is used only for primary buttons, selected states and the In status.
   Nothing else gets colour.
-- Ink as a fill is rare: the destructive button and the locked-event strip
-  (5b, 5c). Ink is not accent, so neither breaks the rule above.
+- Ink as a fill is rare: the destructive button and the locked- and
+  cancelled-event strips (5b, 5c, 5g). Ink is not accent, so neither breaks the rule above.
 - Warning tint `#FBF2DE` / `#7A5A16` only for "event is full" notices.
 - Ink `#14171A`, secondary `#4A524D`, muted `#6E7671`, hairline `#E4E7E4`,
   quiet surface `#F5F7F5`.
@@ -95,6 +97,9 @@ Members see the same badges, read-only.
 | 5c | Event — member, locked |
 | 5d | Delete event (admin) |
 | 5e | Group — Events (admin), one event locked |
+| 5f | Cancel event (admin) — text spec only |
+| 5g | Event — cancelled (admin and member) — text spec only |
+| 5h | Group — Events, one event cancelled — text spec only |
 
 ## Wide viewports
 
@@ -299,8 +304,7 @@ Rules:
   changes" strip under the app bar. RSVP collapses to a static badge, every
   control disappears (no handles, no add, no menus), Pending reads
   "No reply", the standby header reads "Standby · not called up". Identical
-  for admins and members, except that an admin's ⋮ stays with Delete event
-  alone.
+  for admins and members; nobody gets a ⋮.
 - **Event lock switch** (5a): admins only, unstarted events only. Sits
   beside when/where, a small "Locked" label stacked over the switch so
   the date and place keep the width. Turning it on or off confirms first.
@@ -314,14 +318,31 @@ Rules:
   no chevrons or row menus, and badges take no taps. Unlike frozen,
   Pending stays "Pending" and the standby header reads "Standby · paused",
   with no count — a slot freed while locked stays open until unlock. Identical for admins and members,
-  except the admin keeps the switch and a ⋮ holding Delete event alone.
+  except the admin keeps the switch and a ⋮ holding Cancel event (when
+  its flag is on) and Delete event.
 - **Delete event** (5d) lives in the Event app bar ⋮, admins only, below
   Edit event. Confirm dialog like Archive group: names the event, says the
   roster and standby queue go with it and that it can't be undone. Ink
   button, not accent or red. Delete returns to the Events tab. Allowed
-  while locked: on a locked or started event ⋮ holds Delete event alone.
+  while locked or cancelled, where Edit event is gone from ⋮; never on a
+  started event.
+- **Cancel event** (5f) sits in ⋮ between Edit event and Delete event,
+  admins only, unstarted and uncancelled events only. Confirm dialog like
+  Delete: names the event and says the event stays visible, nobody can
+  change anything, and it can't be undone. Ink button. Stays on Event.
+- **Cancelled event** (5g): the locked rendering under the same ink
+  strip, a white circle-slash in place of the lock, then "Cancelled by
+  Ali" (medium) over "This event won't go ahead" (white at 75%).
+  "Cancelled by an admin" when `cancelled_by` is null. Pending stays
+  "Pending", the standby header reads "Standby · not called up". Cancelled
+  wins over started and locked: one strip, no lock switch. Identical for
+  admins and members, except the admin keeps a ⋮ with Delete event alone
+  until kickoff.
 - **Events tab** (5e): a locked event's row carries a small muted lock
   beside its status chip. No new colour.
+- **Events tab** (5h): a cancelled event's row carries a small muted
+  "Cancelled" label in the lock's place; it replaces the lock when both
+  hold. No new colour.
 - **Set name** reuses the Settings name field and has no back button.
 - **Launch** is the one screen where accent fills the surface — it reads as
   the app icon, not UI. On Android it is the splashscreen theme

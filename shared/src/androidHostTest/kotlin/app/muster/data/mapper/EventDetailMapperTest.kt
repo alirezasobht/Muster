@@ -104,6 +104,53 @@ class EventDetailMapperTest {
         assertNull(detail.lockedByName)
     }
 
+    @Test
+    fun `a cancelled event carries the cancel time and the canceller's name`() {
+        val detail = detailWithCancel(
+            cancelledAt = "\"2026-09-21T08:00:00+00:00\"",
+            cancelledByName = "\"Sam\""
+        ).toEventDetail()
+
+        assertEquals(Instant.parse("2026-09-21T08:00:00Z"), detail.event.cancelledAt)
+        assertEquals("Sam", detail.cancelledByName)
+    }
+
+    @Test
+    fun `a cancelled event whose canceller is gone has no name`() {
+        val detail = detailWithCancel(
+            cancelledAt = "\"2026-09-21T08:00:00+00:00\"",
+            cancelledByName = "null"
+        ).toEventDetail()
+
+        assertEquals(Instant.parse("2026-09-21T08:00:00Z"), detail.event.cancelledAt)
+        assertNull(detail.cancelledByName)
+    }
+
+    @Test
+    fun `an event without a cancel has no cancel time or canceller`() {
+        val detail = detailWithLock(lockedAt = "null", lockedByName = "null").toEventDetail()
+
+        assertNull(detail.event.cancelledAt)
+        assertNull(detail.cancelledByName)
+    }
+
+    private fun detailWithCancel(
+        cancelledAt: String,
+        cancelledByName: String
+    ) = Json.decodeFromString<List<EventDetailDto>>(
+        """
+        [{
+            "event": {
+                "id": "event", "group_id": "group", "title": "Training",
+                "starts_at": "2026-09-25T18:00:00Z", "location": "Park", "capacity": 2,
+                "locked_at": null, "locked_by_name": null,
+                "cancelled_at": $cancelledAt, "cancelled_by_name": $cancelledByName
+            },
+            "roster": [], "standby": [], "my_status": null
+        }]
+        """.trimIndent()
+    ).single()
+
     private fun detailWithLock(
         lockedAt: String,
         lockedByName: String

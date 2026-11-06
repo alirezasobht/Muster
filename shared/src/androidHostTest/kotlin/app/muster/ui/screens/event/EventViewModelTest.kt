@@ -17,6 +17,7 @@ import app.muster.domain.model.GroupRole
 import app.muster.domain.model.RosterEntry
 import app.muster.domain.model.RsvpStatus
 import app.muster.domain.model.StandbyEntry
+import app.muster.domain.usecase.CancelEventUseCase
 import app.muster.domain.usecase.DeleteEventUseCase
 import app.muster.domain.usecase.DisinvitePlayerUseCase
 import app.muster.domain.usecase.GetEventUseCase
@@ -80,7 +81,9 @@ class EventViewModelTest {
         standby: List<StandbyEntry> = emptyList(),
         capacity: Int = 10,
         lockedAt: Instant? = null,
-        lockedByName: String? = null
+        lockedByName: String? = null,
+        cancelledAt: Instant? = null,
+        cancelledByName: String? = null
     ) = EventDetail(
         event = Event(
             id = eventId,
@@ -92,11 +95,13 @@ class EventViewModelTest {
             inCount = roster.count { it.status == RsvpStatus.In },
             pendingCount = roster.count { it.status == RsvpStatus.Pending },
             myStatus = roster.firstOrNull { it.profileId == FAKE_USER_ID }?.status,
-            lockedAt = lockedAt
+            lockedAt = lockedAt,
+            cancelledAt = cancelledAt
         ),
         roster = roster,
         standby = standby,
-        lockedByName = lockedByName
+        lockedByName = lockedByName,
+        cancelledByName = cancelledByName
     )
 
     private fun viewModel(
@@ -115,6 +120,7 @@ class EventViewModelTest {
         disinvitePlayer = DisinvitePlayerUseCase(events),
         resendEventInvitation = ResendEventInvitationUseCase(events),
         setEventLocked = SetEventLockedUseCase(events),
+        cancelEvent = CancelEventUseCase(events),
         deleteEvent = DeleteEventUseCase(events),
         observeFeatureFlag = ObserveFeatureFlagUseCase(featureFlags),
         dataChanges = dataChanges
@@ -168,14 +174,13 @@ class EventViewModelTest {
     }
 
     @Test
-    fun `isFrozen is true once starts_at has passed`() = runTest {
+    fun `the phase is Started once starts_at has passed`() = runTest {
         val events = FakeEventRepository(eventDetail = detail(startsAt = pastStart))
         val viewModel = viewModel(events = events)
         advanceUntilIdle()
 
-        val state = assertIs<EventUiState.Success>(viewModel.state.value)
-        assertTrue(state.isFrozen)
-        assertTrue(state.startsAtDisplay.isNotBlank())
+        val phase = assertIs<EventPhase.Started>(assertIs<EventUiState.Success>(viewModel.state.value).phase)
+        assertTrue(phase.atDisplay.isNotBlank())
     }
 
     @Test
@@ -198,23 +203,20 @@ class EventViewModelTest {
     }
 
     @Test
-    fun `a started event offers an admin Delete alone`() = runTest {
+    fun `a started event offers an admin no overflow actions`() = runTest {
         val events = FakeEventRepository(eventDetail = detail(startsAt = pastStart))
         val viewModel = viewModel(events = events)
         advanceUntilIdle()
 
-        assertEquals(
-            listOf(EventOverflowAction.Delete),
-            assertIs<EventUiState.Success>(viewModel.state.value).overflowActions
-        )
+        assertEquals(emptyList(), assertIs<EventUiState.Success>(viewModel.state.value).overflowActions)
     }
 
     @Test
-    fun `isFrozen is false while starts_at is in the future`() = runTest {
+    fun `the phase is Active while starts_at is in the future`() = runTest {
         val viewModel = viewModel()
         advanceUntilIdle()
 
-        assertEquals(false, assertIs<EventUiState.Success>(viewModel.state.value).isFrozen)
+        assertEquals(EventPhase.Active, assertIs<EventUiState.Success>(viewModel.state.value).phase)
     }
 
     @Test
@@ -645,7 +647,7 @@ class EventViewModelTest {
 
         val state = assertIs<EventUiState.Success>(viewModel.state.value)
         assertTrue(state.canToggleLock)
-        assertFalse(state.isLocked)
+        assertEquals(EventPhase.Active, state.phase)
     }
 
     @Test
@@ -693,11 +695,8 @@ class EventViewModelTest {
         advanceUntilIdle()
 
         val state = assertIs<EventUiState.Success>(viewModel.state.value)
-        assertTrue(state.isLocked)
-        assertEquals("Ali", state.lockedByName)
+        assertEquals(EventPhase.Locked(byName = "Ali"), state.phase)
         assertTrue(state.isReadOnly)
-        assertTrue(state.showsLockedStrip)
-        assertFalse(state.isFrozen)
     }
 
     @Test
@@ -707,8 +706,7 @@ class EventViewModelTest {
         advanceUntilIdle()
 
         val state = assertIs<EventUiState.Success>(viewModel.state.value)
-        assertTrue(state.isLocked)
-        assertNull(state.lockedByName)
+        assertEquals(EventPhase.Locked(byName = null), state.phase)
     }
 
     @Test
@@ -718,10 +716,9 @@ class EventViewModelTest {
         advanceUntilIdle()
 
         val state = assertIs<EventUiState.Success>(viewModel.state.value)
-        assertTrue(state.isFrozen)
-        assertFalse(state.showsLockedStrip)
+        assertIs<EventPhase.Started>(state.phase)
         assertFalse(state.canToggleLock)
-        assertEquals(listOf(EventOverflowAction.Delete), state.overflowActions)
+        assertEquals(emptyList(), state.overflowActions)
     }
 
     @Test
@@ -756,7 +753,7 @@ class EventViewModelTest {
 
         val state = assertIs<EventUiState.Success>(viewModel.state.value)
         assertEquals(EventDialogState(EventDialogKind.Lock), state.dialog)
-        assertFalse(state.isLocked)
+        assertEquals(EventPhase.Active, state.phase)
         assertNull(events.eventDetail.event.lockedAt)
     }
 
@@ -801,8 +798,7 @@ class EventViewModelTest {
 
         val state = assertIs<EventUiState.Success>(viewModel.state.value)
         assertNull(state.dialog)
-        assertTrue(state.isLocked)
-        assertEquals("Ali", state.lockedByName)
+        assertEquals(EventPhase.Locked(byName = "Ali"), state.phase)
         assertEquals(listOf(EventOverflowAction.Delete), state.overflowActions)
     }
 
@@ -822,8 +818,7 @@ class EventViewModelTest {
 
         val state = assertIs<EventUiState.Success>(viewModel.state.value)
         assertNull(state.dialog)
-        assertFalse(state.isLocked)
-        assertNull(state.lockedByName)
+        assertEquals(EventPhase.Active, state.phase)
         assertEquals(listOf(EventOverflowAction.Edit, EventOverflowAction.Delete), state.overflowActions)
     }
 
@@ -842,7 +837,7 @@ class EventViewModelTest {
         assertEquals(EventDialogKind.Lock, dialog.kind)
         assertFalse(dialog.inFlight)
         assertIs<DomainError.EventFrozen>(dialog.error)
-        assertFalse(state.isLocked)
+        assertEquals(EventPhase.Active, state.phase)
     }
 
     @Test
@@ -899,5 +894,139 @@ class EventViewModelTest {
         assertIs<DomainError.Network>(assertIs<EventDialogState>(state.dialog).error)
         assertFalse(state.deleted)
         assertEquals(emptyList(), events.deletedEventIds)
+    }
+
+    private val cancelFlagOn = FakeFeatureFlagRepository(
+        initial = mapOf(FeatureFlag.EventLock to true, FeatureFlag.CancelEvent to true),
+        latency = 0
+    )
+
+    private val cancelledAt = Instant.parse("2026-09-21T08:00:00Z")
+
+    @Test
+    fun `an admin gets Edit, Cancel and Delete while the cancel_event flag is on`() = runTest {
+        val viewModel = viewModel(featureFlags = cancelFlagOn)
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(EventOverflowAction.Edit, EventOverflowAction.Cancel, EventOverflowAction.Delete),
+            assertIs<EventUiState.Success>(viewModel.state.value).overflowActions
+        )
+    }
+
+    @Test
+    fun `Cancel appears in the menu when the cancel_event flag turns on`() = runTest {
+        val featureFlags = FakeFeatureFlagRepository(remote = mapOf(FeatureFlag.CancelEvent to true), latency = 0)
+        val viewModel = viewModel(featureFlags = featureFlags)
+        advanceUntilIdle()
+        assertFalse(EventOverflowAction.Cancel in assertIs<EventUiState.Success>(viewModel.state.value).overflowActions)
+
+        featureFlags.sync()
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(EventOverflowAction.Edit, EventOverflowAction.Cancel, EventOverflowAction.Delete),
+            assertIs<EventUiState.Success>(viewModel.state.value).overflowActions
+        )
+    }
+
+    @Test
+    fun `a locked event offers an admin Cancel and Delete while the flag is on`() = runTest {
+        val events = FakeEventRepository(eventDetail = detail(lockedAt = lockedAt))
+        val viewModel = viewModel(events = events, featureFlags = cancelFlagOn)
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(EventOverflowAction.Cancel, EventOverflowAction.Delete),
+            assertIs<EventUiState.Success>(viewModel.state.value).overflowActions
+        )
+    }
+
+    @Test
+    fun `a member gets no Cancel even with the flag on`() = runTest {
+        val viewModel = viewModel(groups = FakeGroupRepository(myRole = GroupRole.Member), featureFlags = cancelFlagOn)
+        advanceUntilIdle()
+
+        assertEquals(emptyList(), assertIs<EventUiState.Success>(viewModel.state.value).overflowActions)
+    }
+
+    @Test
+    fun `a cancelled event offers an admin Delete alone and no lock switch`() = runTest {
+        val events = FakeEventRepository(eventDetail = detail(cancelledAt = cancelledAt, cancelledByName = "Ali"))
+        val viewModel = viewModel(events = events, featureFlags = cancelFlagOn)
+        advanceUntilIdle()
+
+        val state = assertIs<EventUiState.Success>(viewModel.state.value)
+        assertEquals(listOf(EventOverflowAction.Delete), state.overflowActions)
+        assertEquals(EventPhase.Cancelled(byName = "Ali", started = false), state.phase)
+        assertTrue(state.isReadOnly)
+        assertFalse(state.canToggleLock)
+    }
+
+    @Test
+    fun `a cancelled event that has started shows as cancelled and offers no Delete`() = runTest {
+        val events = FakeEventRepository(
+            eventDetail = detail(startsAt = pastStart, lockedAt = lockedAt, cancelledAt = cancelledAt)
+        )
+        val viewModel = viewModel(events = events, featureFlags = cancelFlagOn)
+        advanceUntilIdle()
+
+        val state = assertIs<EventUiState.Success>(viewModel.state.value)
+        assertEquals(EventPhase.Cancelled(byName = null, started = true), state.phase)
+        assertEquals(emptyList(), state.overflowActions)
+    }
+
+    @Test
+    fun `asking to cancel without the action on offer opens no dialog`() = runTest {
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        viewModel.onCancelRequested()
+
+        assertNull(assertIs<EventUiState.Success>(viewModel.state.value).dialog)
+    }
+
+    @Test
+    fun `confirming cancel writes it, closes the dialog and shows cancelled after the refresh`() = runTest {
+        val changes = DataChanges()
+        val events = FakeEventRepository(
+            eventDetail = detail(),
+            profileNames = mapOf(FAKE_USER_ID to "Ali"),
+            dataChanges = changes
+        )
+        val viewModel = viewModel(dataChanges = changes, events = events, featureFlags = cancelFlagOn)
+        advanceUntilIdle()
+
+        viewModel.onCancelRequested()
+        assertEquals(
+            EventDialogState(EventDialogKind.Cancel),
+            assertIs<EventUiState.Success>(viewModel.state.value).dialog
+        )
+        viewModel.onDialogConfirmed()
+        advanceUntilIdle()
+
+        val state = assertIs<EventUiState.Success>(viewModel.state.value)
+        assertNull(state.dialog)
+        assertFalse(state.deleted)
+        assertEquals(EventPhase.Cancelled(byName = "Ali", started = false), state.phase)
+        assertEquals(listOf(EventOverflowAction.Delete), state.overflowActions)
+    }
+
+    @Test
+    fun `a failed cancel keeps the dialog open with the error and the event live`() = runTest {
+        val events = FakeEventRepository(eventDetail = detail(), cancelEventError = DomainError.EventFrozen())
+        val viewModel = viewModel(events = events, featureFlags = cancelFlagOn)
+        advanceUntilIdle()
+
+        viewModel.onCancelRequested()
+        viewModel.onDialogConfirmed()
+        advanceUntilIdle()
+
+        val state = assertIs<EventUiState.Success>(viewModel.state.value)
+        val dialog = assertIs<EventDialogState>(state.dialog)
+        assertEquals(EventDialogKind.Cancel, dialog.kind)
+        assertFalse(dialog.inFlight)
+        assertIs<DomainError.EventFrozen>(dialog.error)
+        assertEquals(EventPhase.Active, state.phase)
     }
 }

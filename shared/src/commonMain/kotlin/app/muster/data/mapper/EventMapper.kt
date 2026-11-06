@@ -24,7 +24,8 @@ internal fun EventDto.toEvent(
     inCount = inCount,
     pendingCount = pendingCount,
     myStatus = myStatus,
-    lockedAt = lockedAt?.let { Instant.parse(it) }
+    lockedAt = lockedAt?.let { Instant.parse(it) },
+    cancelledAt = cancelledAt?.let { Instant.parse(it) }
 )
 
 internal fun UpcomingEventDto.toEvent() = EventDto(
@@ -34,7 +35,8 @@ internal fun UpcomingEventDto.toEvent() = EventDto(
     startsAt = startsAt,
     location = location,
     capacity = capacity,
-    lockedAt = lockedAt
+    lockedAt = lockedAt,
+    cancelledAt = cancelledAt
 ).toEvent(
     inCount = inCount,
     pendingCount = pendingCount,
@@ -53,7 +55,8 @@ internal fun EventDetailDto.toEventDetail(): EventDetail {
         ),
         roster = rosterEntries,
         standby = standby.map { StandbyEntry(profileId = it.profileId, name = it.name.orEmpty()) },
-        lockedByName = event.lockedByName
+        lockedByName = event.lockedByName,
+        cancelledByName = event.cancelledByName
     )
 }
 

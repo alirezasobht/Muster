@@ -47,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -85,10 +86,18 @@ import muster.shared.generated.resources.event_action_remove_from_list
 import muster.shared.generated.resources.event_action_resend_invite
 import muster.shared.generated.resources.event_add
 import muster.shared.generated.resources.event_add_players
+import muster.shared.generated.resources.event_cancel_event_body
+import muster.shared.generated.resources.event_cancel_event_body_no_location
+import muster.shared.generated.resources.event_cancel_event_confirm
+import muster.shared.generated.resources.event_cancel_event_dismiss
+import muster.shared.generated.resources.event_cancel_event_title
 import muster.shared.generated.resources.event_cancel_invite_body
 import muster.shared.generated.resources.event_cancel_invite_cancel
 import muster.shared.generated.resources.event_cancel_invite_confirm
 import muster.shared.generated.resources.event_cancel_invite_title
+import muster.shared.generated.resources.event_cancelled_strip_body
+import muster.shared.generated.resources.event_cancelled_strip_title
+import muster.shared.generated.resources.event_cancelled_strip_title_unknown
 import muster.shared.generated.resources.event_delete_body
 import muster.shared.generated.resources.event_delete_body_no_location
 import muster.shared.generated.resources.event_delete_cancel
@@ -104,6 +113,7 @@ import muster.shared.generated.resources.event_lock_title
 import muster.shared.generated.resources.event_locked_strip_body
 import muster.shared.generated.resources.event_locked_strip_title
 import muster.shared.generated.resources.event_locked_strip_title_unknown
+import muster.shared.generated.resources.event_menu_cancel
 import muster.shared.generated.resources.event_menu_delete
 import muster.shared.generated.resources.event_menu_edit
 import muster.shared.generated.resources.event_players_header
@@ -200,6 +210,7 @@ fun EventRoute(
                 when (action) {
                     EventOverflowAction.Edit ->
                         (state as? EventUiState.Success)?.let { onEditEvent(it.summary, it.startsAt) }
+                    EventOverflowAction.Cancel -> viewModel.onCancelRequested()
                     EventOverflowAction.Delete -> viewModel.onDeleteRequested()
                 }
             },
@@ -339,6 +350,7 @@ private fun EventAppBar(
 
 private fun EventOverflowAction.menuLabel() = when (this) {
     EventOverflowAction.Edit -> Res.string.event_menu_edit
+    EventOverflowAction.Cancel -> Res.string.event_menu_cancel
     EventOverflowAction.Delete -> Res.string.event_menu_delete
 }
 
@@ -397,11 +409,29 @@ private fun EventContent(
     var pendingConfirmation by remember(state.isReadOnly) { mutableStateOf<PendingRosterConfirmation?>(null) }
 
     Column(modifier = modifier.fillMaxSize()) {
-        if (state.isFrozen) {
-            EventStrip(text = stringResource(Res.string.event_frozen_strip, state.startsAtDisplay))
-        } else if (state.showsLockedStrip) {
-            LockedStrip(lockedByName = state.lockedByName)
+        when (val phase = state.phase) {
+            is EventPhase.Cancelled -> InkStrip(
+                icon = MusterIcons.Cancelled,
+                title = phase.byName
+                    ?.let { stringResource(Res.string.event_cancelled_strip_title, it) }
+                    ?: stringResource(Res.string.event_cancelled_strip_title_unknown),
+                body = stringResource(Res.string.event_cancelled_strip_body)
+            )
+
+            is EventPhase.Started -> QuietStrip(text = stringResource(Res.string.event_frozen_strip, phase.atDisplay))
+
+            is EventPhase.Locked -> InkStrip(
+                icon = MusterIcons.Lock,
+                title = phase.byName
+                    ?.let { stringResource(Res.string.event_locked_strip_title, it) }
+                    ?: stringResource(Res.string.event_locked_strip_title_unknown),
+                body = stringResource(Res.string.event_locked_strip_body)
+            )
+
+            EventPhase.Active -> Unit
         }
+
+        val started = state.phase is EventPhase.Started
 
         val listState = rememberLazyListState()
         val scrolled by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0 } }
@@ -428,10 +458,10 @@ private fun EventContent(
                 item {
                     EventDetails(
                         summary = state.summary,
-                        isFrozen = state.isFrozen,
+                        isFrozen = started,
                         outCount = outCount,
                         lockSwitch = if (state.canToggleLock) {
-                            { LockSwitch(isLocked = state.isLocked, onToggle = actions.onLockToggled) }
+                            { LockSwitch(isLocked = state.phase is EventPhase.Locked, onToggle = actions.onLockToggled) }
                         } else {
                             null
                         }
@@ -486,7 +516,7 @@ private fun EventContent(
                     itemsIndexed(state.roster, key = { _, row -> row.id }) { index, row ->
                         RosterRowItem(
                             row = row,
-                            isFrozen = state.isFrozen,
+                            isFrozen = started,
                             readOnly = state.isReadOnly,
                             inFlight = state.rowActionTargetId == row.id,
                             errorMessage = state.rowActionError?.toMessage()
@@ -511,8 +541,7 @@ private fun EventContent(
                     standbySection(
                         standby = state.standby,
                         isAdmin = state.isAdmin,
-                        isFrozen = state.isFrozen,
-                        isLocked = state.isLocked,
+                        phase = state.phase,
                         reordering = state.standbyReordering,
                         error = state.standbyError,
                         onDraggingChanged = { standbyDragging = it },
@@ -549,7 +578,7 @@ private fun EventContent(
 }
 
 @Composable
-private fun EventStrip(
+private fun QuietStrip(
     text: String,
     modifier: Modifier = Modifier
 ) {
@@ -564,8 +593,10 @@ private fun EventStrip(
 }
 
 @Composable
-private fun LockedStrip(
-    lockedByName: String?,
+private fun InkStrip(
+    icon: ImageVector,
+    title: String,
+    body: String,
     modifier: Modifier = Modifier
 ) {
     Surface(color = MusterColors.Ink, contentColor = MusterColors.White, modifier = modifier) {
@@ -574,7 +605,7 @@ private fun LockedStrip(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = MusterIcons.Lock,
+                imageVector = icon,
                 contentDescription = null,
                 tint = MusterColors.White,
                 modifier = Modifier.size(18.dp)
@@ -582,17 +613,13 @@ private fun LockedStrip(
             Spacer(Modifier.width(12.dp))
             Column {
                 Text(
-                    text = if (lockedByName != null) {
-                        stringResource(Res.string.event_locked_strip_title, lockedByName)
-                    } else {
-                        stringResource(Res.string.event_locked_strip_title_unknown)
-                    },
+                    text = title,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MusterColors.White
                 )
                 Text(
-                    text = stringResource(Res.string.event_locked_strip_body),
+                    text = body,
                     style = MaterialTheme.typography.bodySmall,
                     color = MusterColors.White.copy(alpha = 0.75f)
                 )
@@ -630,6 +657,22 @@ private fun EventConfirmation(
             cancelText = stringResource(Res.string.event_unlock_cancel),
             onConfirm = onConfirm,
             onDismiss = onDismiss,
+            confirmLoading = dialog.inFlight,
+            errorMessage = errorMessage
+        )
+
+        EventDialogKind.Cancel -> ConfirmDialog(
+            title = stringResource(Res.string.event_cancel_event_title),
+            body = if (summary.location.isBlank()) {
+                stringResource(Res.string.event_cancel_event_body_no_location, summary.title, summary.date)
+            } else {
+                stringResource(Res.string.event_cancel_event_body, summary.title, summary.date, summary.location)
+            },
+            confirmText = stringResource(Res.string.event_cancel_event_confirm),
+            cancelText = stringResource(Res.string.event_cancel_event_dismiss),
+            onConfirm = onConfirm,
+            onDismiss = onDismiss,
+            destructive = true,
             confirmLoading = dialog.inFlight,
             errorMessage = errorMessage
         )
@@ -844,6 +887,7 @@ private fun OwnRsvpBlock(
     modifier: Modifier = Modifier
 ) {
     val status = state.myStatus ?: return
+    val started = state.phase is EventPhase.Started
 
     if (state.isReadOnly) {
         Surface(
@@ -858,7 +902,7 @@ private fun OwnRsvpBlock(
                 Text(
                     text = stringResource(
                         when {
-                            !state.isFrozen -> Res.string.event_rsvp_locked
+                            !started -> Res.string.event_rsvp_locked
                             status == RsvpStatus.In -> Res.string.event_rsvp_frozen_in
                             status == RsvpStatus.Out -> Res.string.event_rsvp_frozen_out
                             else -> Res.string.event_rsvp_frozen_pending
@@ -867,7 +911,7 @@ private fun OwnRsvpBlock(
                     style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
                     modifier = Modifier.weight(1f)
                 )
-                RsvpStatusBadge(status = status, isFrozen = state.isFrozen)
+                RsvpStatusBadge(status = status, isFrozen = started)
             }
         }
         return
@@ -996,22 +1040,21 @@ private val StandbyDiscSize = 28.dp
 private fun LazyListScope.standbySection(
     standby: List<StandbyRow>,
     isAdmin: Boolean,
-    isFrozen: Boolean,
-    isLocked: Boolean,
+    phase: EventPhase,
     reordering: Boolean,
     error: DomainError?,
     onDraggingChanged: (Boolean) -> Unit,
     onReorder: (List<String>) -> Unit
 ) {
-    val reorderable = isAdmin && !isFrozen && !isLocked
+    val reorderable = isAdmin && phase == EventPhase.Active
     item { Spacer(Modifier.height(20.dp)) }
     item {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = when {
-                    isFrozen -> stringResource(Res.string.event_standby_header_frozen)
-                    isLocked -> stringResource(Res.string.event_standby_header_locked)
-                    else -> stringResource(Res.string.event_standby_header, standby.size)
+                text = when (phase) {
+                    is EventPhase.Started, is EventPhase.Cancelled -> stringResource(Res.string.event_standby_header_frozen)
+                    is EventPhase.Locked -> stringResource(Res.string.event_standby_header_locked)
+                    EventPhase.Active -> stringResource(Res.string.event_standby_header, standby.size)
                 },
                 style = MaterialTheme.typography.titleMedium,
                 color = MusterColors.Ink,
@@ -1321,8 +1364,8 @@ private val PreviewSuccess = EventUiState.Success(
     isAdmin = true,
     myStatus = RsvpStatus.Out,
     roster = PreviewRoster,
-    overflowActions = listOf(EventOverflowAction.Edit, EventOverflowAction.Delete),
-    lockFlag = true
+    lockFeatureFlag = true,
+    cancelFeatureFlag = true
 )
 
 @Preview
@@ -1350,10 +1393,8 @@ private fun EventScreenFrozenPreview() {
     MusterTheme {
         EventScreen(
             state = PreviewSuccess.copy(
-                overflowActions = listOf(EventOverflowAction.Delete),
-                lockFlag = false,
-                isFrozen = true,
-                startsAtDisplay = "7:00 pm",
+                lockFeatureFlag = false,
+                phase = EventPhase.Started(atDisplay = "7:00 pm"),
                 myStatus = RsvpStatus.In
             ),
             actions = PreviewActions
@@ -1367,9 +1408,7 @@ private fun EventScreenAdminLockedPreview() {
     MusterTheme {
         EventScreen(
             state = PreviewSuccess.copy(
-                overflowActions = listOf(EventOverflowAction.Delete),
-                isLocked = true,
-                lockedByName = "Ali",
+                phase = EventPhase.Locked(byName = "Ali"),
                 myStatus = RsvpStatus.In,
                 standby = PreviewStandby
             ),
@@ -1385,12 +1424,53 @@ private fun EventScreenMemberLockedPreview() {
         EventScreen(
             state = PreviewSuccess.copy(
                 isAdmin = false,
-                overflowActions = emptyList(),
-                lockFlag = false,
-                isLocked = true,
+                lockFeatureFlag = false,
+                phase = EventPhase.Locked(byName = null),
                 myStatus = null,
                 standby = PreviewStandby
             ),
+            actions = PreviewActions
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun EventScreenAdminCancelledPreview() {
+    MusterTheme {
+        EventScreen(
+            state = PreviewSuccess.copy(
+                phase = EventPhase.Cancelled(byName = "Ali", started = false),
+                myStatus = RsvpStatus.Pending,
+                standby = PreviewStandby
+            ),
+            actions = PreviewActions
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun EventScreenMemberCancelledPreview() {
+    MusterTheme {
+        EventScreen(
+            state = PreviewSuccess.copy(
+                isAdmin = false,
+                phase = EventPhase.Cancelled(byName = null, started = false),
+                myStatus = RsvpStatus.In,
+                standby = PreviewStandby
+            ),
+            actions = PreviewActions
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun EventScreenCancelDialogPreview() {
+    MusterTheme {
+        EventScreen(
+            state = PreviewSuccess.copy(dialog = EventDialogState(EventDialogKind.Cancel)),
             actions = PreviewActions
         )
     }
@@ -1500,10 +1580,8 @@ private fun EventScreenFrozenWithStandbyPreview() {
         EventScreen(
             state = PreviewSuccess.copy(
                 isAdmin = true,
-                overflowActions = listOf(EventOverflowAction.Delete),
-                lockFlag = false,
-                isFrozen = true,
-                startsAtDisplay = "7:00 pm",
+                lockFeatureFlag = false,
+                phase = EventPhase.Started(atDisplay = "7:00 pm"),
                 myStatus = RsvpStatus.In,
                 standby = PreviewStandby
             ),
