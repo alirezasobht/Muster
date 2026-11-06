@@ -73,6 +73,9 @@ interface EventRepository {
         locked: Boolean
     )
 
+    // One-way: there is no uncancel (CONTEXT.md → Cancelling events).
+    suspend fun cancelEvent(eventId: String)
+
     // groupId only for the Events(groupId) notification. No Roster
     // notification: the event is gone, so a refetch would only fail.
     suspend fun deleteEvent(

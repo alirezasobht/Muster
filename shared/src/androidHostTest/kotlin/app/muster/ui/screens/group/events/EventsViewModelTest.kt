@@ -126,6 +126,18 @@ class EventsViewModelTest {
     }
 
     @Test
+    fun `a cancelled event's row is marked cancelled, a live one is not`() = runTest {
+        val cancelled = fullEvent.copy(id = "event-cancelled", cancelledAt = Instant.parse("2026-09-10T09:00:00Z"))
+        val events = FakeEventRepository(events = listOf(fullEvent, cancelled))
+        val viewModel = viewModel(events = events)
+        advanceUntilIdle()
+
+        val rows = assertIs<EventsUiState.Success>(viewModel.state.value).eventRows
+        assertEquals(false, rows.single { it.id == fullEvent.id }.isCancelled)
+        assertEquals(true, rows.single { it.id == "event-cancelled" }.isCancelled)
+    }
+
+    @Test
     fun `an events load failure reports Error`() = runTest {
         val events = FakeEventRepository(listUpcomingEventsError = DomainError.Network())
         val viewModel = viewModel(events = events)

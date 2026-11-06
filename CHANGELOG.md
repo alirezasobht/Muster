@@ -10,11 +10,16 @@ Platforms: backend, web, Android, iOS.
 - Admins can lock an event before it starts: no RSVP changes, invites,
   edits or queue changes for anyone until an admin unlocks it. Unlocking
   fills any free slots from standby.
-- Admins can delete an event, including a locked or started one.
+- Admins can delete an event before it starts, including a locked or
+  cancelled one. A started event can no longer be deleted.
+- Admins can cancel an event before it starts, locked or not. It stays
+  in the Events tab marked cancelled, read-only, and can't be undone in
+  the app. Behind the `cancel_event` flag.
 - "Can't make it" wraps and stays centred on narrow screens.
-- Backend: `set_event_locked` and `delete_event`; the freeze triggers and
-  roster RPCs reject writes on a locked event, and promotion waits for
-  unlock.
+- Backend: `set_event_locked`, `cancel_event` and `delete_event`; the
+  freeze triggers and roster RPCs reject writes on a locked or cancelled
+  event, promotion waits for unlock and stops for good on cancel, and
+  `delete_event` refuses a started event.
 - Tooling: navigation split into per-screen graphs with nav graph tests;
   screen UI tests run on Robolectric.
 

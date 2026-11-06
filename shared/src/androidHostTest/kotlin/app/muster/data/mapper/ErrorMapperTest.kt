@@ -39,6 +39,11 @@ class ErrorMapperTest {
     }
 
     @Test
+    fun `a write on a cancelled event is EventCancelled`() {
+        assertIs<DomainError.EventCancelled>(raised("event is cancelled").toDomainError())
+    }
+
+    @Test
     fun `a write on a started event is still EventFrozen`() {
         assertIs<DomainError.EventFrozen>(raised("event has already started").toDomainError())
     }

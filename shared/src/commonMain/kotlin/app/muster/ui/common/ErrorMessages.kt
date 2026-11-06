@@ -5,6 +5,7 @@ import app.muster.domain.error.DomainError
 import muster.shared.generated.resources.Res
 import muster.shared.generated.resources.error_already_invited
 import muster.shared.generated.resources.error_already_member
+import muster.shared.generated.resources.error_event_cancelled
 import muster.shared.generated.resources.error_event_frozen
 import muster.shared.generated.resources.error_event_full
 import muster.shared.generated.resources.error_event_locked
@@ -41,6 +42,7 @@ fun DomainError.toMessage(): String = stringResource(
         is DomainError.EventFull -> Res.string.error_event_full
         is DomainError.EventFrozen -> Res.string.error_event_frozen
         is DomainError.EventLocked -> Res.string.error_event_locked
+        is DomainError.EventCancelled -> Res.string.error_event_cancelled
         is DomainError.StandbyQueueStale -> Res.string.error_standby_queue_stale
         is DomainError.InvitationSentTooRecently -> Res.string.error_invitation_sent_too_recently
         is DomainError.Network -> Res.string.error_network

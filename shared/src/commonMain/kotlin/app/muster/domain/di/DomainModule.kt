@@ -3,6 +3,7 @@ package app.muster.domain.di
 import app.muster.domain.usecase.AcceptGroupInvitationUseCase
 import app.muster.domain.usecase.AddPlayersUseCase
 import app.muster.domain.usecase.ArchiveGroupUseCase
+import app.muster.domain.usecase.CancelEventUseCase
 import app.muster.domain.usecase.CreateEventUseCase
 import app.muster.domain.usecase.CreateGroupUseCase
 import app.muster.domain.usecase.DeclineGroupInvitationUseCase
@@ -64,6 +65,7 @@ val domainModule = module {
     factoryOf(::GetEventUseCase)
     factoryOf(::UpdateEventUseCase)
     factoryOf(::SetEventLockedUseCase)
+    factoryOf(::CancelEventUseCase)
     factoryOf(::DeleteEventUseCase)
     factoryOf(::GetInviteeCandidatesUseCase)
     factoryOf(::SetRsvpUseCase)

@@ -9,9 +9,24 @@ import kotlin.time.Instant
 
 enum class RosterAction { SetIn, SetOut, CancelInvite, RemoveFromEvent, RemoveFromList, ResendInvite }
 
-enum class EventOverflowAction { Edit, Delete }
+enum class EventOverflowAction { Edit, Cancel, Delete }
 
-enum class EventDialogKind { Lock, Unlock, Delete }
+enum class EventDialogKind { Lock, Unlock, Cancel, Delete }
+
+// Display: cancelled > started > locked.
+// Cancelled keeps `started` because nothing is allowed after kickoff.
+sealed interface EventPhase {
+    data object Active : EventPhase
+
+    data class Locked(val byName: String?) : EventPhase
+
+    data class Started(val atDisplay: String) : EventPhase
+
+    data class Cancelled(
+        val byName: String?,
+        val started: Boolean
+    ) : EventPhase
+}
 
 data class EventDialogState(
     val kind: EventDialogKind,
@@ -77,14 +92,10 @@ sealed interface EventUiState : UiState<EventUiState.Success> {
         val myStatus: RsvpStatus?,
         val roster: List<RosterRow> = emptyList(),
         val standby: List<StandbyRow> = emptyList(),
-        // Set by the ViewModel from role, freeze and lock; the menu only renders it.
-        val overflowActions: List<EventOverflowAction> = emptyList(),
-        val isFrozen: Boolean = false,
-        val isLocked: Boolean = false,
-        private val lockFlag: Boolean = false,
-        val lockedByName: String? = null,
+        val phase: EventPhase = EventPhase.Active,
+        private val lockFeatureFlag: Boolean = false,
+        private val cancelFeatureFlag: Boolean = false,
         val startsAt: Instant = Instant.DISTANT_FUTURE,
-        val startsAtDisplay: String = "",
         val isRefreshing: Boolean = false,
         val rsvpInFlight: Boolean = false,
         val rsvpError: DomainError? = null,
@@ -99,12 +110,23 @@ sealed interface EventUiState : UiState<EventUiState.Success> {
         override fun asSuccessOrNull(): Success = this
         val isRosterEmpty: Boolean get() = roster.isEmpty()
 
-        val isReadOnly: Boolean get() = isFrozen || isLocked
+        val isReadOnly: Boolean get() = phase != EventPhase.Active
 
-        val canToggleLock: Boolean get() = isAdmin && !isFrozen && lockFlag
+        val canToggleLock: Boolean
+            get() = isAdmin && lockFeatureFlag && (phase == EventPhase.Active || phase is EventPhase.Locked)
 
-        // Started wins when both hold: its strip and wording replace the lock's.
-        val showsLockedStrip: Boolean get() = isLocked && !isFrozen
+        // Nothing is allowed after kickoff, delete included, cancelled or not.
+        val overflowActions: List<EventOverflowAction>
+            get() {
+                if (!isAdmin) return emptyList()
+                val cancel = listOfNotNull(EventOverflowAction.Cancel.takeIf { cancelFeatureFlag })
+                return when (phase) {
+                    EventPhase.Active -> listOf(EventOverflowAction.Edit) + cancel + EventOverflowAction.Delete
+                    is EventPhase.Locked -> cancel + EventOverflowAction.Delete
+                    is EventPhase.Cancelled -> if (phase.started) emptyList() else listOf(EventOverflowAction.Delete)
+                    is EventPhase.Started -> emptyList()
+                }
+            }
     }
 
     data class Error(

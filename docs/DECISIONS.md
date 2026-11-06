@@ -430,9 +430,10 @@ is one state per event with no history to keep, and the freeze triggers
 already read the event row, so the lock rides on them. A separate table
 would add a join and its own grants for nothing.
 
-Deleting a locked event is allowed. The lock stops changes to an event
-that is happening; removing one that won't happen is a different act,
-and making an admin unlock first only adds a step. Cascades from member
+Deleting a locked event is allowed before kickoff. The lock stops
+changes to an event that is happening; removing one that won't happen
+is a different act, and making an admin unlock first only adds a step.
+Deleting a started event is not (see "Event cancel"). Cascades from member
 removal, leaving and account deletion still run on a locked event, as
 they do past kickoff, but promotion waits for unlock.
 
@@ -442,6 +443,31 @@ the title was tried and dropped; it cost the title too much width.
 
 Rejected: an `event_locks` table with who, when and why; a plain boolean,
 which loses who locked it for the same cost.
+
+## Event cancel: two columns, one-way, cancelled wins
+
+A cancel is `events.cancelled_at` and `cancelled_by`, the same shape as
+the lock and for the same reasons. It differs in being one-way: no
+uncancel RPC. Players act on a cancellation — they make other plans —
+so undoing it from the app would mislead more than it helps. A mistake
+is fixed in the dashboard, as with an archived group.
+
+Cancelled wins over started and locked on screen. "Started at 7:00 pm"
+on an event that never happened is wrong, and a lock under a cancel
+says nothing more.
+
+Deleting stops at kickoff, for every event, reversing the 1.0.7 rule
+before it shipped. With cancel available, delete is no longer how an
+admin calls an event off, and a started event is a record of what
+happened. The dashboard can still remove one.
+
+No email on cancel for now: the strip and the Events tab marker carry
+it. The flag `cancel_event` gates only the ⋮ action, so the banner reads
+right on every build.
+
+Rejected: a `status` enum replacing both lock and cancel columns, which
+would rewrite the lock migrations for no gain; an uncancel RPC; hiding
+cancelled events from the Events tab.
 
 ## Feature flags: a Supabase table, read into a local store
 

@@ -43,6 +43,7 @@ class FakeEventRepository(
     var addPlayersError: DomainError? = null,
     var resendInvitationError: DomainError? = null,
     var setEventLockedError: DomainError? = null,
+    var cancelEventError: DomainError? = null,
     var deleteEventError: DomainError? = null,
     var profileNames: Map<String, String> = emptyMap(),
     private val dataChanges: DataChanges? = null,
@@ -249,6 +250,19 @@ class FakeEventRepository(
             lockedByName = lockedByName
         )
         events = events.map { if (it.id == eventId) it.copy(lockedAt = lockedAt) else it }
+        dataChanges?.notify(DataChange.Roster(eventId))
+        dataChanges?.notify(DataChange.Events(eventDetail.event.groupId))
+    }
+
+    override suspend fun cancelEvent(eventId: String) {
+        delay(latency.milliseconds)
+        cancelEventError?.let { throw it }
+        val cancelledAt = eventDetail.event.cancelledAt ?: Clock.System.now()
+        eventDetail = eventDetail.copy(
+            event = eventDetail.event.copy(cancelledAt = cancelledAt),
+            cancelledByName = eventDetail.cancelledByName ?: profileNames[FAKE_USER_ID]
+        )
+        events = events.map { if (it.id == eventId) it.copy(cancelledAt = cancelledAt) else it }
         dataChanges?.notify(DataChange.Roster(eventId))
         dataChanges?.notify(DataChange.Events(eventDetail.event.groupId))
     }

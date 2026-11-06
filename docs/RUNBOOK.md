@@ -136,7 +136,8 @@ In each environment's dashboard, Table Editor → schema `private` →
 (`1.0.7`), or null to keep it off there. Apps pick a change up on their
 next launch.
 
-Flags in use: `event_lock` (the admin's Locked switch). A flag with no
+Flags in use: `event_lock` (the admin's Locked switch), `cancel_event`
+(the admin's ⋮ Cancel event). A flag with no
 row is off, so add the row before shipping the version that needs it.
 
 A new flag also needs its entry in `FeatureFlag.kt`

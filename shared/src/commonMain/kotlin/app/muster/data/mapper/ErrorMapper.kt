@@ -53,7 +53,8 @@ private fun PostgrestRestException.toDomainError(): DomainError = when (code) {
     // reject_if_already_member rejecting an invite to an existing member,
     // enforce_capacity rejecting an invite/RSVP over capacity,
     // reject_if_event_started(_self) rejecting a write past starts_at or on a
-    // locked event, or update_event rejecting a new start time in the past.
+    // cancelled or locked event, or update_event rejecting a new start time
+    // in the past.
     "P0001" -> when {
         "not signed in" in error -> DomainError.NotSignedIn()
         "no pending invitation for you" in error -> DomainError.InvitationNotPending()
@@ -61,6 +62,7 @@ private fun PostgrestRestException.toDomainError(): DomainError = when (code) {
         "already a member of this group" in error -> DomainError.AlreadyMember()
         "event is full" in error -> DomainError.EventFull()
         "event has already started" in error -> DomainError.EventFrozen()
+        "event is cancelled" in error -> DomainError.EventCancelled()
         "event is locked" in error -> DomainError.EventLocked()
         "event start time must be in the future" in error -> DomainError.EventStartsInPast()
         "invitation sent too recently" in error -> DomainError.InvitationSentTooRecently()

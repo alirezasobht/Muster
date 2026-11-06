@@ -43,5 +43,22 @@ class UpcomingEventMapperTest {
         ).single().toEvent()
 
         assertNull(event.lockedAt)
+        assertNull(event.cancelledAt)
+    }
+
+    @Test
+    fun `a cancelled row carries its cancel time`() {
+        val event = Json.decodeFromString<List<UpcomingEventDto>>(
+            """
+            [{
+                "id": "event", "group_id": "group", "title": "Training",
+                "starts_at": "2026-09-25T18:00:00+00:00", "location": "Park", "capacity": 10,
+                "locked_at": null, "cancelled_at": "2026-09-21T08:00:00+00:00",
+                "in_count": 3, "pending_count": 1, "my_status": "pending"
+            }]
+            """.trimIndent()
+        ).single().toEvent()
+
+        assertEquals(Instant.parse("2026-09-21T08:00:00Z"), event.cancelledAt)
     }
 }

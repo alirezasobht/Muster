@@ -14,6 +14,7 @@ import app.muster.data.fake.FAKE_EMAIL
 import app.muster.data.fake.FAKE_USER_ID
 import app.muster.data.fake.FakeAuthRepository
 import app.muster.data.fake.FakeEventRepository
+import app.muster.data.fake.FakeFeatureFlagRepository
 import app.muster.data.fake.FakeGroupRepository
 import app.muster.data.fake.FakeMemberRepository
 import app.muster.data.fake.FakeProfileRepository
@@ -27,6 +28,7 @@ import app.muster.domain.model.Member
 import app.muster.domain.model.SessionState
 import app.muster.domain.repository.AuthRepository
 import app.muster.domain.repository.EventRepository
+import app.muster.domain.repository.FeatureFlagRepository
 import app.muster.domain.repository.GroupRepository
 import app.muster.domain.repository.MemberRepository
 import app.muster.domain.repository.ProfileRepository
@@ -79,6 +81,7 @@ fun fakeRepositoriesModule(
             latency = 0
         )
     }
+    single<FeatureFlagRepository> { FakeFeatureFlagRepository(latency = 0) }
 }
 
 class NavGraphHarness(val rule: ComposeContentTestRule) {
