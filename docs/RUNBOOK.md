@@ -154,7 +154,7 @@ rules: `CI.md`.
 | `pr-checks.yml` | PR into `dev` or `main` | ktlint, unit, Android, web and iOS checks |
 | `deploy-dev.yml` | push to `dev` touching `supabase/` | Backs dev up, then migrations and functions |
 | `release-prepare.yml` | by hand | Bumps `VERSION_NAME` if the branch hasn't, opens the release PR into `main` |
-| `release-checks.yml` | PR into `main` | Fails unless `VERSION_NAME` is above main's |
+| `release-checks.yml` | PR into `main` | Fails unless `VERSION_NAME` is above main's, or equal while untagged |
 | `release-guard.yml` | PR into `main` | Closes one opened by anyone but the maintainer |
 | `deploy-prod.yml` | by hand, after approval | Per ticked box: backend (backup, migrations, secrets, functions), web to Pages, Android to Play internal, iOS to TestFlight |
 | `release-finish.yml` | by hand, after the deploy | Tags `vX.Y.Z` and back-merges `main` into `dev` |
