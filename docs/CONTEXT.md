@@ -67,9 +67,9 @@ Two roles only: `admin` and `member`.
   removes its address from the list.
 - Group creator becomes the first admin.
 - Admins can promote members to admin.
-- Admins can create and edit events, edit the group, invite members,
-  remove members, and archive the group. An event's capacity is fixed
-  at creation.
+- Admins can create, edit, lock, cancel and delete events, edit the group,
+  invite members, remove members, and archive the group. An event's
+  capacity is fixed at creation.
 - Admins can change any player's RSVP status and reorder the standby
   queue.
 - A member can see every player's status on an event but can change only
@@ -146,11 +146,45 @@ SCHEMA.md rules 11–13 have the invariant and every path that fires it.
 
 ## Event freeze
 
-`starts_at` is the only cutoff. Once an event starts it takes no further
-edits — no RSVP changes, no standby promotions, no new invites. Deleting
-is still allowed: an admin can remove an old event, and blocking that
-would also block the cascade that clears its rows. There is no separate
-RSVP deadline.
+`starts_at` is the only automatic cutoff. Once an event starts it
+takes no further edits — no RSVP changes, no standby promotions, no new
+invites, and no deleting from the app: a past event stays as it was,
+and only the dashboard can remove it. The cascades that clear a
+person's rows — member removed, member left, account deleted — still
+run. There is no separate RSVP deadline.
+
+## Event lock
+
+An admin can lock an event before it starts, and it stays locked until
+an admin unlocks it. A locked event takes no changes from anyone: no
+edits, no RSVP changes, no invites, adds or resends, no removing
+players, no reordering the queue. Deleting it is still allowed. A
+started event cannot be locked or unlocked; the freeze already covers
+it, and a lock left on past kickoff just reads as started.
+
+Removing a member, a member leaving and account deletion still delete
+that person's row from a locked event — the cascade is not blocked —
+but standby promotion waits. Unlocking fills any slots freed meanwhile
+from the front of the queue.
+
+## Cancelling events
+
+An admin can cancel an event before it starts, locked or not. A
+cancelled event takes no changes from anyone, the same as a locked one,
+and it can't be locked, unlocked or edited. Cancelling is one-way:
+there is no uncancel in the app, and restoring is dashboard-only, like
+an archived group. Nobody is emailed.
+
+The event stays in the Events tab, marked cancelled, until its start
+time, then drops off like any past event. Its roster and queue stay
+visible, read-only; promotion stops for good. It can still be deleted
+before it starts.
+
+## Deleting events
+
+Admins can delete an event before it starts — locked, cancelled or
+neither — which removes its roster and standby queue. Once it has
+started it can't be deleted from the app.
 
 ## Groups are archived, never deleted
 

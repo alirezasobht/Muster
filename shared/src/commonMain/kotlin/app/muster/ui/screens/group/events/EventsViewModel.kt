@@ -107,7 +107,9 @@ private fun Event.toRow() = EventRow(
     capacity = capacity,
     inCount = inCount,
     pendingCount = pendingCount,
-    status = myStatus?.toMemberEventStatus()
+    status = myStatus?.toMemberEventStatus(),
+    isLocked = lockedAt != null,
+    isCancelled = cancelledAt != null
 )
 
 private fun RsvpStatus.toMemberEventStatus() = when (this) {

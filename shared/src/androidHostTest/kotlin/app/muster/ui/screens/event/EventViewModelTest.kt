@@ -1,7 +1,10 @@
+@file:OptIn(ExperimentalCoroutinesApi::class)
+
 package app.muster.ui.screens.event
 
 import app.muster.data.fake.FAKE_USER_ID
 import app.muster.data.fake.FakeEventRepository
+import app.muster.data.fake.FakeFeatureFlagRepository
 import app.muster.data.fake.FakeGroupRepository
 import app.muster.data.fake.FakeProfileRepository
 import app.muster.domain.error.DomainError
@@ -9,24 +12,31 @@ import app.muster.domain.event.DataChange
 import app.muster.domain.event.DataChanges
 import app.muster.domain.model.Event
 import app.muster.domain.model.EventDetail
+import app.muster.domain.model.FeatureFlag
 import app.muster.domain.model.GroupRole
 import app.muster.domain.model.RosterEntry
 import app.muster.domain.model.RsvpStatus
 import app.muster.domain.model.StandbyEntry
+import app.muster.domain.usecase.CancelEventUseCase
+import app.muster.domain.usecase.DeleteEventUseCase
 import app.muster.domain.usecase.DisinvitePlayerUseCase
 import app.muster.domain.usecase.GetEventUseCase
 import app.muster.domain.usecase.GetMyGroupRoleUseCase
 import app.muster.domain.usecase.GetMyProfileUseCase
+import app.muster.domain.usecase.ObserveFeatureFlagUseCase
 import app.muster.domain.usecase.ReorderStandbyUseCase
 import app.muster.domain.usecase.ResendEventInvitationUseCase
+import app.muster.domain.usecase.SetEventLockedUseCase
 import app.muster.domain.usecase.SetRsvpUseCase
 import app.muster.testing.MainDispatcherRule
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
@@ -40,6 +50,7 @@ class EventViewModelTest {
     private val eventId = "event-1"
     private val futureStart = Instant.parse("2099-01-01T09:00:00Z")
     private val pastStart = Instant.parse("2020-01-01T09:00:00Z")
+    private val lockedAt = Instant.parse("2026-09-10T09:00:00Z")
 
     private val summary = EventSummary(
         groupId = groupId,
@@ -68,7 +79,11 @@ class EventViewModelTest {
         startsAt: Instant = futureStart,
         roster: List<RosterEntry> = defaultRoster,
         standby: List<StandbyEntry> = emptyList(),
-        capacity: Int = 10
+        capacity: Int = 10,
+        lockedAt: Instant? = null,
+        lockedByName: String? = null,
+        cancelledAt: Instant? = null,
+        cancelledByName: String? = null
     ) = EventDetail(
         event = Event(
             id = eventId,
@@ -79,17 +94,22 @@ class EventViewModelTest {
             capacity = capacity,
             inCount = roster.count { it.status == RsvpStatus.In },
             pendingCount = roster.count { it.status == RsvpStatus.Pending },
-            myStatus = roster.firstOrNull { it.profileId == FAKE_USER_ID }?.status
+            myStatus = roster.firstOrNull { it.profileId == FAKE_USER_ID }?.status,
+            lockedAt = lockedAt,
+            cancelledAt = cancelledAt
         ),
         roster = roster,
-        standby = standby
+        standby = standby,
+        lockedByName = lockedByName,
+        cancelledByName = cancelledByName
     )
 
     private fun viewModel(
         dataChanges: DataChanges = DataChanges(),
         events: FakeEventRepository = FakeEventRepository(eventDetail = detail(), dataChanges = dataChanges),
         groups: FakeGroupRepository = FakeGroupRepository(myRole = GroupRole.Admin),
-        profiles: FakeProfileRepository = FakeProfileRepository()
+        profiles: FakeProfileRepository = FakeProfileRepository(),
+        featureFlags: FakeFeatureFlagRepository = FakeFeatureFlagRepository(initial = mapOf(FeatureFlag.EventLock to true), latency = 0)
     ) = EventViewModel(
         initialSummary = summary,
         getEvent = GetEventUseCase(events),
@@ -99,6 +119,10 @@ class EventViewModelTest {
         reorderStandby = ReorderStandbyUseCase(events),
         disinvitePlayer = DisinvitePlayerUseCase(events),
         resendEventInvitation = ResendEventInvitationUseCase(events),
+        setEventLocked = SetEventLockedUseCase(events),
+        cancelEvent = CancelEventUseCase(events),
+        deleteEvent = DeleteEventUseCase(events),
+        observeFeatureFlag = ObserveFeatureFlagUseCase(featureFlags),
         dataChanges = dataChanges
     )
 
@@ -150,23 +174,22 @@ class EventViewModelTest {
     }
 
     @Test
-    fun `isFrozen is true once starts_at has passed`() = runTest {
+    fun `the phase is Started once starts_at has passed`() = runTest {
         val events = FakeEventRepository(eventDetail = detail(startsAt = pastStart))
         val viewModel = viewModel(events = events)
         advanceUntilIdle()
 
-        val state = assertIs<EventUiState.Success>(viewModel.state.value)
-        assertTrue(state.isFrozen)
-        assertTrue(state.startsAtDisplay.isNotBlank())
+        val phase = assertIs<EventPhase.Started>(assertIs<EventUiState.Success>(viewModel.state.value).phase)
+        assertTrue(phase.atDisplay.isNotBlank())
     }
 
     @Test
-    fun `an admin gets Edit in the overflow menu`() = runTest {
+    fun `an admin gets Edit and Delete in the overflow menu`() = runTest {
         val viewModel = viewModel()
         advanceUntilIdle()
 
         assertEquals(
-            listOf(EventOverflowAction.Edit),
+            listOf(EventOverflowAction.Edit, EventOverflowAction.Delete),
             assertIs<EventUiState.Success>(viewModel.state.value).overflowActions
         )
     }
@@ -180,7 +203,7 @@ class EventViewModelTest {
     }
 
     @Test
-    fun `a started event offers no overflow actions, even to an admin`() = runTest {
+    fun `a started event offers an admin no overflow actions`() = runTest {
         val events = FakeEventRepository(eventDetail = detail(startsAt = pastStart))
         val viewModel = viewModel(events = events)
         advanceUntilIdle()
@@ -189,11 +212,11 @@ class EventViewModelTest {
     }
 
     @Test
-    fun `isFrozen is false while starts_at is in the future`() = runTest {
+    fun `the phase is Active while starts_at is in the future`() = runTest {
         val viewModel = viewModel()
         advanceUntilIdle()
 
-        assertEquals(false, assertIs<EventUiState.Success>(viewModel.state.value).isFrozen)
+        assertEquals(EventPhase.Active, assertIs<EventUiState.Success>(viewModel.state.value).phase)
     }
 
     @Test
@@ -615,5 +638,395 @@ class EventViewModelTest {
         advanceUntilIdle()
 
         assertEquals(1, events.reorderCalls.size)
+    }
+
+    @Test
+    fun `an admin can toggle the lock on an unstarted event`() = runTest {
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        val state = assertIs<EventUiState.Success>(viewModel.state.value)
+        assertTrue(state.canToggleLock)
+        assertEquals(EventPhase.Active, state.phase)
+    }
+
+    @Test
+    fun `an admin cannot toggle the lock while the event_lock flag is off`() = runTest {
+        val viewModel = viewModel(featureFlags = FakeFeatureFlagRepository(latency = 0))
+        advanceUntilIdle()
+
+        assertFalse(assertIs<EventUiState.Success>(viewModel.state.value).canToggleLock)
+    }
+
+    @Test
+    fun `the lock switch appears when the event_lock flag turns on`() = runTest {
+        val featureFlags = FakeFeatureFlagRepository(remote = mapOf(FeatureFlag.EventLock to true), latency = 0)
+        val viewModel = viewModel(featureFlags = featureFlags)
+        advanceUntilIdle()
+        assertFalse(assertIs<EventUiState.Success>(viewModel.state.value).canToggleLock)
+
+        featureFlags.sync()
+        advanceUntilIdle()
+
+        assertTrue(assertIs<EventUiState.Success>(viewModel.state.value).canToggleLock)
+    }
+
+    @Test
+    fun `a member cannot toggle the lock`() = runTest {
+        val viewModel = viewModel(groups = FakeGroupRepository(myRole = GroupRole.Member))
+        advanceUntilIdle()
+
+        assertFalse(assertIs<EventUiState.Success>(viewModel.state.value).canToggleLock)
+    }
+
+    @Test
+    fun `an admin cannot toggle the lock once the event has started`() = runTest {
+        val events = FakeEventRepository(eventDetail = detail(startsAt = pastStart))
+        val viewModel = viewModel(events = events)
+        advanceUntilIdle()
+
+        assertFalse(assertIs<EventUiState.Success>(viewModel.state.value).canToggleLock)
+    }
+
+    @Test
+    fun `a locked event carries who locked it and shows the locked strip`() = runTest {
+        val events = FakeEventRepository(eventDetail = detail(lockedAt = lockedAt, lockedByName = "Ali"))
+        val viewModel = viewModel(events = events)
+        advanceUntilIdle()
+
+        val state = assertIs<EventUiState.Success>(viewModel.state.value)
+        assertEquals(EventPhase.Locked(byName = "Ali"), state.phase)
+        assertTrue(state.isReadOnly)
+    }
+
+    @Test
+    fun `a locked event whose locker is gone has no name`() = runTest {
+        val events = FakeEventRepository(eventDetail = detail(lockedAt = lockedAt, lockedByName = null))
+        val viewModel = viewModel(events = events)
+        advanceUntilIdle()
+
+        val state = assertIs<EventUiState.Success>(viewModel.state.value)
+        assertEquals(EventPhase.Locked(byName = null), state.phase)
+    }
+
+    @Test
+    fun `a locked event that has started shows as started`() = runTest {
+        val events = FakeEventRepository(eventDetail = detail(startsAt = pastStart, lockedAt = lockedAt, lockedByName = "Ali"))
+        val viewModel = viewModel(events = events)
+        advanceUntilIdle()
+
+        val state = assertIs<EventUiState.Success>(viewModel.state.value)
+        assertIs<EventPhase.Started>(state.phase)
+        assertFalse(state.canToggleLock)
+        assertEquals(emptyList(), state.overflowActions)
+    }
+
+    @Test
+    fun `a locked event offers an admin Delete alone`() = runTest {
+        val events = FakeEventRepository(eventDetail = detail(lockedAt = lockedAt))
+        val viewModel = viewModel(events = events)
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(EventOverflowAction.Delete),
+            assertIs<EventUiState.Success>(viewModel.state.value).overflowActions
+        )
+    }
+
+    @Test
+    fun `a locked event offers a member no overflow actions`() = runTest {
+        val events = FakeEventRepository(eventDetail = detail(lockedAt = lockedAt))
+        val viewModel = viewModel(events = events, groups = FakeGroupRepository(myRole = GroupRole.Member))
+        advanceUntilIdle()
+
+        assertEquals(emptyList(), assertIs<EventUiState.Success>(viewModel.state.value).overflowActions)
+    }
+
+    @Test
+    fun `turning the switch on asks to lock without writing`() = runTest {
+        val events = FakeEventRepository(eventDetail = detail())
+        val viewModel = viewModel(events = events)
+        advanceUntilIdle()
+
+        viewModel.onLockToggled(true)
+        advanceUntilIdle()
+
+        val state = assertIs<EventUiState.Success>(viewModel.state.value)
+        assertEquals(EventDialogState(EventDialogKind.Lock), state.dialog)
+        assertEquals(EventPhase.Active, state.phase)
+        assertNull(events.eventDetail.event.lockedAt)
+    }
+
+    @Test
+    fun `turning the switch off on a locked event asks to unlock`() = runTest {
+        val events = FakeEventRepository(eventDetail = detail(lockedAt = lockedAt))
+        val viewModel = viewModel(events = events)
+        advanceUntilIdle()
+
+        viewModel.onLockToggled(false)
+
+        assertEquals(
+            EventDialogState(EventDialogKind.Unlock),
+            assertIs<EventUiState.Success>(viewModel.state.value).dialog
+        )
+    }
+
+    @Test
+    fun `a member's toggle opens nothing`() = runTest {
+        val viewModel = viewModel(groups = FakeGroupRepository(myRole = GroupRole.Member))
+        advanceUntilIdle()
+
+        viewModel.onLockToggled(true)
+
+        assertNull(assertIs<EventUiState.Success>(viewModel.state.value).dialog)
+    }
+
+    @Test
+    fun `confirming lock writes it, closes the dialog and shows locked after the refresh`() = runTest {
+        val changes = DataChanges()
+        val events = FakeEventRepository(
+            eventDetail = detail(),
+            profileNames = mapOf(FAKE_USER_ID to "Ali"),
+            dataChanges = changes
+        )
+        val viewModel = viewModel(dataChanges = changes, events = events)
+        advanceUntilIdle()
+
+        viewModel.onLockToggled(true)
+        viewModel.onDialogConfirmed()
+        advanceUntilIdle()
+
+        val state = assertIs<EventUiState.Success>(viewModel.state.value)
+        assertNull(state.dialog)
+        assertEquals(EventPhase.Locked(byName = "Ali"), state.phase)
+        assertEquals(listOf(EventOverflowAction.Delete), state.overflowActions)
+    }
+
+    @Test
+    fun `confirming unlock clears the lock after the refresh`() = runTest {
+        val changes = DataChanges()
+        val events = FakeEventRepository(
+            eventDetail = detail(lockedAt = lockedAt, lockedByName = "Ali"),
+            dataChanges = changes
+        )
+        val viewModel = viewModel(dataChanges = changes, events = events)
+        advanceUntilIdle()
+
+        viewModel.onLockToggled(false)
+        viewModel.onDialogConfirmed()
+        advanceUntilIdle()
+
+        val state = assertIs<EventUiState.Success>(viewModel.state.value)
+        assertNull(state.dialog)
+        assertEquals(EventPhase.Active, state.phase)
+        assertEquals(listOf(EventOverflowAction.Edit, EventOverflowAction.Delete), state.overflowActions)
+    }
+
+    @Test
+    fun `a failed lock keeps the dialog open with the error and the event unlocked`() = runTest {
+        val events = FakeEventRepository(eventDetail = detail(), setEventLockedError = DomainError.EventFrozen())
+        val viewModel = viewModel(events = events)
+        advanceUntilIdle()
+
+        viewModel.onLockToggled(true)
+        viewModel.onDialogConfirmed()
+        advanceUntilIdle()
+
+        val state = assertIs<EventUiState.Success>(viewModel.state.value)
+        val dialog = assertIs<EventDialogState>(state.dialog)
+        assertEquals(EventDialogKind.Lock, dialog.kind)
+        assertFalse(dialog.inFlight)
+        assertIs<DomainError.EventFrozen>(dialog.error)
+        assertEquals(EventPhase.Active, state.phase)
+    }
+
+    @Test
+    fun `dismissing the dialog closes it without writing`() = runTest {
+        val events = FakeEventRepository(eventDetail = detail())
+        val viewModel = viewModel(events = events)
+        advanceUntilIdle()
+
+        viewModel.onLockToggled(true)
+        viewModel.onDialogDismissed()
+        advanceUntilIdle()
+
+        val state = assertIs<EventUiState.Success>(viewModel.state.value)
+        assertNull(state.dialog)
+        assertNull(events.eventDetail.event.lockedAt)
+    }
+
+    @Test
+    fun `confirming delete deletes the event and flags the screen to leave`() = runTest {
+        val changes = DataChanges()
+        val events = FakeEventRepository(eventDetail = detail(), dataChanges = changes)
+        val viewModel = viewModel(dataChanges = changes, events = events)
+        advanceUntilIdle()
+
+        viewModel.onDeleteRequested()
+        assertEquals(
+            EventDialogState(EventDialogKind.Delete),
+            assertIs<EventUiState.Success>(viewModel.state.value).dialog
+        )
+
+        viewModel.onDialogConfirmed()
+        advanceUntilIdle()
+
+        assertEquals(listOf(eventId), events.deletedEventIds)
+        val state = assertIs<EventUiState.Success>(viewModel.state.value)
+        assertTrue(state.deleted)
+        assertNull(state.dialog)
+
+        viewModel.onDeletedHandled()
+        assertFalse(assertIs<EventUiState.Success>(viewModel.state.value).deleted)
+    }
+
+    @Test
+    fun `a failed delete keeps the dialog open with the error and stays on the event`() = runTest {
+        val events = FakeEventRepository(eventDetail = detail(), deleteEventError = DomainError.Network())
+        val viewModel = viewModel(events = events)
+        advanceUntilIdle()
+
+        viewModel.onDeleteRequested()
+        viewModel.onDialogConfirmed()
+        advanceUntilIdle()
+
+        val state = assertIs<EventUiState.Success>(viewModel.state.value)
+        assertIs<DomainError.Network>(assertIs<EventDialogState>(state.dialog).error)
+        assertFalse(state.deleted)
+        assertEquals(emptyList(), events.deletedEventIds)
+    }
+
+    private val cancelFlagOn = FakeFeatureFlagRepository(
+        initial = mapOf(FeatureFlag.EventLock to true, FeatureFlag.CancelEvent to true),
+        latency = 0
+    )
+
+    private val cancelledAt = Instant.parse("2026-09-21T08:00:00Z")
+
+    @Test
+    fun `an admin gets Edit, Cancel and Delete while the cancel_event flag is on`() = runTest {
+        val viewModel = viewModel(featureFlags = cancelFlagOn)
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(EventOverflowAction.Edit, EventOverflowAction.Cancel, EventOverflowAction.Delete),
+            assertIs<EventUiState.Success>(viewModel.state.value).overflowActions
+        )
+    }
+
+    @Test
+    fun `Cancel appears in the menu when the cancel_event flag turns on`() = runTest {
+        val featureFlags = FakeFeatureFlagRepository(remote = mapOf(FeatureFlag.CancelEvent to true), latency = 0)
+        val viewModel = viewModel(featureFlags = featureFlags)
+        advanceUntilIdle()
+        assertFalse(EventOverflowAction.Cancel in assertIs<EventUiState.Success>(viewModel.state.value).overflowActions)
+
+        featureFlags.sync()
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(EventOverflowAction.Edit, EventOverflowAction.Cancel, EventOverflowAction.Delete),
+            assertIs<EventUiState.Success>(viewModel.state.value).overflowActions
+        )
+    }
+
+    @Test
+    fun `a locked event offers an admin Cancel and Delete while the flag is on`() = runTest {
+        val events = FakeEventRepository(eventDetail = detail(lockedAt = lockedAt))
+        val viewModel = viewModel(events = events, featureFlags = cancelFlagOn)
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(EventOverflowAction.Cancel, EventOverflowAction.Delete),
+            assertIs<EventUiState.Success>(viewModel.state.value).overflowActions
+        )
+    }
+
+    @Test
+    fun `a member gets no Cancel even with the flag on`() = runTest {
+        val viewModel = viewModel(groups = FakeGroupRepository(myRole = GroupRole.Member), featureFlags = cancelFlagOn)
+        advanceUntilIdle()
+
+        assertEquals(emptyList(), assertIs<EventUiState.Success>(viewModel.state.value).overflowActions)
+    }
+
+    @Test
+    fun `a cancelled event offers an admin Delete alone and no lock switch`() = runTest {
+        val events = FakeEventRepository(eventDetail = detail(cancelledAt = cancelledAt, cancelledByName = "Ali"))
+        val viewModel = viewModel(events = events, featureFlags = cancelFlagOn)
+        advanceUntilIdle()
+
+        val state = assertIs<EventUiState.Success>(viewModel.state.value)
+        assertEquals(listOf(EventOverflowAction.Delete), state.overflowActions)
+        assertEquals(EventPhase.Cancelled(byName = "Ali", started = false), state.phase)
+        assertTrue(state.isReadOnly)
+        assertFalse(state.canToggleLock)
+    }
+
+    @Test
+    fun `a cancelled event that has started shows as cancelled and offers no Delete`() = runTest {
+        val events = FakeEventRepository(
+            eventDetail = detail(startsAt = pastStart, lockedAt = lockedAt, cancelledAt = cancelledAt)
+        )
+        val viewModel = viewModel(events = events, featureFlags = cancelFlagOn)
+        advanceUntilIdle()
+
+        val state = assertIs<EventUiState.Success>(viewModel.state.value)
+        assertEquals(EventPhase.Cancelled(byName = null, started = true), state.phase)
+        assertEquals(emptyList(), state.overflowActions)
+    }
+
+    @Test
+    fun `asking to cancel without the action on offer opens no dialog`() = runTest {
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        viewModel.onCancelRequested()
+
+        assertNull(assertIs<EventUiState.Success>(viewModel.state.value).dialog)
+    }
+
+    @Test
+    fun `confirming cancel writes it, closes the dialog and shows cancelled after the refresh`() = runTest {
+        val changes = DataChanges()
+        val events = FakeEventRepository(
+            eventDetail = detail(),
+            profileNames = mapOf(FAKE_USER_ID to "Ali"),
+            dataChanges = changes
+        )
+        val viewModel = viewModel(dataChanges = changes, events = events, featureFlags = cancelFlagOn)
+        advanceUntilIdle()
+
+        viewModel.onCancelRequested()
+        assertEquals(
+            EventDialogState(EventDialogKind.Cancel),
+            assertIs<EventUiState.Success>(viewModel.state.value).dialog
+        )
+        viewModel.onDialogConfirmed()
+        advanceUntilIdle()
+
+        val state = assertIs<EventUiState.Success>(viewModel.state.value)
+        assertNull(state.dialog)
+        assertFalse(state.deleted)
+        assertEquals(EventPhase.Cancelled(byName = "Ali", started = false), state.phase)
+        assertEquals(listOf(EventOverflowAction.Delete), state.overflowActions)
+    }
+
+    @Test
+    fun `a failed cancel keeps the dialog open with the error and the event live`() = runTest {
+        val events = FakeEventRepository(eventDetail = detail(), cancelEventError = DomainError.EventFrozen())
+        val viewModel = viewModel(events = events, featureFlags = cancelFlagOn)
+        advanceUntilIdle()
+
+        viewModel.onCancelRequested()
+        viewModel.onDialogConfirmed()
+        advanceUntilIdle()
+
+        val state = assertIs<EventUiState.Success>(viewModel.state.value)
+        val dialog = assertIs<EventDialogState>(state.dialog)
+        assertEquals(EventDialogKind.Cancel, dialog.kind)
+        assertFalse(dialog.inFlight)
+        assertIs<DomainError.EventFrozen>(dialog.error)
+        assertEquals(EventPhase.Active, state.phase)
     }
 }

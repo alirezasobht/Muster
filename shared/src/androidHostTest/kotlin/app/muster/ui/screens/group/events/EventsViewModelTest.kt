@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalCoroutinesApi::class)
+
 package app.muster.ui.screens.group.events
 
 import app.muster.data.fake.FakeEventRepository
@@ -16,6 +18,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.time.Instant
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
@@ -36,7 +39,8 @@ class EventsViewModelTest {
         capacity = 10,
         inCount = 7,
         pendingCount = 3,
-        myStatus = RsvpStatus.In
+        myStatus = RsvpStatus.In,
+        lockedAt = null
     )
 
     private fun viewModel(
@@ -107,6 +111,30 @@ class EventsViewModelTest {
         val row = assertIs<EventsUiState.Success>(viewModel.state.value).eventRows.single()
         assertNull(row.status)
         assertEquals("", row.location)
+    }
+
+    @Test
+    fun `a locked event's row is marked locked, an unlocked one is not`() = runTest {
+        val locked = fullEvent.copy(id = "event-locked", lockedAt = Instant.parse("2026-09-10T09:00:00Z"))
+        val events = FakeEventRepository(events = listOf(fullEvent, locked))
+        val viewModel = viewModel(events = events)
+        advanceUntilIdle()
+
+        val rows = assertIs<EventsUiState.Success>(viewModel.state.value).eventRows
+        assertEquals(false, rows.single { it.id == fullEvent.id }.isLocked)
+        assertEquals(true, rows.single { it.id == "event-locked" }.isLocked)
+    }
+
+    @Test
+    fun `a cancelled event's row is marked cancelled, a live one is not`() = runTest {
+        val cancelled = fullEvent.copy(id = "event-cancelled", cancelledAt = Instant.parse("2026-09-10T09:00:00Z"))
+        val events = FakeEventRepository(events = listOf(fullEvent, cancelled))
+        val viewModel = viewModel(events = events)
+        advanceUntilIdle()
+
+        val rows = assertIs<EventsUiState.Success>(viewModel.state.value).eventRows
+        assertEquals(false, rows.single { it.id == fullEvent.id }.isCancelled)
+        assertEquals(true, rows.single { it.id == "event-cancelled" }.isCancelled)
     }
 
     @Test

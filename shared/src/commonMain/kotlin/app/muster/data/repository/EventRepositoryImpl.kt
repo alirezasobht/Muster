@@ -165,6 +165,47 @@ internal class EventRepositoryImpl(
         dataChanges.notify(DataChange.Events(groupId))
     }
 
+    override suspend fun setEventLocked(
+        eventId: String,
+        locked: Boolean
+    ): Unit = mapErrors {
+        val groupId = client.postgrest.rpc(
+            SET_EVENT_LOCKED_FUNCTION,
+            buildJsonObject {
+                put("event_id", eventId)
+                put("locked", locked)
+            }
+        )
+            .decodeSingle<EventDto>()
+            .groupId
+
+        dataChanges.notify(DataChange.Roster(eventId))
+        dataChanges.notify(DataChange.Events(groupId))
+    }
+
+    override suspend fun cancelEvent(eventId: String): Unit = mapErrors {
+        val groupId = client.postgrest.rpc(
+            CANCEL_EVENT_FUNCTION,
+            buildJsonObject { put("event_id", eventId) }
+        )
+            .decodeSingle<EventDto>()
+            .groupId
+
+        dataChanges.notify(DataChange.Roster(eventId))
+        dataChanges.notify(DataChange.Events(groupId))
+    }
+
+    override suspend fun deleteEvent(
+        eventId: String,
+        groupId: String
+    ): Unit = mapErrors {
+        client.postgrest.rpc(
+            DELETE_EVENT_FUNCTION,
+            buildJsonObject { put("event_id", eventId) }
+        )
+        dataChanges.notify(DataChange.Events(groupId))
+    }
+
     private companion object {
         const val GET_EVENT_DETAIL_FUNCTION = "get_event_detail"
         const val LIST_UPCOMING_EVENTS_FUNCTION = "list_upcoming_events"
@@ -175,5 +216,8 @@ internal class EventRepositoryImpl(
         const val DISINVITE_PLAYER_FUNCTION = "disinvite_player"
         const val RESEND_EVENT_INVITATION_FUNCTION = "resend_event_invitation"
         const val ADD_PLAYERS_TO_EVENT_FUNCTION = "add_players_to_event"
+        const val SET_EVENT_LOCKED_FUNCTION = "set_event_locked"
+        const val CANCEL_EVENT_FUNCTION = "cancel_event"
+        const val DELETE_EVENT_FUNCTION = "delete_event"
     }
 }

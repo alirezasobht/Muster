@@ -68,6 +68,7 @@ kotlin {
             sourceSetTreeName = "test"
         }.configure {
             instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+            instrumentationRunnerArguments["listener"] = "app.muster.ui.utils.AnimationRunListener"
         }
     }
 
@@ -76,6 +77,7 @@ kotlin {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.compose.uiTooling)
             implementation(libs.ktor.client.okhttp)
+            implementation(libs.koin.android)
         }
         commonMain {
             kotlin.srcDir(generateSupabaseConfig)
@@ -97,6 +99,7 @@ kotlin {
                 implementation(libs.koin.compose.viewmodel.navigation)
                 implementation(libs.navigation.compose)
                 implementation(libs.reorderable)
+                implementation(libs.multiplatform.settings)
             }
         }
         commonTest.dependencies {
@@ -108,6 +111,11 @@ kotlin {
                 implementation(libs.junit)
                 implementation(libs.kotlinx.coroutines.test)
                 implementation(libs.mockk)
+                implementation(libs.multiplatform.settings.test)
+                implementation(libs.robolectric)
+                implementation(libs.compose.uiTest)
+                implementation(libs.compose.uiTestJUnit4)
+                implementation(libs.compose.uiTestManifest)
             }
         }
         val androidDeviceTest by getting {

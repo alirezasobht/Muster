@@ -6,24 +6,31 @@ import app.muster.domain.error.DomainError
 import app.muster.domain.event.DataChange
 import app.muster.domain.event.DataChanges
 import app.muster.domain.model.EventDetail
+import app.muster.domain.model.FeatureFlag
 import app.muster.domain.model.GroupRole
 import app.muster.domain.model.RosterEntry
 import app.muster.domain.model.RsvpStatus
+import app.muster.domain.usecase.CancelEventUseCase
+import app.muster.domain.usecase.DeleteEventUseCase
 import app.muster.domain.usecase.DisinvitePlayerUseCase
 import app.muster.domain.usecase.GetEventUseCase
 import app.muster.domain.usecase.GetMyGroupRoleUseCase
 import app.muster.domain.usecase.GetMyProfileUseCase
+import app.muster.domain.usecase.ObserveFeatureFlagUseCase
 import app.muster.domain.usecase.ReorderStandbyUseCase
 import app.muster.domain.usecase.ResendEventInvitationUseCase
+import app.muster.domain.usecase.SetEventLockedUseCase
 import app.muster.domain.usecase.SetRsvpUseCase
 import app.muster.ui.common.util.toDisplayDate
 import app.muster.ui.common.util.toDisplayTime
 import app.muster.ui.common.util.updateSuccess
 import kotlin.time.Clock
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class EventViewModel(
@@ -35,6 +42,10 @@ class EventViewModel(
     private val reorderStandby: ReorderStandbyUseCase,
     private val disinvitePlayer: DisinvitePlayerUseCase,
     private val resendEventInvitation: ResendEventInvitationUseCase,
+    private val setEventLocked: SetEventLockedUseCase,
+    private val cancelEvent: CancelEventUseCase,
+    private val deleteEvent: DeleteEventUseCase,
+    observeFeatureFlag: ObserveFeatureFlagUseCase,
     dataChanges: DataChanges
 ) : ViewModel() {
 
@@ -42,7 +53,14 @@ class EventViewModel(
     private val groupId = initialSummary.groupId
 
     private val _state = MutableStateFlow<EventUiState>(EventUiState.Loading(initialSummary))
+
     val state: StateFlow<EventUiState> = _state.asStateFlow()
+
+    private val lockFeatureFlagFlow = observeFeatureFlag(FeatureFlag.EventLock)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    private val cancelFeatureFlagFlow = observeFeatureFlag(FeatureFlag.CancelEvent)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     // init already loads, so the first resume after launch would load twice.
     private var resumedOnce = false
@@ -52,6 +70,12 @@ class EventViewModel(
     private var myProfileId: String? = null
 
     init {
+        viewModelScope.launch {
+            lockFeatureFlagFlow.collect { on -> _state.updateSuccess { it.copy(lockFeatureFlag = on) } }
+        }
+        viewModelScope.launch {
+            cancelFeatureFlagFlow.collect { on -> _state.updateSuccess { it.copy(cancelFeatureFlag = on) } }
+        }
         load()
         viewModelScope.launch {
             dataChanges.changes
@@ -171,6 +195,62 @@ class EventViewModel(
         }
     }
 
+    // Opens the confirmation only; the switch keeps showing the server's
+    // state until the write succeeds and the refresh brings it back.
+    fun onLockToggled(locked: Boolean) {
+        val current = _state.value as? EventUiState.Success ?: return
+        if (!current.canToggleLock || locked == (current.phase is EventPhase.Locked)) return
+        val kind = if (locked) EventDialogKind.Lock else EventDialogKind.Unlock
+        _state.updateSuccess { it.copy(dialog = EventDialogState(kind)) }
+    }
+
+    fun onCancelRequested() {
+        val current = _state.value as? EventUiState.Success ?: return
+        if (EventOverflowAction.Cancel !in current.overflowActions) return
+        _state.updateSuccess { it.copy(dialog = EventDialogState(EventDialogKind.Cancel)) }
+    }
+
+    fun onDeleteRequested() {
+        _state.updateSuccess { it.copy(dialog = EventDialogState(EventDialogKind.Delete)) }
+    }
+
+    fun onDialogDismissed() {
+        _state.updateSuccess { it.copy(dialog = null) }
+    }
+
+    fun onDialogConfirmed() {
+        val current = _state.value as? EventUiState.Success ?: return
+        val dialog = current.dialog ?: return
+        if (dialog.inFlight) return
+        _state.updateSuccess { it.copy(dialog = dialog.copy(inFlight = true, error = null)) }
+        viewModelScope.launch {
+            try {
+                when (dialog.kind) {
+                    EventDialogKind.Lock -> setEventLocked(eventId, locked = true)
+                    EventDialogKind.Unlock -> setEventLocked(eventId, locked = false)
+                    EventDialogKind.Cancel -> cancelEvent(eventId)
+                    EventDialogKind.Delete -> deleteEvent(eventId = eventId, groupId = groupId)
+                }
+                _state.updateSuccess { it.copy(dialog = null, deleted = dialog.kind == EventDialogKind.Delete) }
+            } catch (e: DomainError) {
+                updateDialog { it.copy(inFlight = false, error = e) }
+            }
+        }
+    }
+
+    fun onDeletedHandled() {
+        _state.updateSuccess { it.copy(deleted = false) }
+    }
+
+    // Reads the dialog at write time: if it was dismissed while the call was
+    // in flight, there is no dialog left to report the failure to.
+    private fun updateDialog(block: (EventDialogState) -> EventDialogState) {
+        _state.updateSuccess { current ->
+            val dialog = current.dialog ?: return@updateSuccess current
+            current.copy(dialog = block(dialog))
+        }
+    }
+
     private fun load() {
         val summary = _state.value.summary
         _state.value = EventUiState.Loading(summary)
@@ -188,7 +268,9 @@ class EventViewModel(
         viewModelScope.launch {
             try {
                 val fetched = fetchSuccess(_state.value.summary)
-                _state.updateSuccess { fetched.copy(isRefreshing = false) }
+                // A write's own DataChange refreshes while its dialog is still
+                // open, and delete's lands after the flag that navigates away.
+                _state.updateSuccess { fetched.copy(isRefreshing = false, dialog = it.dialog, deleted = it.deleted) }
             } catch (_: DomainError) {
                 _state.updateSuccess { it.copy(isRefreshing = false) }
             }
@@ -200,7 +282,13 @@ class EventViewModel(
         val myId = getMyProfile().id
         myProfileId = myId
         val detail = getEvent(eventId)
-        val isFrozen = detail.event.startsAt <= Clock.System.now()
+        val started = detail.event.startsAt <= Clock.System.now()
+        val phase = when {
+            detail.event.cancelledAt != null -> EventPhase.Cancelled(byName = detail.cancelledByName, started = started)
+            started -> EventPhase.Started(atDisplay = detail.event.startsAt.toDisplayTime())
+            detail.event.lockedAt != null -> EventPhase.Locked(byName = detail.lockedByName)
+            else -> EventPhase.Active
+        }
         return EventUiState.Success(
             summary = summary.copy(
                 title = detail.event.title,
@@ -214,19 +302,12 @@ class EventViewModel(
             myStatus = detail.event.myStatus,
             roster = detail.toRosterRows(myId, isAdmin),
             standby = detail.toStandbyRows(myId),
-            overflowActions = overflowActionsFor(isAdmin, isFrozen),
-            isFrozen = isFrozen,
-            startsAt = detail.event.startsAt,
-            startsAtDisplay = detail.event.startsAt.toDisplayTime()
+            phase = phase,
+            lockFeatureFlag = lockFeatureFlagFlow.value,
+            cancelFeatureFlag = cancelFeatureFlagFlow.value,
+            startsAt = detail.event.startsAt
         )
     }
-}
-
-private fun overflowActionsFor(
-    isAdmin: Boolean,
-    isFrozen: Boolean
-): List<EventOverflowAction> = buildList {
-    if (isAdmin && !isFrozen) add(EventOverflowAction.Edit)
 }
 
 private val statusOrder = mapOf(RsvpStatus.In to 0, RsvpStatus.Pending to 1, RsvpStatus.Out to 2)

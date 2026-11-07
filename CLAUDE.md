@@ -57,6 +57,10 @@ into `dev`, from a branch made with `--no-track`. See `docs/CI.md`.
 
 ## How to work
 
+- **Ask before proposing.** On any task with a real design choice, ask
+  how I'd approach it first and wait for an answer. Then give your own
+  proposal with the tradeoffs, including where you disagree. Skip this
+  for mechanical work — renames, wiring, a fix I've already specified.
 - **Step by step.** One step at a time, show the work, wait for a go
   before the next. Never batch a multi-step task into one pass.
 - **Screens first**, then domain, then data, then wire up.
@@ -109,7 +113,16 @@ of which confirm first, standby queue with drag-to-reorder, Add players,
 account deletion (Settings and the web app's `/delete-account` page),
 Privacy policy (embedded `privacy.html`), Edit group and Edit event
 (screens, use cases, and the `update_group` / `update_event` RPCs;
-unreleased, shipping in 1.0.5).
+released in 1.0.6). Event lock and Delete event (switch, ink locked
+strip, ⋮ Delete, the `set_event_locked` / `delete_event` RPCs and the
+lock checks in the freeze triggers and roster RPCs; on dev, shipping in
+1.0.7). Remote feature flags (`private.feature_flags`, the anon
+`get_feature_flags` RPC, a local Settings store synced at launch).
+`event_lock` gates the admin's Locked switch. Cancel event (⋮ Cancel,
+ink cancelled strip, Events-tab marker, the one-way `cancel_event` RPC
+and cancel checks in the freeze triggers and roster RPCs; `cancel_event`
+flag gates the ⋮ action) and delete stopping at kickoff: on dev,
+shipping in 1.0.7.
 
 **Dev** and **prod** both exist. Android is published on Play, the web
 app is live, and iOS is in App Store review.

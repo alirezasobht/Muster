@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Muster — Event lock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#EFF1EF; font-family:'DM Sans',system-ui,sans-serif; -webkit-font-smoothing:antialiased; color:#14171A; }
+  a { color:#2F7D4F; text-decoration:none; }
+</style>
+</head>
+<body>
+<section style="padding:64px 64px 40px;display:flex;flex-direction:column;gap:40px">
+
+  <div style="display:flex;flex-direction:column;gap:10px;max-width:760px">
+    <div style="font-family:'DM Mono',monospace;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#6E7671">Turn 5</div>
+    <div style="font-size:34px;font-weight:700;letter-spacing:-0.02em">Event lock, and Delete event</div>
+    <div style="font-size:16px;line-height:1.5;color:#4A524D;text-wrap:pretty">An admin can lock an unstarted event until they unlock it. Locked reuses the frozen rendering of 1n in the 4a layout under an ink strip that says who locked it; Pending stays Pending, and standby pauses rather than ends. Delete event joins Edit event in the app bar ⋮.</div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:56px;align-items:flex-start">
+
+    <!-- 5a Event — admin, unlocked -->
+    <div id="5a" style="display:flex;flex-direction:column;gap:12px;width:390px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-family:'DM Mono',monospace;font-size:11px;color:#fff;background:#14171A;border-radius:5px;padding:3px 7px">5a</span>
+        <span style="font-size:15px;font-weight:600">Event — admin, unlocked</span>
+      </div>
+      <div style="width:390px;height:844px;background:#fff;border:1px solid #E4E7E4;border-radius:28px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 30px rgba(20,23,26,0.07);position:relative;box-sizing:border-box">
+        <div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:13px;font-weight:600;flex:none"><span>9:41</span><span style="width:16px;height:9px;border:1.5px solid #14171A;border-radius:2px;display:block"></span></div>
+        <div style="min-height:64px;display:flex;align-items:center;gap:4px;padding:6px 12px;flex:none">
+          <span style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:22px">←</span>
+          <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+            <span style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#6E7671">Sydney Sunday Football</span>
+            <span style="font-size:19px;font-weight:700;letter-spacing:-0.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Sunday Match – Centennial Park</span>
+          </span>
+          <span style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:20px">⋮</span>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+          <div style="padding:10px 20px 0;display:flex;align-items:center;justify-content:space-between;gap:16px">
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+              <div style="font-size:18px;font-weight:600;letter-spacing:-0.01em">Sun 4 Oct · 9:00 am</div>
+              <div style="font-size:15px;color:#6E7671">Centennial Park, Sydney</div>
+            </div>
+            <div style="flex:none;width:56px;display:flex;flex-direction:column;align-items:center;gap:5px">
+              <span style="font-size:12px;font-weight:600;color:#4A524D">Locked</span>
+              <span style="width:52px;height:32px;border-radius:999px;background:#fff;border:2px solid #8A918C;display:flex;align-items:center;justify-content:flex-start;padding:0 6px;box-sizing:border-box"><span style="width:16px;height:16px;border-radius:999px;background:#8A918C;display:block"></span></span>
+            </div>
+          </div>
+          <div style="margin:18px 20px 0;background:#F5F7F5;border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between">
+              <span style="display:flex;align-items:baseline;gap:6px"><span style="font-size:26px;font-weight:700;letter-spacing:-0.02em;font-variant-numeric:tabular-nums">6</span><span style="font-size:15px;color:#6E7671">of 10 slots</span></span>
+              <span style="font-size:14px;font-weight:600;color:#1F5C39">4 open</span>
+            </div>
+            <div style="display:flex;gap:2px;height:8px;border-radius:4px;overflow:hidden;background:#DDE2DE">
+              <span style="flex:5;background:#2F7D4F"></span><span style="flex:1;background:#9AA6BB"></span><span style="flex:4"></span>
+            </div>
+            <div style="display:flex;gap:16px;font-size:13px;color:#4A524D">
+              <span style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:999px;background:#2F7D4F"></span>5 in</span>
+              <span style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:999px;background:#9AA6BB"></span>1 pending</span>
+              <span style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:999px;border:1.5px solid #C9867C"></span>2 out</span>
+            </div>
+          </div>
+          <div style="margin:12px 20px 0;border:1px solid #E4E7E4;border-radius:14px;padding:12px 12px 12px 16px;min-height:66px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:12px">
+            <span style="display:flex;flex-direction:column;gap:2px">
+              <span style="font-size:16px;font-weight:600">You’re in</span>
+              <span style="font-size:13px;color:#6E7671">Answered Thu 1 Oct</span>
+            </span>
+            <span style="height:40px;border:1px solid #D7DCD8;border-radius:10px;display:flex;align-items:center;padding:0 18px;font-size:14px;font-weight:600">Change</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:26px 16px 6px 20px;min-height:36px">
+            <span style="display:flex;align-items:baseline;gap:8px"><span style="font-size:17px;font-weight:700">Players</span><span style="font-size:15px;color:#8A918C;font-variant-numeric:tabular-nums">8</span></span>
+            <span style="height:36px;border-radius:999px;background:#E8F2EB;color:#1F5C39;display:flex;align-items:center;gap:6px;padding:0 14px 0 12px;font-size:14px;font-weight:600"><span style="font-size:18px;line-height:1">+</span>Add</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;height:56px;margin:0 20px;border-top:1px solid #F0F2F0;flex:none">
+              <span style="width:36px;height:36px;border-radius:999px;background:#F0F2F0;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:#4A524D;flex:none">AS</span>
+              <span style="flex:1;display:flex;align-items:center;gap:8px;font-size:16px">Ali S<span style="font-size:12px;font-weight:600;color:#6E7671;border:1px solid #D7DCD8;border-radius:6px;padding:1px 6px">You</span></span>
+              <span style="display:flex;align-items:center;gap:3px;font-size:13px;font-weight:600;color:#1F5C39;background:#E8F2EB;border-radius:999px;height:28px;padding:0 9px 0 12px">In<span style="font-size:15px">›</span></span>
+            </div>
+          <div style="display:flex;align-items:center;gap:12px;height:56px;margin:0 20px;border-top:1px solid #F0F2F0;flex:none">
+              <span style="width:36px;height:36px;border-radius:999px;background:#F0F2F0;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:#4A524D;flex:none">ET</span>
+              <span style="flex:1;display:flex;align-items:center;gap:8px;font-size:16px">Ethan</span>
+              <span style="display:flex;align-items:center;gap:3px;font-size:13px;font-weight:600;color:#1F5C39;background:#E8F2EB;border-radius:999px;height:28px;padding:0 9px 0 12px">In<span style="font-size:15px">›</span></span>
+            </div>
+          <div style="display:flex;align-items:center;gap:12px;height:56px;margin:0 20px;border-top:1px solid #F0F2F0;flex:none">
+              <span style="width:36px;height:36px;border-radius:999px;background:#F0F2F0;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:#4A524D;flex:none">JA</span>
+              <span style="flex:1;display:flex;align-items:center;gap:8px;font-size:16px">Jack</span>
+              <span style="display:flex;align-items:center;gap:3px;font-size:13px;font-weight:600;color:#1F5C39;background:#E8F2EB;border-radius:999px;height:28px;padding:0 9px 0 12px">In<span style="font-size:15px">›</span></span>
+            </div>
+          <div style="display:flex;align-items:center;gap:12px;height:56px;margin:0 20px;border-top:1px solid #F0F2F0;flex:none">
+              <span style="width:36px;height:36px;border-radius:999px;background:#F0F2F0;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:#4A524D;flex:none">MA</span>
+              <span style="flex:1;display:flex;align-items:center;gap:8px;font-size:16px">Mason</span>
+              <span style="display:flex;align-items:center;gap:3px;font-size:13px;font-weight:600;color:#1F5C39;background:#E8F2EB;border-radius:999px;height:28px;padding:0 9px 0 12px">In<span style="font-size:15px">›</span></span>
+            </div>
+          <div style="display:flex;align-items:center;gap:12px;height:56px;margin:0 20px;border-top:1px solid #F0F2F0;flex:none">
+              <span style="width:36px;height:36px;border-radius:999px;background:#F0F2F0;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:#4A524D;flex:none">MO</span>
+              <span style="flex:1;display:flex;align-items:center;gap:8px;font-size:16px">Mohsen</span>
+              <span style="display:flex;align-items:center;gap:3px;font-size:13px;font-weight:600;color:#1F5C39;background:#E8F2EB;border-radius:999px;height:28px;padding:0 9px 0 12px">In<span style="font-size:15px">›</span></span>
+            </div>
+          <div style="display:flex;align-items:center;gap:12px;height:56px;margin:0 20px;border-top:1px solid #F0F2F0;flex:none">
+              <span style="width:36px;height:36px;border-radius:999px;background:#F0F2F0;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:#4A524D;flex:none">KE</span>
+              <span style="flex:1;display:flex;align-items:center;gap:8px;font-size:16px">Kevin</span>
+              <span style="display:flex;align-items:center;gap:3px;font-size:13px;font-weight:600;color:#3F4C63;background:#ECEFF4;border-radius:999px;height:28px;padding:0 9px 0 12px">Pending<span style="font-size:15px">›</span></span>
+            </div>
+          <div style="display:flex;align-items:center;gap:12px;height:56px;margin:0 20px;border-top:1px solid #F0F2F0;flex:none">
+              <span style="width:36px;height:36px;border-radius:999px;background:#F0F2F0;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:#4A524D;flex:none">FA</span>
+              <span style="flex:1;display:flex;align-items:center;gap:8px;font-size:16px">Farid</span>
+              <span style="display:flex;align-items:center;gap:3px;font-size:13px;font-weight:600;color:#9A3324;background:#FBE9E7;border-radius:999px;height:28px;padding:0 9px 0 12px">Out<span style="font-size:15px">›</span></span>
+            </div>
+          <div style="display:flex;align-items:center;gap:12px;height:56px;margin:0 20px;border-top:1px solid #F0F2F0;flex:none">
+              <span style="width:36px;height:36px;border-radius:999px;background:#F0F2F0;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:#4A524D;flex:none">NO</span>
+              <span style="flex:1;display:flex;align-items:center;gap:8px;font-size:16px">Noah</span>
+              <span style="display:flex;align-items:center;gap:3px;font-size:13px;font-weight:600;color:#9A3324;background:#FBE9E7;border-radius:999px;height:28px;padding:0 9px 0 12px">Out<span style="font-size:15px">›</span></span>
+            </div>
+        </div>
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:11.5px;line-height:1.6;color:#6E7671">4a with one change: the Locked switch sits beside when/where, label stacked over the switch so the date and place keep the width. Admins only, unstarted events only. Turning it on or off confirms first. ⋮ holds Edit event and Delete event.</div>
+    </div>
+
+    <!-- 5b Event — admin, locked -->
+    <div id="5b" style="display:flex;flex-direction:column;gap:12px;width:390px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-family:'DM Mono',monospace;font-size:11px;color:#fff;background:#14171A;border-radius:5px;padding:3px 7px">5b</span>
+        <span style="font-size:15px;font-weight:600">Event — admin, locked</span>
+      </div>
+      <div style="width:390px;height:844px;background:#fff;border:1px solid #E4E7E4;border-radius:28px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 30px rgba(20,23,26,0.07);position:relative;box-sizing:border-box">
+        <div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:13px;font-weight:600;flex:none"><span>9:41</span><span style="width:16px;height:9px;border:1.5px solid #14171A;border-radius:2px;display:block"></span></div>
+        <div style="min-height:64px;display:flex;align-items:center;gap:4px;padding:6px 12px;flex:none">
+          <span style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:22px">←</span>
+          <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+            <span style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#6E7671">Sydney Sunday Football</span>
+            <span style="font-size:19px;font-weight:700;letter-spacing:-0.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Sunday Match – Wentworth Park</span>
+          </span>
+          <span style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:20px">⋮</span>
+        </div>
+        <div style="background:#14171A;padding:13px 20px;color:#fff;display:flex;align-items:center;gap:12px;flex:none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;display:block"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span style="display:flex;flex-direction:column;gap:2px"><span style="font-size:14.5px;font-weight:600">Locked by Ali</span><span style="font-size:13px;color:rgba(255,255,255,0.75)">No changes until an admin unlocks it</span></span></div>
+        <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+          <div style="padding:10px 20px 0;display:flex;align-items:center;justify-content:space-between;gap:16px">
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+              <div style="font-size:18px;font-weight:600;letter-spacing:-0.01em">Sun 11 Oct · 9:00 am</div>
+              <div style="font-size:15px;color:#6E7671">Wentworth Park, Glebe</div>
+            </div>
+            <div style="flex:none;width:56px;display:flex;flex-direction:column;align-items:center;gap:5px">
+              <span style="font-size:12px;font-weight:600;color:#4A524D">Locked</span>
+              <span style="width:52px;height:32px;border-radius:999px;background:#2F7D4F;display:flex;align-items:center;justify-content:flex-end;padding:0 4px;box-sizing:border-box"><span style="width:24px;height:24px;border-radius:999px;background:#fff;display:block"></span></span>
+            </div>
+          </div>
+          <div style="margin:18px 20px 0;background:#F5F7F5;border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between">
+              <span style="display:flex;align-items:baseline;gap:6px"><span style="font-size:26px;font-weight:700;letter-spacing:-0.02em;font-variant-numeric:tabular-nums">5</span><span style="font-size:15px;color:#6E7671">of 6 slots</span></span>
+              <span style="font-size:14px;font-weight:600;color:#1F5C39">1 open</span>
+            </div>
+            <div style="display:flex;gap:2px;height:8px;border-radius:4px;overflow:hidden;background:#DDE2DE">
+              <span style="flex:4;background:#2F7D4F"></span><span style="flex:1;background:#9AA6BB"></span><span style="flex:1"></span>
+            </div>
+            <div style="display:flex;gap:16px;font-size:13px;color:#4A524D">
+              <span style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:999px;background:#2F7D4F"></span>4 in</span>
+              <span style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:999px;background:#9AA6BB"></span>1 pending</span>
+            </div>
+          </div>
+          <div style="margin:12px 20px 0;border:1px solid #E4E7E4;border-radius:14px;padding:12px 12px 12px 16px;min-height:66px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:12px">
+            <span style="display:flex;flex-direction:column;gap:2px">
+              <span style="font-size:16px;font-weight:600">Your reply</span>
+            </span>
+            <span style="font-size:13px;font-weight:600;color:#1F5C39;background:#E8F2EB;border-radius:999px;height:28px;display:flex;align-items:center;padding:0 12px;margin-right:4px">In</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:26px 16px 6px 20px;min-height:36px">
+            <span style="display:flex;align-items:baseline;gap:8px"><span style="font-size:17px;font-weight:700">Players</span><span style="font-size:15px;color:#8A918C;font-variant-numeric:tabular-nums">5</span></span>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;height:56px;margin:0 20px;border-top:1px solid #F0F2F0;flex:none">
+              <span style="width:36px;height:36px;border-radius:999px;background:#F0F2F0;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:#4A524D;flex:none">AS</span>
+              <span style="flex:1;display:flex;align-items:center;gap:8px;font-size:16px">Ali S<span style="font-size:12px;font-weight:600;color:#6E7671;border:1px solid #D7DCD8;border-radius:6px;padding:1px 6px">You</span></span>
+              <span style="display:flex;align-items:center;gap:3px;font-size:13px;font-weight:600;color:#1F5C39;background:#E8F2EB;border-radius:999px;height:28px;padding:0 12px">In</span>
+            </div>
+          <div style="display:flex;align-items:center;gap:12px;height:56px;margin:0 20px;border-top:1px solid #F0F2F0;flex:none">
+              <span style="width:36px;height:36px;border-radius:999px;background:#F0F2F0;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:#4A524D;flex:none">ET</span>
+              <span style="flex:1;display:flex;align-items:center;gap:8px;font-size:16px">Ethan</span>
+              <span style="display:flex;align-items:center;gap:3px;font-size:13px;font-weight:600;color:#1F5C39;background:#E8F2EB;border-radius:999px;height:28px;padding:0 12px">In</span>
+            </div>
+          <div style="display:flex;align-items:center;gap:12px;height:56px;margin:0 20px;border-top:1px solid #F0F2F0;flex:none">
+              <span style="width:36px;height:36px;border-radius:999px;background:#F0F2F0;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:#4A524D;flex:none">JA</span>
+              <span style="flex:1;display:flex;align-items:center;gap:8px;font-size:16px">Jack</span>
+              <span style="display:flex;align-items:center;gap:3px;font-size:13px;font-weight:600;color:#1F5C39;background:#E8F2EB;border-radius:999px;height:28px;padding:0 12px">In</span>
+            </div>
+          <div style="display:flex;align-items:center;gap:12px;height:56px;margin:0 20px;border-top:1px solid #F0F2F0;flex:none">
+              <span style="width:36px;height:36px;border-radius:999px;background:#F0F2F0;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:#4A524D;flex:none">MA</span>
+              <span style="flex:1;display:flex;align-items:center;gap:8px;font-size:16px">Mason</span>
+              <span style="display:flex;align-items:center;gap:3px;font-size:13px;font-weight:600;color:#1F5C39;background:#E8F2EB;border-radius:999px;height:28px;padding:0 12px">In</span>
+            </div>
+          <div style="display:flex;align-items:center;gap:12px;height:56px;margin:0 20px;border-top:1px solid #F0F2F0;flex:none">
+              <span style="width:36px;height:36px;border-radius:999px;background:#F0F2F0;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:#4A524D;flex:none">KE</span>
+              <span style="flex:1;display:flex;align-items:center;gap:8px;font-size:16px">Kevin</span>
+              <span style="display:flex;align-items:center;gap:3px;font-size:13px;font-weight:600;color:#3F4C63;background:#ECEFF4;border-radius:999px;height:28px;padding:0 12px">Pending</span>
+            </div>
+          <div style="display:flex;align-items:baseline;justify-content:space-between;padding:26px 20px 10px;flex:none">
+            <span style="display:flex;align-items:baseline;gap:8px"><span style="font-size:17px;font-weight:700">Standby · paused</span></span>
+          </div>
+          <div style="margin:0 20px;background:#F5F7F5;border-radius:14px;padding:4px 0;flex:none">
+            <div style="display:flex;align-items:center;gap:14px;height:52px;padding:0 16px">
+              <span style="width:24px;height:24px;border-radius:999px;background:#fff;border:1px solid #DDE2DE;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;color:#4A524D;font-variant-numeric:tabular-nums">1</span>
+              <span style="flex:1;display:flex;align-items:center;gap:8px;font-size:16px">Noah</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;height:52px;padding:0 16px">
+              <span style="width:24px;height:24px;border-radius:999px;background:#fff;border:1px solid #DDE2DE;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;color:#4A524D;font-variant-numeric:tabular-nums">2</span>
+              <span style="flex:1;display:flex;align-items:center;gap:8px;font-size:16px">Mohsen</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:11.5px;line-height:1.6;color:#6E7671">Ink strip under the app bar: “Locked by Ali” over “No changes until an admin unlocks it”, white on ink with a lock. Louder than the frozen strip on purpose — a lock is temporary and someone chose it. Below the strip, same rendering as frozen 1n in the 4a layout: no Add, no chevrons, no handles, no Change. ⋮ stays, holding Delete event alone — Edit event goes. Besides that, the switch is the only control left. Pending stays Pending — the event hasn’t started, so nobody has failed to reply. A slot freed while locked stays open: “Standby · paused” until unlock, which fills it.</div>
+    </div>
+
+    <!-- 5c Event — member, locked -->
+    <div id="5c" style="display:flex;flex-direction:column;gap:12px;width:390px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-family:'DM Mono',monospace;font-size:11px;color:#fff;background:#14171A;border-radius:5px;padding:3px 7px">5c</span>
+        <span style="font-size:15px;font-weight:600">Event — member, locked</span>
+      </div>
+      <div style="width:390px;height:844px;background:#fff;border:1px solid #E4E7E4;border-radius:28px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 30px rgba(20,23,26,0.07);position:relative;box-sizing:border-box">
+        <div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:13px;font-weight:600;flex:none"><span>9:41</span><span style="width:16px;height:9px;border:1.5px solid #14171A;border-radius:2px;display:block"></span></div>
+        <div style="min-height:64px;display:flex;align-items:center;gap:4px;padding:6px 12px;flex:none">
+          <span style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:22px">←</span>
+          <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+            <span style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#6E7671">Sydney Sunday Football</span>
+            <span style="font-size:19px;font-weight:700;letter-spacing:-0.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Sunday Match – Wentworth Park</span>
+          </span>
+        </div>
+        <div style="background:#14171A;padding:13px 20px;color:#fff;display:flex;align-items:center;gap:12px;flex:none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;display:block"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span style="display:flex;flex-direction:column;gap:2px"><span style="font-size:14.5px;font-weight:600">Locked by Ali</span><span style="font-size:13px;color:rgba(255,255,255,0.75)">No changes until an admin unlocks it</span></span></div>
+        <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+          <div style="padding:10px 20px 0;display:flex;align-items:center;justify-content:space-between;gap:16px">
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+              <div style="font-size:18px;font-weight:600;letter-spacing:-0.01em">Sun 11 Oct · 9:00 am</div>
+              <div style="font-size:15px;color:#6E7671">Wentworth Park, Glebe</div>
+            </div>
+          </div>
+          <div style="margin:18px 20px 0;background:#F5F7F5;border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between">
+              <span style="display:flex;align-items:baseline;gap:6px"><span style="font-size:26px;font-weight:700;letter-spacing:-0.02em;font-variant-numeric:tabular-nums">5</span><span style="font-size:15px;color:#6E7671">of 6 slots</span></span>
+              <span style="font-size:14px;font-weight:600;color:#1F5C39">1 open</span>
+            </div>
+            <div style="display:flex;gap:2px;height:8px;border-radius:4px;overflow:hidden;background:#DDE2DE">
+              <span style="flex:4;background:#2F7D4F"></span><span style="flex:1;background:#9AA6BB"></span><span style="flex:1"></span>
+            </div>
+            <div style="display:flex;gap:16px;font-size:13px;color:#4A524D">
+              <span style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:999px;background:#2F7D4F"></span>4 in</span>
+              <span style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:999px;background:#9AA6BB"></span>1 pending</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:26px 16px 6px 20px;min-height:36px">
+            <span style="display:flex;align-items:baseline;gap:8px"><span style="font-size:17px;font-weight:700">Players</span><span style="font-size:15px;color:#8A918C;font-variant-numeric:tabular-nums">5</span></span>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;height:56px;margin:0 20px;border-top:1px solid #F0F2F0;flex:none">
+              <span style="width:36px;height:36px;border-radius:999px;background:#F0F2F0;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:#4A524D;flex:none">AS</span>
+              <span style="flex:1;display:flex;align-items:center;gap:8px;font-size:16px">Ali S</span>
+              <span style="display:flex;align-items:center;gap:3px;font-size:13px;font-weight:600;color:#1F5C39;background:#E8F2EB;border-radius:999px;height:28px;padding:0 12px">In</span>
+            </div>
+          <div style="display:flex;align-items:center;gap:12px;height:56px;margin:0 20px;border-top:1px solid #F0F2F0;flex:none">
+              <span style="width:36px;height:36px;border-radius:999px;background:#F0F2F0;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:#4A524D;flex:none">ET</span>
+              <span style="flex:1;display:flex;align-items:center;gap:8px;font-size:16px">Ethan</span>
+              <span style="display:flex;align-items:center;gap:3px;font-size:13px;font-weight:600;color:#1F5C39;background:#E8F2EB;border-radius:999px;height:28px;padding:0 12px">In</span>
+            </div>
+          <div style="display:flex;align-items:center;gap:12px;height:56px;margin:0 20px;border-top:1px solid #F0F2F0;flex:none">
+              <span style="width:36px;height:36px;border-radius:999px;background:#F0F2F0;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:#4A524D;flex:none">JA</span>
+              <span style="flex:1;display:flex;align-items:center;gap:8px;font-size:16px">Jack</span>
+              <span style="display:flex;align-items:center;gap:3px;font-size:13px;font-weight:600;color:#1F5C39;background:#E8F2EB;border-radius:999px;height:28px;padding:0 12px">In</span>
+            </div>
+          <div style="display:flex;align-items:center;gap:12px;height:56px;margin:0 20px;border-top:1px solid #F0F2F0;flex:none">
+              <span style="width:36px;height:36px;border-radius:999px;background:#F0F2F0;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:#4A524D;flex:none">MA</span>
+              <span style="flex:1;display:flex;align-items:center;gap:8px;font-size:16px">Mason</span>
+              <span style="display:flex;align-items:center;gap:3px;font-size:13px;font-weight:600;color:#1F5C39;background:#E8F2EB;border-radius:999px;height:28px;padding:0 12px">In</span>
+            </div>
+          <div style="display:flex;align-items:center;gap:12px;height:56px;margin:0 20px;border-top:1px solid #F0F2F0;flex:none">
+              <span style="width:36px;height:36px;border-radius:999px;background:#F0F2F0;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:#4A524D;flex:none">KE</span>
+              <span style="flex:1;display:flex;align-items:center;gap:8px;font-size:16px">Kevin</span>
+              <span style="display:flex;align-items:center;gap:3px;font-size:13px;font-weight:600;color:#3F4C63;background:#ECEFF4;border-radius:999px;height:28px;padding:0 12px">Pending</span>
+            </div>
+          <div style="display:flex;align-items:baseline;justify-content:space-between;padding:26px 20px 10px;flex:none">
+            <span style="display:flex;align-items:baseline;gap:8px"><span style="font-size:17px;font-weight:700">Standby · paused</span></span>
+          </div>
+          <div style="margin:0 20px;background:#F5F7F5;border-radius:14px;padding:4px 0;flex:none">
+            <div style="display:flex;align-items:center;gap:14px;height:52px;padding:0 16px">
+              <span style="width:24px;height:24px;border-radius:999px;background:#fff;border:1px solid #DDE2DE;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;color:#4A524D;font-variant-numeric:tabular-nums">1</span>
+              <span style="flex:1;display:flex;align-items:center;gap:8px;font-size:16px">Noah<span style="font-size:12px;font-weight:600;color:#6E7671;border:1px solid #D7DCD8;border-radius:6px;padding:1px 6px">You</span></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;height:52px;padding:0 16px">
+              <span style="width:24px;height:24px;border-radius:999px;background:#fff;border:1px solid #DDE2DE;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;color:#4A524D;font-variant-numeric:tabular-nums">2</span>
+              <span style="flex:1;display:flex;align-items:center;gap:8px;font-size:16px">Mohsen</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:11.5px;line-height:1.6;color:#6E7671">Identical to 5b minus the switch and ⋮; the strip is the only lock signal. Viewer here is on standby, so there is no RSVP card. “Locked by an admin” when the locking admin no longer has a profile.</div>
+    </div>
+
+    <!-- 5d Delete event (admin) -->
+    <div id="5d" style="display:flex;flex-direction:column;gap:12px;width:390px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-family:'DM Mono',monospace;font-size:11px;color:#fff;background:#14171A;border-radius:5px;padding:3px 7px">5d</span>
+        <span style="font-size:15px;font-weight:600">Delete event (admin)</span>
+      </div>
+      <div style="width:390px;height:844px;background:#fff;border:1px solid #E4E7E4;border-radius:28px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 30px rgba(20,23,26,0.07);position:relative;box-sizing:border-box">
+        <div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:13px;font-weight:600;flex:none"><span>9:41</span><span style="width:16px;height:9px;border:1.5px solid #14171A;border-radius:2px;display:block"></span></div>
+        <div style="min-height:64px;display:flex;align-items:center;gap:4px;padding:6px 12px;flex:none">
+          <span style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:22px">←</span>
+          <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+            <span style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#6E7671">Sydney Sunday Football</span>
+            <span style="font-size:19px;font-weight:700;letter-spacing:-0.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Sunday Match – Centennial Park</span>
+          </span>
+          <span style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:20px">⋮</span>
+        </div>
+        <div style="flex:1;position:relative;overflow:hidden">
+          <div style="display:flex;flex-direction:column">
+            <div style="padding:10px 20px 0;display:flex;align-items:center;justify-content:space-between;gap:16px">
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+              <div style="font-size:18px;font-weight:600;letter-spacing:-0.01em">Sun 4 Oct · 9:00 am</div>
+              <div style="font-size:15px;color:#6E7671">Centennial Park, Sydney</div>
+            </div>
+            <div style="flex:none;width:56px;display:flex;flex-direction:column;align-items:center;gap:5px">
+              <span style="font-size:12px;font-weight:600;color:#4A524D">Locked</span>
+              <span style="width:52px;height:32px;border-radius:999px;background:#fff;border:2px solid #8A918C;display:flex;align-items:center;justify-content:flex-start;padding:0 6px;box-sizing:border-box"><span style="width:16px;height:16px;border-radius:999px;background:#8A918C;display:block"></span></span>
+            </div>
+          </div>
+            <div style="margin:18px 20px 0;background:#F5F7F5;border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between">
+              <span style="display:flex;align-items:baseline;gap:6px"><span style="font-size:26px;font-weight:700;letter-spacing:-0.02em;font-variant-numeric:tabular-nums">6</span><span style="font-size:15px;color:#6E7671">of 10 slots</span></span>
+              <span style="font-size:14px;font-weight:600;color:#1F5C39">4 open</span>
+            </div>
+            <div style="display:flex;gap:2px;height:8px;border-radius:4px;overflow:hidden;background:#DDE2DE">
+              <span style="flex:5;background:#2F7D4F"></span><span style="flex:1;background:#9AA6BB"></span><span style="flex:4"></span>
+            </div>
+            <div style="display:flex;gap:16px;font-size:13px;color:#4A524D">
+              <span style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:999px;background:#2F7D4F"></span>5 in</span>
+              <span style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:999px;background:#9AA6BB"></span>1 pending</span>
+              <span style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:999px;border:1.5px solid #C9867C"></span>2 out</span>
+            </div>
+          </div>
+            <div style="margin:12px 20px 0;border:1px solid #E4E7E4;border-radius:14px;padding:12px 12px 12px 16px;min-height:66px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:12px">
+            <span style="display:flex;flex-direction:column;gap:2px">
+              <span style="font-size:16px;font-weight:600">You’re in</span>
+              <span style="font-size:13px;color:#6E7671">Answered Thu 1 Oct</span>
+            </span>
+            <span style="height:40px;border:1px solid #D7DCD8;border-radius:10px;display:flex;align-items:center;padding:0 18px;font-size:14px;font-weight:600">Change</span>
+          </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:26px 16px 6px 20px;min-height:36px">
+            <span style="display:flex;align-items:baseline;gap:8px"><span style="font-size:17px;font-weight:700">Players</span><span style="font-size:15px;color:#8A918C;font-variant-numeric:tabular-nums">8</span></span>
+            <span style="height:36px;border-radius:999px;background:#E8F2EB;color:#1F5C39;display:flex;align-items:center;gap:6px;padding:0 14px 0 12px;font-size:14px;font-weight:600"><span style="font-size:18px;line-height:1">+</span>Add</span>
+          </div>
+            <div style="display:flex;align-items:center;gap:12px;height:56px;margin:0 20px;border-top:1px solid #F0F2F0;flex:none">
+              <span style="width:36px;height:36px;border-radius:999px;background:#F0F2F0;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:#4A524D;flex:none">AS</span>
+              <span style="flex:1;display:flex;align-items:center;gap:8px;font-size:16px">Ali S<span style="font-size:12px;font-weight:600;color:#6E7671;border:1px solid #D7DCD8;border-radius:6px;padding:1px 6px">You</span></span>
+              <span style="display:flex;align-items:center;gap:3px;font-size:13px;font-weight:600;color:#1F5C39;background:#E8F2EB;border-radius:999px;height:28px;padding:0 9px 0 12px">In<span style="font-size:15px">›</span></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;height:56px;margin:0 20px;border-top:1px solid #F0F2F0;flex:none">
+              <span style="width:36px;height:36px;border-radius:999px;background:#F0F2F0;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:#4A524D;flex:none">ET</span>
+              <span style="flex:1;display:flex;align-items:center;gap:8px;font-size:16px">Ethan</span>
+              <span style="display:flex;align-items:center;gap:3px;font-size:13px;font-weight:600;color:#1F5C39;background:#E8F2EB;border-radius:999px;height:28px;padding:0 9px 0 12px">In<span style="font-size:15px">›</span></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;height:56px;margin:0 20px;border-top:1px solid #F0F2F0;flex:none">
+              <span style="width:36px;height:36px;border-radius:999px;background:#F0F2F0;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:#4A524D;flex:none">JA</span>
+              <span style="flex:1;display:flex;align-items:center;gap:8px;font-size:16px">Jack</span>
+              <span style="display:flex;align-items:center;gap:3px;font-size:13px;font-weight:600;color:#1F5C39;background:#E8F2EB;border-radius:999px;height:28px;padding:0 9px 0 12px">In<span style="font-size:15px">›</span></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;height:56px;margin:0 20px;border-top:1px solid #F0F2F0;flex:none">
+              <span style="width:36px;height:36px;border-radius:999px;background:#F0F2F0;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:#4A524D;flex:none">MA</span>
+              <span style="flex:1;display:flex;align-items:center;gap:8px;font-size:16px">Mason</span>
+              <span style="display:flex;align-items:center;gap:3px;font-size:13px;font-weight:600;color:#1F5C39;background:#E8F2EB;border-radius:999px;height:28px;padding:0 9px 0 12px">In<span style="font-size:15px">›</span></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;height:56px;margin:0 20px;border-top:1px solid #F0F2F0;flex:none">
+              <span style="width:36px;height:36px;border-radius:999px;background:#F0F2F0;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:#4A524D;flex:none">MO</span>
+              <span style="flex:1;display:flex;align-items:center;gap:8px;font-size:16px">Mohsen</span>
+              <span style="display:flex;align-items:center;gap:3px;font-size:13px;font-weight:600;color:#1F5C39;background:#E8F2EB;border-radius:999px;height:28px;padding:0 9px 0 12px">In<span style="font-size:15px">›</span></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;height:56px;margin:0 20px;border-top:1px solid #F0F2F0;flex:none">
+              <span style="width:36px;height:36px;border-radius:999px;background:#F0F2F0;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:#4A524D;flex:none">KE</span>
+              <span style="flex:1;display:flex;align-items:center;gap:8px;font-size:16px">Kevin</span>
+              <span style="display:flex;align-items:center;gap:3px;font-size:13px;font-weight:600;color:#3F4C63;background:#ECEFF4;border-radius:999px;height:28px;padding:0 9px 0 12px">Pending<span style="font-size:15px">›</span></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;height:56px;margin:0 20px;border-top:1px solid #F0F2F0;flex:none">
+              <span style="width:36px;height:36px;border-radius:999px;background:#F0F2F0;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:#4A524D;flex:none">FA</span>
+              <span style="flex:1;display:flex;align-items:center;gap:8px;font-size:16px">Farid</span>
+              <span style="display:flex;align-items:center;gap:3px;font-size:13px;font-weight:600;color:#9A3324;background:#FBE9E7;border-radius:999px;height:28px;padding:0 9px 0 12px">Out<span style="font-size:15px">›</span></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;height:56px;margin:0 20px;border-top:1px solid #F0F2F0;flex:none">
+              <span style="width:36px;height:36px;border-radius:999px;background:#F0F2F0;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:#4A524D;flex:none">NO</span>
+              <span style="flex:1;display:flex;align-items:center;gap:8px;font-size:16px">Noah</span>
+              <span style="display:flex;align-items:center;gap:3px;font-size:13px;font-weight:600;color:#9A3324;background:#FBE9E7;border-radius:999px;height:28px;padding:0 9px 0 12px">Out<span style="font-size:15px">›</span></span>
+            </div>
+          </div>
+          <div style="position:absolute;inset:0;background:rgba(20,23,26,0.32);display:flex;align-items:center;justify-content:center;padding:0 24px">
+            <div style="width:100%;background:#fff;border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:10px;box-sizing:border-box">
+              <div style="font-size:20px;font-weight:600">Delete this event?</div>
+              <div style="font-size:15px;line-height:1.5;color:#4A524D;text-wrap:pretty">Sunday Match – Centennial Park on Sun 4 Oct is deleted for everyone, with its roster and standby queue. This can’t be undone.</div>
+              <div style="display:flex;gap:10px;margin-top:14px">
+                <div style="flex:1;height:46px;border:1px solid #D7DCD8;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600">Cancel</div>
+                <div style="flex:1;height:46px;background:#14171A;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:#fff">Delete</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:11.5px;line-height:1.6;color:#6E7671">From the Event app bar ⋮, below Edit event. Same dialog as 1p: names the event, says what goes with it. Destructive button is ink. Delete returns to the Events tab. Allowed while locked: on a locked or started event ⋮ holds Delete event alone.</div>
+    </div>
+
+    <!-- 5e Group — Events (admin), one locked -->
+    <div id="5e" style="display:flex;flex-direction:column;gap:12px;width:390px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-family:'DM Mono',monospace;font-size:11px;color:#fff;background:#14171A;border-radius:5px;padding:3px 7px">5e</span>
+        <span style="font-size:15px;font-weight:600">Group — Events (admin), one locked</span>
+      </div>
+      <div style="width:390px;height:844px;background:#fff;border:1px solid #E4E7E4;border-radius:28px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 30px rgba(20,23,26,0.07);position:relative;box-sizing:border-box">
+        <div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:13px;font-weight:600;flex:none"><span>9:41</span><span style="width:16px;height:9px;border:1.5px solid #14171A;border-radius:2px;display:block"></span></div>
+        <div style="height:56px;display:flex;align-items:center;gap:4px;padding:0 12px">
+          <span style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:22px">←</span>
+          <span style="flex:1;font-size:19px;font-weight:700;letter-spacing:-0.01em">Westgate Wednesday 7s</span>
+          <span style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:20px;color:#14171A">⋮</span>
+        </div>
+        <div style="display:flex;border-bottom:1px solid #EEF1EE;padding:0 8px">
+          <div style="flex:1;height:46px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:#14171A;border-bottom:2px solid #2F7D4F">Events</div>
+          <div style="flex:1;height:46px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:500;color:#6E7671;border-bottom:2px solid transparent">Members</div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:12px;padding:20px 20px 0;overflow:hidden">
+          <div style="border:1px solid #E4E7E4;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+              <div style="display:flex;flex-direction:column;gap:3px">
+                <div style="font-family:'DM Mono',monospace;font-size:11.5px;letter-spacing:0.06em;text-transform:uppercase;color:#6E7671">Wed 17 Sep · 7:00 pm</div>
+                <div style="font-size:18px;font-weight:600">Weekly 7-a-side</div>
+              </div>
+              <span style="display:flex;align-items:center;gap:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6E7671" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;display:block"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span style="font-size:12px;font-weight:600;color:#1F5C39;background:#E8F2EB;border-radius:999px;padding:4px 11px;white-space:nowrap">In</span></span>
+            </div>
+            <div style="font-size:14px;color:#6E7671">Westgate Pitch 2</div>
+            <div style="font-size:14px;color:#6E7671">10 of 10 slots · 7 in, 3 pending</div>
+          </div>
+          <div style="border:1px solid #E4E7E4;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+              <div style="display:flex;flex-direction:column;gap:3px">
+                <div style="font-family:'DM Mono',monospace;font-size:11.5px;letter-spacing:0.06em;text-transform:uppercase;color:#6E7671">Wed 24 Sep · 7:00 pm</div>
+                <div style="font-size:18px;font-weight:600">Weekly 7-a-side</div>
+              </div>
+              <span style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;font-weight:600;color:#3F4C63;background:#ECEFF4;border-radius:999px;padding:4px 11px;white-space:nowrap">Pending</span></span>
+            </div>
+            <div style="font-size:14px;color:#6E7671">Westgate Pitch 2</div>
+            <div style="font-size:14px;color:#6E7671">6 of 10 slots · 4 in, 2 pending</div>
+          </div>
+          <div style="border:1px solid #E4E7E4;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+              <div style="display:flex;flex-direction:column;gap:3px">
+                <div style="font-family:'DM Mono',monospace;font-size:11.5px;letter-spacing:0.06em;text-transform:uppercase;color:#6E7671">Sun 28 Sep · 10:00 am</div>
+                <div style="font-size:18px;font-weight:600">Friendly vs Brunswick</div>
+              </div>
+              <span style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;font-weight:600;color:#9A3324;background:#FBE9E7;border-radius:999px;padding:4px 11px;white-space:nowrap">Out</span></span>
+            </div>
+            <div style="font-size:14px;color:#6E7671">Clifton Park</div>
+            <div style="font-size:14px;color:#6E7671">9 of 12 slots · 6 in, 3 pending</div>
+          </div>
+        </div>
+        <div style="position:absolute;right:20px;bottom:28px;height:52px;background:#2F7D4F;border-radius:16px;display:flex;align-items:center;gap:8px;padding:0 20px;color:#fff;font-size:15px;font-weight:600;box-shadow:0 6px 16px rgba(47,125,79,0.28)"><span style="font-size:20px;font-weight:400">+</span>New event</div>
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:11.5px;line-height:1.6;color:#6E7671">1h with a muted lock beside the status chip on a locked event. Same for members. No new colour; the chip keeps the viewer’s own status.</div>
+    </div>
+
+  </div>
+</section>
+</body>
+</html>

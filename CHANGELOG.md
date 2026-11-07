@@ -3,6 +3,48 @@
 One entry per release, newest first. Each lists what changed for users,
 then the backend and tooling, and the platforms it shipped to.
 
+## 1.0.7 — unreleased
+
+Platforms: backend, web, Android, iOS.
+
+- Event lock: admins can lock an event before it starts. No RSVP
+  changes, invites, edits or queue changes for anyone until an admin
+  unlocks it. Unlocking fills any free slots from standby. Behind the
+  `event_lock` flag.
+- Delete event: admins can delete an event before it starts, including a
+  locked or cancelled one. A started event can no longer be deleted.
+- Cancel event: admins can cancel an event before it starts, locked or
+  not. It stays in the Events tab marked cancelled, read-only, and can't
+  be undone in the app. Behind the `cancel_event` flag.
+- Narrow screens: "Can't make it" wraps and stays centred.
+- Backend: remote feature flags in `private.feature_flags`, read at
+  launch through `get_feature_flags`; a flag with no row is off.
+  `set_event_locked`, `cancel_event` and `delete_event`; the freeze
+  triggers and roster RPCs reject writes on a locked or cancelled event,
+  promotion waits for unlock and stops for good on cancel, and
+  `delete_event` refuses a started event.
+- Tooling: navigation split into per-screen graphs with nav graph tests;
+  screen UI tests run on Robolectric; Event screen split into components
+  with previews.
+
+## 1.0.6 — 2026-10-15
+
+Platforms: to confirm.
+
+- Admins can edit a group's name and an event's title, time and
+  location.
+- Members tab counts members and pending invitations.
+- Tooling: prod deploys run by hand with a checkbox per platform; new
+  RUNBOOK.md; README rewritten with screenshots.
+
+## 1.0.5 — 2026-10-11
+
+Platforms: iOS (App Store and TestFlight), Android (Play internal testing).
+
+- No user-facing changes.
+- Tooling: CI on every PR, dev and prod deploy workflows, release
+  prepare and finish workflows, version check and guard on `main` PRs.
+
 ## 1.0.4 — 2026-10-06
 
 Platforms: backend only.

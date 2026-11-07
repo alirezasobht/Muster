@@ -1,6 +1,9 @@
 package app.muster.data.mapper
 
 import app.muster.domain.error.DomainError
+import io.github.jan.supabase.postgrest.exception.PostgrestRestException
+import io.mockk.every
+import io.mockk.mockk
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -31,6 +34,21 @@ class ErrorMapperTest {
     }
 
     @Test
+    fun `a write on a locked event is EventLocked`() {
+        assertIs<DomainError.EventLocked>(raised("event is locked").toDomainError())
+    }
+
+    @Test
+    fun `a write on a cancelled event is EventCancelled`() {
+        assertIs<DomainError.EventCancelled>(raised("event is cancelled").toDomainError())
+    }
+
+    @Test
+    fun `a write on a started event is still EventFrozen`() {
+        assertIs<DomainError.EventFrozen>(raised("event has already started").toDomainError())
+    }
+
+    @Test
     fun `the cause is kept for diagnosis`() {
         val cause = RuntimeException("boom")
         assertSame(cause, cause.toDomainError().cause)
@@ -55,5 +73,12 @@ class ErrorMapperTest {
         assertFailsWith<CancellationException> {
             mapErrors { throw CancellationException("cancelled") }
         }
+    }
+
+    // Building a real one needs a Ktor HttpResponse; only code and error
+    // are read by the mapper.
+    private fun raised(message: String) = mockk<PostgrestRestException> {
+        every { code } returns "P0001"
+        every { error } returns message
     }
 }

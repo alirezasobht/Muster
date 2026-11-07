@@ -422,3 +422,80 @@ enforcement off, on project `muster-ci` only, for one key for
 Rejected: Workload Identity Federation, keyless, but a pool and provider
 to set up and maintain for one upload a release.
 
+
+## Event lock: two columns on `events`, delete still allowed
+
+A lock is `events.locked_at` and `locked_by`, not a table of its own. It
+is one state per event with no history to keep, and the freeze triggers
+already read the event row, so the lock rides on them. A separate table
+would add a join and its own grants for nothing.
+
+Deleting a locked event is allowed before kickoff. The lock stops
+changes to an event that is happening; removing one that won't happen
+is a different act, and making an admin unlock first only adds a step.
+Deleting a started event is not (see "Event cancel"). Cascades from member
+removal, leaving and account deletion still run on a locked event, as
+they do past kickoff, but promotion waits for unlock.
+
+The locked strip is ink, louder than the quiet started strip: a lock is
+temporary and someone chose it, so it has to be noticed. A pill beside
+the title was tried and dropped; it cost the title too much width.
+
+Rejected: an `event_locks` table with who, when and why; a plain boolean,
+which loses who locked it for the same cost.
+
+## Event cancel: two columns, one-way, cancelled wins
+
+A cancel is `events.cancelled_at` and `cancelled_by`, the same shape as
+the lock and for the same reasons. It differs in being one-way: no
+uncancel RPC. Players act on a cancellation — they make other plans —
+so undoing it from the app would mislead more than it helps. A mistake
+is fixed in the dashboard, as with an archived group.
+
+Cancelled wins over started and locked on screen. "Started at 7:00 pm"
+on an event that never happened is wrong, and a lock under a cancel
+says nothing more.
+
+Deleting stops at kickoff, for every event, reversing the 1.0.7 rule
+before it shipped. With cancel available, delete is no longer how an
+admin calls an event off, and a started event is a record of what
+happened. The dashboard can still remove one.
+
+No email on cancel for now: the strip and the Events tab marker carry
+it. The flag `cancel_event` gates only the ⋮ action, so the banner reads
+right on every build.
+
+Rejected: a `status` enum replacing both lock and cancel columns, which
+would rewrite the lock migrations for no gain; an uncancel RPC; hiding
+cancelled events from the Events tab.
+
+## Feature flags: a Supabase table, read into a local store
+
+Flags are rows in `private.feature_flags`, one column per platform
+holding the first app version a flag is on for; null keeps it off.
+Versions compare numerically per part. No new backend, and the same on
+all three platforms. Flags gate the app only: no RPC or trigger reads
+them, so a client on an old version can still call what a flag hides.
+Gating on the server would be its own decision. The version is
+client-reported, which is why this suits UI and not access (see Group
+creation).
+
+`get_feature_flags` is the first function granted to `anon`: the app
+syncs at launch, before sign-in, and the table holds nothing private.
+
+On the device the local store is the single source of truth. The UI
+reads only from it, and Supabase only writes into it at launch, so a
+change in the dashboard applies from the next launch. A missing flag
+reads as off; there are no hardcoded defaults.
+
+The store is multiplatform-settings (SharedPreferences, NSUserDefaults,
+localStorage), which is also the app's general key-value store. It is
+already in the build through auth-kt at 1.3.0, so the two versions move
+together. It uses its own `muster` store, or `muster.`-prefixed keys on
+the web, so it can't collide with supabase-kt's session keys.
+
+Rejected: Firebase Remote Config or another vendor (a second backend),
+and Room. Room on web needs a SQLite worker in OPFS, which needs
+COOP/COEP headers site-wide (they'd break Google Fonts on the static
+pages) or a single-tab mode; not worth it for a few booleans. Room can
+come later for real relational data. Also rejected: realtime updates.

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -19,6 +20,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -40,6 +42,7 @@ import app.muster.domain.error.DomainError
 import app.muster.domain.model.Event
 import app.muster.domain.model.emptyEvent
 import app.muster.ui.common.components.MessageState
+import app.muster.ui.common.components.MusterIcons
 import app.muster.ui.common.components.MusterPullToRefreshBox
 import app.muster.ui.common.components.MusterSpinner
 import app.muster.ui.common.toMessage
@@ -48,6 +51,8 @@ import app.muster.ui.common.util.sharedBoundsOrNone
 import app.muster.ui.theme.MusterColors
 import app.muster.ui.theme.MusterTheme
 import muster.shared.generated.resources.Res
+import muster.shared.generated.resources.content_description_locked
+import muster.shared.generated.resources.events_cancelled_label
 import muster.shared.generated.resources.events_empty_body
 import muster.shared.generated.resources.events_empty_title
 import muster.shared.generated.resources.events_failed_title
@@ -244,9 +249,27 @@ private fun EventRowItem(
                     modifier = Modifier.sharedBoundsOrNone(SharedTransitionKeys.eventStats(eventRow.id))
                 )
             }
-            if (eventRow.status != null) {
+            val hasMarker = eventRow.isCancelled || eventRow.isLocked
+            if (hasMarker || eventRow.status != null) {
                 Spacer(Modifier.width(12.dp))
-                EventStatusBadge(status = eventRow.status)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (eventRow.isCancelled) {
+                        Text(
+                            text = stringResource(Res.string.events_cancelled_label),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MusterColors.Muted
+                        )
+                    } else if (eventRow.isLocked) {
+                        Icon(
+                            imageVector = MusterIcons.Lock,
+                            contentDescription = stringResource(Res.string.content_description_locked),
+                            tint = MusterColors.Muted,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    if (hasMarker && eventRow.status != null) Spacer(Modifier.width(8.dp))
+                    if (eventRow.status != null) EventStatusBadge(status = eventRow.status)
+                }
             }
         }
     }
@@ -310,7 +333,8 @@ private val AdminPreviewEvents = listOf(
         capacity = 10,
         inCount = 4,
         pendingCount = 2,
-        status = MemberEventStatus.Pending
+        status = MemberEventStatus.Pending,
+        isLocked = true
     ),
     EventRow(
         id = "3",
@@ -321,6 +345,17 @@ private val AdminPreviewEvents = listOf(
         inCount = 6,
         pendingCount = 3,
         status = MemberEventStatus.Out
+    ),
+    EventRow(
+        id = "4",
+        title = "Weekly 7-a-side",
+        date = "Wed 1 Oct · 7:00 pm",
+        location = "Westgate Pitch 2",
+        capacity = 10,
+        inCount = 5,
+        pendingCount = 1,
+        status = MemberEventStatus.In,
+        isCancelled = true
     )
 )
 

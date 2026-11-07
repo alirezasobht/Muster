@@ -42,10 +42,12 @@ class GetInviteeCandidatesUseCaseTest {
             capacity = capacity,
             inCount = roster.count { it.status == RsvpStatus.In },
             pendingCount = roster.count { it.status == RsvpStatus.Pending },
-            myStatus = null
+            myStatus = null,
+            lockedAt = null
         ),
         roster = roster,
-        standby = standby
+        standby = standby,
+        lockedByName = null
     )
 
     private fun useCase(

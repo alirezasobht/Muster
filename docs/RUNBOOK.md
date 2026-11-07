@@ -128,6 +128,22 @@ for deploying dev by hand. `deploying.md`.
 | `supabase/scripts/backup-db.sh <env>` | Roles, schema and data → `Muster-env/<env>/backups/<timestamp>/`; needs Docker or Podman |
 | `supabase projects list` | Check the CLI is signed in and sees both projects |
 
+## Feature flags
+
+In each environment's dashboard, Table Editor → schema `private` →
+`feature_flags`. One row per flag: `flag` is the snake_case key, and
+`android`, `ios` and `web` each hold the first app version it is on for
+(`1.0.7`), or null to keep it off there. Apps pick a change up on their
+next launch.
+
+Flags in use: `event_lock` (the admin's Locked switch), `cancel_event`
+(the admin's ⋮ Cancel event). A flag with no
+row is off, so add the row before shipping the version that needs it.
+
+A new flag also needs its entry in `FeatureFlag.kt`
+(`domain/model`), with the same key. Why it works this way:
+`DECISIONS.md` → "Feature flags".
+
 ## GitHub Actions
 
 From the repo's Actions tab, or `gh workflow run <file>`. Branch and PR

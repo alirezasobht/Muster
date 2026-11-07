@@ -132,7 +132,8 @@ stack.
 
 **Events tab** — upcoming events only. Past events are out of scope for
 now; a second tab is the obvious home for them later. New event button
-for admins.
+for admins. A locked event's row carries a small lock (DESIGN.md 5e); a
+cancelled one a small muted "Cancelled" label instead (5h).
 
 **Members tab** — one list, everyone in it, with a status against each
 name: admin, member, or pending. A line at the top counts members, and
@@ -193,7 +194,8 @@ Details on top, then the roster, then the standby queue.
 Everyone sees the whole roster and each player's RSVP. Players can
 change only their own. Admins can change anyone's, reorder the queue,
 add players, and cancel, remove or resend a pending player's invitation.
-Admins also get Edit event in the app bar ⋮; members get no ⋮.
+Admins also get an app bar ⋮ holding Edit event, Cancel event and
+Delete event; members get no ⋮.
 
 The roster is one list sorted in, then pending, then out — not grouped
 into sections.
@@ -205,7 +207,33 @@ gives its own row actions.
 
 Once `starts_at` passes the event freezes: every control disappears and
 the screen reads the same for admins and members. DESIGN.md frame 1n has
-the detail.
+the detail. A started event has no ⋮, for admins too: nothing in it
+applies any more.
+
+**Lock.** Admins get a Locked switch beside the date and location, on
+unstarted events only, while the `event_lock` feature flag is on;
+turning it on or off confirms first. A locked event renders locked
+whatever the flag says. A locked
+event reuses the frozen rendering, with three differences: an ink strip
+reads "Locked by Ali" over "No changes until an admin unlocks it",
+Pending stays "Pending", and the standby header reads "Standby ·
+paused". The admin keeps the switch and a ⋮ holding Cancel event
+(when its flag is on) and Delete event. Members see the same screen without either. DESIGN.md frames
+5a–5c.
+
+**Cancel event** sits in ⋮ between Edit and Delete, on unstarted,
+uncancelled events, while the `cancel_event` feature flag is on. It
+confirms first, naming the event and saying it can't be undone, then
+stays on the screen. A cancelled event renders cancelled whatever the
+flag says: the locked rendering under an ink strip reading "Cancelled by
+Ali" over "This event won't go ahead", with the standby header "Standby
+· not called up". Cancelled wins over locked and started, so neither
+the lock switch nor the started strip shows. The admin's ⋮ holds Delete
+event alone until kickoff. DESIGN.md frames 5f–5h.
+
+**Delete event** confirms first, naming the event, then returns to the
+Events tab. Offered on locked and cancelled events, not on started
+ones. DESIGN.md frame 5d.
 
 ### Add players
 Member picker. Group members not already on the event, multi-select,
