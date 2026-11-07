@@ -226,6 +226,22 @@ manual, which drifts from `prod/edge.env`. Cost: the Resend key and
 webhook secrets sit in a GitHub environment, readable only by an approved
 job on `main`.
 
+The deploy lists each `PROD_EDGE_*` name instead of reading
+`toJSON(secrets)`: GitHub flags a workflow that dumps every secret as
+possibly malicious and holds its run. Cost: a new Edge secret needs a line
+in `deploy-prod.yml` as well as in `prod/edge.env`.
+
+## Same-version fixes until the release is tagged
+
+A PR into `main` may keep `main`'s version while `vX.Y.Z` isn't tagged:
+a fix found during the prod deploy ships in the same release. Store
+uploads still need a new version, so this only helps when the apps
+haven't been uploaded yet, or the fix is backend, web or CI.
+
+Rejected: an admin bypass of the version check each time (the rule only
+on paper), and deploying from the fix branch (prod would run code that
+isn't on `main`).
+
 ## Linear dev, merge commits into main, back-merge after each release
 
 Feature branches squash or rebase into `dev`, which rejects merge

@@ -84,7 +84,8 @@ Every job but `Web Build` builds with dummy values (`ci.invalid`).
 ### `Version Bump` — `release-checks.yml`
 
 Fails unless `VERSION_NAME` in `version.properties` is `x.y.z` and above
-`main`'s.
+`main`'s, or equal to it while `vX.Y.Z` isn't tagged yet: a fix during a
+release, before Release finish.
 
 ## Releasing
 
@@ -101,6 +102,10 @@ Fails unless `VERSION_NAME` in `version.properties` is `x.y.z` and above
    merges it with a merge commit once the checks pass. On conflicts it
    comments on the PR and fails: resolve them on that branch, then run it
    again.
+
+A fix needed mid-release, before step 4: commit it on a branch from
+`main`, open its PR into `main` by hand (Release prepare wants a higher
+version), merge it with a merge commit, and run Deploy prod again.
 
 Release prepare and Release finish act as the GitHub App
 `muster-release-alirezasobht`: Contents, Pull requests read/write; Checks
@@ -132,8 +137,8 @@ which needs your approval; one approval releases every ticked job, and
 secrets are released only after it.
 
 - **Backend:** backup to `Muster-backups/prod/`, migrations, Edge
-  Function secrets from the `PROD_EDGE_*` secrets (stale ones removed),
-  functions. The order matches `deploy-backend.sh`.
+  Function secrets from the `PROD_EDGE_*` secrets the workflow lists
+  (stale ones removed), functions. The order matches `deploy-backend.sh`.
 - After Backend succeeds or is unticked:
   - **Web:** prod web build, uploaded to Cloudflare Pages as a
     production deployment (`--branch=main`).
@@ -176,7 +181,8 @@ value by hand in Muster: the next sync overwrites it.
   `PROD_WEB_APP_URL`, `PROD_CONTACT_EMAIL`, `PROD_ANDROID_CERT_SHA256`,
   `PROD_IOS_APP_STORE_ID`, `PROD_IOS_TEAM_ID` (from `prod/ios.xcconfig`)
 - Backend: `PROD_SUPABASE_PROJECT_REF`, `PROD_SUPABASE_ACCESS_TOKEN`,
-  `PROD_EDGE_*` (one per `prod/edge.env` line)
+  `PROD_EDGE_*` (one per `prod/edge.env` line, each also listed in
+  `deploy-prod.yml`)
 - Web: `PROD_CLOUDFLARE_API_TOKEN`, `PROD_CLOUDFLARE_ACCOUNT_ID`,
   `PROD_CLOUDFLARE_PAGES_PROJECT`
 - Android: `PROD_UPLOAD_KEYSTORE_BASE64`, `PROD_UPLOAD_KEYSTORE_PASSWORD`,
