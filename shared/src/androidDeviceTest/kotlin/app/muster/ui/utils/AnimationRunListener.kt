@@ -1,5 +1,6 @@
 package app.muster.ui.utils
 
+import android.os.ParcelFileDescriptor
 import android.provider.Settings.Global.ANIMATOR_DURATION_SCALE
 import android.provider.Settings.Global.TRANSITION_ANIMATION_SCALE
 import android.provider.Settings.Global.WINDOW_ANIMATION_SCALE
@@ -46,10 +47,12 @@ class AnimationRunListener : RunListener() {
 
     private fun setSystemAnimations(enabled: Boolean) {
         val value = if (enabled) "1.0" else "0.0"
-        InstrumentationRegistry.getInstrumentation().uiAutomation.run {
-            executeShellCommand("settings put global $WINDOW_ANIMATION_SCALE $value")
-            executeShellCommand("settings put global $TRANSITION_ANIMATION_SCALE $value")
-            executeShellCommand("settings put global $ANIMATOR_DURATION_SCALE $value")
+        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        listOf(WINDOW_ANIMATION_SCALE, TRANSITION_ANIMATION_SCALE, ANIMATOR_DURATION_SCALE).forEach { setting ->
+            // Shell commands run async; reading to EOF waits, so a test's reset can't land after the next test's set.
+            ParcelFileDescriptor.AutoCloseInputStream(
+                automation.executeShellCommand("settings put global $setting $value")
+            ).use { it.readBytes() }
         }
     }
 }
