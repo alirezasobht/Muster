@@ -11,8 +11,9 @@ Why it is set up this way: DECISIONS.md.
   ruleset rejects it.
 - **feature → `dev`:** squash or rebase. `dev` takes no merge commits
   except back-merges.
-- **release → `main`:** a merge commit. The release PR comes from `dev`, or
-  from a fix branch for a hotfix (see Releasing).
+- **release → `main`:** a merge commit. The release PR comes from a
+  `release/x.y.z` branch off `dev`, or from a fix branch for a hotfix
+  (see Releasing).
 - **`main` → `dev`:** after every release, a back-merge with a merge
   commit, so `dev` always contains `main` and a hotfix never needs a
   cherry-pick.
@@ -89,23 +90,26 @@ release, before Release finish.
 
 ## Releasing
 
-1. **Actions → Release prepare** → base (default `dev`; a fix branch for
+1. Branch `release/x.y.z` off `dev`, with the CHANGELOG entry, and push
+   it. `dev` keeps taking work meanwhile.
+2. **Actions → Release prepare** → base `release/x.y.z` (a fix branch for
    a hotfix), version (only if the branch isn't bumped yet). If the
    branch's `VERSION_NAME` isn't above `main`'s, it commits
    "Bump version to x.y.z" on the branch as the release app, then opens
    **Release x.y.z** into `main`.
-2. Wait for the checks, then **Create a merge commit**.
-3. **Actions → Deploy prod** on `main` → tick what to ship → approve
+3. Wait for the checks, then **Create a merge commit**.
+4. **Actions → Deploy prod** on `main` → tick what to ship → approve
    (see below).
-4. **Actions → Release finish.** Tags `main` `vX.Y.Z`, then opens
+5. **Actions → Release finish.** Tags `main` `vX.Y.Z`, then opens
    **Back-merge vX.Y.Z** from a `back-merge/vX.Y.Z` branch into `dev` and
    merges it with a merge commit once the checks pass. On conflicts it
    comments on the PR and fails: resolve them on that branch, then run it
    again.
 
-A fix needed mid-release, before step 4: commit it on a branch from
-`main`, open its PR into `main` by hand (Release prepare wants a higher
-version), merge it with a merge commit, and run Deploy prod again.
+A fix needed mid-release, before step 5: commit it on the release
+branch, fast-forwarded to `main`, open its PR into `main` by hand
+(Release prepare wants a higher version), merge it with a merge commit,
+and run Deploy prod again.
 
 Release prepare and Release finish act as the GitHub App
 `muster-release-alirezasobht`: Contents, Pull requests read/write; Checks

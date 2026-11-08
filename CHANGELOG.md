@@ -3,7 +3,7 @@
 One entry per release, newest first. Each lists what changed for users,
 then the backend and tooling, and the platforms it shipped to.
 
-## 1.0.7 — unreleased
+## 1.0.7 — 2026-11-08
 
 Platforms: backend, web, Android, iOS.
 

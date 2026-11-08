@@ -399,8 +399,8 @@ live users).
 
 ## Releases run through a GitHub App
 
-Release prepare commits the version bump straight onto `dev` and opens
-the release PR; Release finish tags and back-merges. Both act as the
+Release prepare commits the version bump onto the release branch and
+opens the release PR; Release finish tags and back-merges. Both act as the
 app `muster-release-alirezasobht`, with a token minted per run, on the
 `dev` ruleset's bypass list. Both run by hand only.
 
@@ -408,10 +408,19 @@ The workflow's own token can't do this: PRs and commits made with it
 don't trigger other workflows, so the release PR's checks would never
 run, and `release-guard.yml` would close a PR from `github-actions`.
 Rejected: a personal token (the owner's bypass is PR-only, so it still
-couldn't push to `dev`), a `release/x.y.z` branch per release (an extra
-branch for a one-line bump), and a deploy key plus a token (two
+couldn't push to `dev`), and a deploy key plus a token (two
 credentials for the same job). Cost: the app can push anything to `dev`,
 not only the bump; its key lives only in the `release` environment.
+
+## Releases go out from a release branch
+
+Each release branches `release/x.y.z` off `dev`. The CHANGELOG entry,
+the version bump and any fix found before Release finish land there,
+while `dev` keeps taking work. Release finish's back-merge brings it all
+back into `dev`.
+
+Rejected: releasing `dev` itself (`dev` is frozen until the release is
+merged, and a mid-release fix would ship whatever else reached `dev`).
 
 ## Prod deploys: one manual workflow, a checkbox per part
 
