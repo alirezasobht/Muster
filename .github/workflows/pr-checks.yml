@@ -90,6 +90,11 @@ jobs:
                   api-level: 34
                   arch: x86_64
                   script: ./gradlew :shared:connectedAndroidDeviceTest
+            - if: failure()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: android-test-report
+                  path: shared/build/reports/androidTests
 
     web:
         name: Web Build

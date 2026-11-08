@@ -1,9 +1,8 @@
 # CLAUDE.md
 
 Muster — a personal football-team organizing app replacing Teamer.
-Android, iOS and Web from one Kotlin codebase. Published on Google Play
-and the web; iOS is in App Store review. The repo is public and serves as
-a portfolio.
+Android, iOS and Web from one Kotlin codebase. Published on Google Play,
+the App Store and the web. The repo is public and serves as a portfolio.
 
 ## Read before proposing anything
 
@@ -121,11 +120,11 @@ lock checks in the freeze triggers and roster RPCs; on dev, shipping in
 `event_lock` gates the admin's Locked switch. Cancel event (⋮ Cancel,
 ink cancelled strip, Events-tab marker, the one-way `cancel_event` RPC
 and cancel checks in the freeze triggers and roster RPCs; `cancel_event`
-flag gates the ⋮ action) and delete stopping at kickoff: on the
-`feature-flag` branch, not yet run against a database.
+flag gates the ⋮ action) and delete stopping at kickoff: on dev,
+shipping in 1.0.7.
 
-**Dev** and **prod** both exist. Android is published on Play, the web
-app is live, and iOS is in App Store review.
+**Dev** and **prod** both exist. Android is published on Play, iOS on
+the App Store, and the web app is live.
 
 All writes go through definer RPCs, and every table's write grants are
 revoked — SCHEMA.md → Grants.

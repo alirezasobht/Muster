@@ -12,7 +12,7 @@ designed and built the Android, iOS and web apps, the backend, and the CI/CD
 pipelines that deliver them.
 
 **[Google Play](https://play.google.com/store/apps/details?id=app.muster.prod)**
-· **iOS:** in App Store review <!-- TODO: TestFlight public link -->
+· **[App Store](https://apps.apple.com/app/id6818366518)**
 · **[Web app](https://www.musterapp.fyi/)**
 
 | Home | Events |

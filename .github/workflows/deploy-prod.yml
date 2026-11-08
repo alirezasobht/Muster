@@ -82,16 +82,25 @@ jobs:
               run: supabase db push --linked --yes
 
             - name: Push Edge Function secrets
+              # One line per secret the Edge Functions read. Listed, not
+              # toJSON(secrets): GitHub flags a workflow that dumps every secret.
               env:
-                  ALL_SECRETS: ${{ toJSON(secrets) }}
+                  EDGE_GROUP_INVITATION_WEBHOOK_SECRET: ${{ secrets.PROD_EDGE_GROUP_INVITATION_WEBHOOK_SECRET }}
+                  EDGE_EVENT_INVITATION_WEBHOOK_SECRET: ${{ secrets.PROD_EDGE_EVENT_INVITATION_WEBHOOK_SECRET }}
+                  EDGE_RESEND_API_KEY: ${{ secrets.PROD_EDGE_RESEND_API_KEY }}
+                  EDGE_RESEND_FROM: ${{ secrets.PROD_EDGE_RESEND_FROM }}
+                  EDGE_RESEND_MEMBER_INVITATION_TEMPLATE_ID: ${{ secrets.PROD_EDGE_RESEND_MEMBER_INVITATION_TEMPLATE_ID }}
+                  EDGE_RESEND_EVENT_INVITATION_TEMPLATE_ID: ${{ secrets.PROD_EDGE_RESEND_EVENT_INVITATION_TEMPLATE_ID }}
+                  EDGE_CONTACT_EMAIL: ${{ secrets.PROD_EDGE_CONTACT_EMAIL }}
+                  EDGE_WEB_APP_URL: ${{ secrets.PROD_EDGE_WEB_APP_URL }}
               run: |
                   set -eu
-                  echo "$ALL_SECRETS" | jq -r '
-                      to_entries[]
-                      | select(.key | startswith("PROD_EDGE_"))
-                      | "\(.key | sub("^PROD_EDGE_"; ""))=\(.value | @json)"' > edge.env
-                  [ -s edge.env ] || { echo "no PROD_EDGE_ secrets in the prod environment" >&2; exit 1; }
-                  supabase secrets set --env-file edge.env --project-ref "$PROJECT_REF"
+                  : > edge.env
+                  for var in $(compgen -e | grep '^EDGE_'); do
+                      [ -n "${!var}" ] || { echo "missing or empty: PROD_$var" >&2; exit 1; }
+                      printf '%s=%s\n' "${var#EDGE_}" "$(printf '%s' "${!var}" | jq -Rs .)" >> edge.env
+                  done
+                  supabase secrets set --env-file edge.env --project-ref "$PROJECT_REF" --yes
 
                   existing=$(supabase secrets list --project-ref "$PROJECT_REF" -o json \
                       | jq -r '.[].name' | grep -v '^SUPABASE_' || true)
@@ -100,7 +109,7 @@ jobs:
                   for name in $existing; do
                       echo "$wanted" | grep -qx "$name" || stale="$stale $name"
                   done
-                  [ -z "$stale" ] || supabase secrets unset $stale --project-ref "$PROJECT_REF"
+                  [ -z "$stale" ] || supabase secrets unset $stale --project-ref "$PROJECT_REF" --yes
                   rm -f edge.env
 
             - name: Deploy functions
@@ -109,7 +118,7 @@ jobs:
                   for dir in supabase/functions/*/; do
                       name=$(basename "$dir")
                       case "$name" in _*) continue ;; esac
-                      supabase functions deploy "$name" --project-ref "$PROJECT_REF"
+                      supabase functions deploy "$name" --project-ref "$PROJECT_REF" --yes
                   done
 
     web:
