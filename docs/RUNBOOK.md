@@ -159,8 +159,9 @@ rules: `CI.md`.
 | `deploy-prod.yml` | by hand, after approval | Per ticked box: backend (backup, migrations, secrets, functions), web to Pages, Android to Play internal, iOS to TestFlight |
 | `release-finish.yml` | by hand, after the deploy | Tags `vX.Y.Z` and back-merges `main` into `dev` |
 
-A release is Release prepare → merge the PR → Deploy prod → Release
-finish, with the CHANGELOG entry on `dev` before any of it.
+A release is a `release/x.y.z` branch off `dev` with the CHANGELOG
+entry → Release prepare on it → merge the PR → Deploy prod → Release
+finish.
 
 ## Releasing by hand
 
