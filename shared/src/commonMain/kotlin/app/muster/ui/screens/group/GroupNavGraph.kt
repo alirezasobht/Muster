@@ -12,6 +12,8 @@ import app.muster.ui.screens.group.editgroup.EditGroupRoute
 import app.muster.ui.screens.group.events.NewEvent
 import app.muster.ui.screens.group.events.eventsGraph
 import app.muster.ui.screens.group.members.AddMemberByEmail
+import app.muster.ui.screens.group.members.CreateMemberTag
+import app.muster.ui.screens.group.members.RenameMemberTag
 import app.muster.ui.screens.group.members.membersGraph
 import kotlinx.serialization.Serializable
 
@@ -52,7 +54,10 @@ fun NavGraphBuilder.groupGraph(navController: NavController) {
                         )
                     )
                 },
-                onNewEvent = { name -> navController.navigate(NewEvent(group.id, name)) }
+                onNewEvent = { name -> navController.navigate(NewEvent(group.id, name)) },
+                onCreateTagForMember = { memberId -> navController.navigate(CreateMemberTag(group.id, memberId)) },
+                onCreateTag = { navController.navigate(CreateMemberTag(group.id, null)) },
+                onRenameMemberTag = { tagId, tagName, memberCount -> navController.navigate(RenameMemberTag(group.id, tagId, tagName, memberCount)) }
             )
         }
     }

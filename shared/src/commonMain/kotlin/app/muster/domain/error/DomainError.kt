@@ -74,5 +74,16 @@ sealed class DomainError(
     // caller or the group.
     class InvitationSentTooRecently : DomainError("invitation sent too recently")
 
+    // group_tags_name_unique (23505): case-insensitive within the group.
+    // Carries the submitted name because the message quotes it.
+    class TagNameTaken(val name: String) : DomainError("a tag with this name already exists")
+
+    // group_tags_name_length CHECK (23514): more than 30 characters.
+    class TagNameTooLong : DomainError("tag name is too long")
+
+    // The tag was deleted between loading the screen and this write.
+    // Reload the list before retrying.
+    class TagListChanged : DomainError("tags changed, reload")
+
     class Unknown(cause: Throwable) : DomainError(cause.message ?: "unknown error", cause)
 }

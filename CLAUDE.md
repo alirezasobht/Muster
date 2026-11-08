@@ -121,7 +121,9 @@ lock checks in the freeze triggers and roster RPCs; on dev, shipping in
 ink cancelled strip, Events-tab marker, the one-way `cancel_event` RPC
 and cancel checks in the freeze triggers and roster RPCs; `cancel_event`
 flag gates the ⋮ action) and delete stopping at kickoff: on dev,
-shipping in 1.0.7.
+shipping in 1.0.7. member tags on the Members tab (cards,
+Untagged, New/Rename/Delete tag, Move to tag sheet, drag between
+sections, tag order via Move up/down; unreleased).
 
 **Dev** and **prod** both exist. Android is published on Play, iOS on
 the App Store, and the web app is live.
@@ -130,11 +132,13 @@ All writes go through definer RPCs, and every table's write grants are
 revoked — SCHEMA.md → Grants.
 
 Not built:
-- **Member tags** — tables and RPCs exist (the 2026-10-13 migrations);
-  no domain layer or UI yet.
+- **Member tag polish** — the drag feedback from 6c–6f, "Saving…" text
+  in place of the spinner, and a live "already a tag called" check while
+  typing.
+- **Add players with tags** (6t/6u).
 - **The 2a–2d error treatment** — done on 1a, 1b, 1g and Add by email.
   Still outstanding on 1c and 1f, which carry a single `error` field and
   put everything in the field's slot, including errors that aren't about
   the field.
 
-Next: member tags — domain and UI.
+Next: Add players with tags (6t/6u).

@@ -397,6 +397,96 @@ invitation emails), and access that differs by app version (the version
 is client-reported, and reviewers would see different behaviour from
 live users).
 
+## Member tags: their own table, admins only
+
+A member's tag is a row in `group_member_tags`, keyed by member, not a
+column on `group_members`. `group_keeps_an_admin` fires on every update
+to `group_members`, so a column would run it on every tag change; and
+allowing several tags later is a key change, not a migration of
+`group_members`.
+
+Tags are visible to admins only. A label like Casual next to someone's
+name can read as a ranking, and tags are an admin tool.
+
+The name limit (30) is a database CHECK only; the app maps the
+constraint to its own message rather than repeating the rule.
+
+Rejected: a `tag_id` column on `group_members`, and tags visible to
+everyone.
+
+## One member, one tag, no member order
+
+`set_member_tag` moves one member into one tag, or untags them, in a
+single row write. Two admins moving different members never overwrite
+each other, so there is no layout to replace and no stale-screen
+conflict. Members inside a tag have no stored order: they always show
+self first, then admins, then members, each A–Z, the same as Untagged.
+Only the tags are ordered, by `set_group_tag_order`, which replaces the
+tag order whole like `set_standby_order`; the client never computes a
+position.
+`create_group_tag` takes an optional member so "New tag…" from Move to
+tag creates the tag and moves the member in one transaction.
+
+Rejected: a stored order for members within a tag, and replacing every
+tag's members in one call (a stale screen would undo another admin's
+moves).
+
+## Members move by drag, tags by menu
+
+A member moves by dragging the row to another section, or through the Move
+to tag sheet. A tag moves only with Move up / Move down on its card menu.
+There is no member order to drag within a tag, and no card drag: Move
+up/down is enough for the handful of tags a group has.
+
+Rejected: a row-menu Move up / Move down for members (they have no stored
+order), and drag-to-reorder cards.
+
+## The Members list is one flat lazy list
+
+`MembersList` is a single `LazyColumn` of keyed header, row and empty-hint
+items, not a card containing its rows. `animateItem` and the reorderable
+library (3.1.0) only work on direct lazy items; a row inside a card item
+could neither animate between sections nor be dragged out of one. The card
+look is drawn per item (`TagCardPosition`, `tagCardFrame`).
+
+Dragging runs on a local `DragLayout`, a pure model in
+`components/MembersListModel.kt`, not in the ViewModel: the library needs
+to displace rows live as the drag moves. The destination is the nearest
+section header above the dropped row. After the drop a short delay
+(`DRAG_SETTLE_MILLIS`) lets the row animate into place before the list
+goes back to ViewModel state. A row has to keep the same composable
+structure in every section, or the drag is cancelled when it changes
+section mid-drag.
+
+Rejected: dragging across containers with custom pointer input (hit
+testing, auto-scroll and displacement to rebuild), and `ReorderableColumn`
+(a non-lazy column, so no lazy item animation).
+
+## Member moves are optimistic
+
+`MembersTabViewModel.onSetMemberTag` applies the move to the list at once
+(`withMemberMoved` in `MembersTabMapper.kt`, a pure function), keeps the
+previous tags and members, and restores them if the call fails, with the
+error shown under the count line. One row saves at a time. The tag id, the
+order and the name rules stay in Postgres; the client only reflects the
+result.
+
+`MoveTagUpUseCase` and `MoveTagDownUseCase` compute the new id list,
+because `set_group_tag_order` takes the whole list.
+
+Rejected: waiting for the call before moving the row (a dropped row would
+snap back, then jump), and refetching the list after every move.
+
+## One members read, role included
+
+`get_group_members` returns the caller's role, members, and for admins
+pending invitations and tags, in one snapshot. One call replaces the
+role fetch plus the list, and members get empty admin parts at no extra
+cost, since the function checks the role once.
+
+Rejected: separate member and admin RPCs. The app would pick one from a
+role fetched earlier, and an admin demoted in between would hit an error.
+
 ## Releases run through a GitHub App
 
 Release prepare commits the version bump onto the release branch and
